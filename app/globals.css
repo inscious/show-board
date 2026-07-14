@@ -1,0 +1,21 @@
+/* The app ships its own styles from inside the component (one <style> block,
+   scoped to .sb). This file only covers the page shell and the five utility
+   classes the component leans on — which is why there's no Tailwind here. */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #0D0F13;
+  color: #F2F5F9;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior-y: none;   /* no rubber-band bounce under the bottom nav */
+}
+
+/* utilities the component uses */
+.mx-auto   { margin-left: auto; margin-right: auto; }
+.w-full    { width: 100%; }
+.min-w-0   { min-width: 0; }
+.max-w-xl  { max-width: 576px; }
+.truncate  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

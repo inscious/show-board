@@ -1,0 +1,15 @@
+{
+  "name": "Show Board — Local 831",
+  "short_name": "Show Board",
+  "description": "Show schedule, work calendar and OJT tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0D0F13",
+  "theme_color": "#0D0F13",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
