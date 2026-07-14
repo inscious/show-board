@@ -1,58 +1,98 @@
 # Show Board — Local 831
 
-Show schedule, work calendar, and OJT tracker for an IUPAT Local 831 apprentice.
+Show schedule, work calendar, and OJT tracker for IUPAT Local 831 apprentices — now
+multi-user, backed by Supabase, with a separate admin console for the JATC/coordinator
+side of things.
 
-Next.js (App Router) · React · lucide-react. No Tailwind, no database, no accounts.
-Everything lives in the browser on your phone.
-
----
-
-## Before you start — what to have
-
-| | Why |
-|---|---|
-| **Node.js 20 or newer** | Check with `node -v`. If it's missing, get it from nodejs.org (LTS). |
-| **A code editor** | VS Code is fine. |
-| **Git** | `git --version`. Comes with Xcode tools on a Mac. |
-| **GitHub account** | Free. Where the code lives. |
-| **Vercel account** | Free. Sign in *with GitHub* — it makes deploying one click. |
-
-That's it. Nothing to pay for, nothing to configure.
+Next.js 14 (App Router) · React · Supabase (Postgres + Auth) · lucide-react. No Tailwind —
+colors and layout are inline, off the palette in `lib/core.js`.
 
 ---
 
-## Run it
+## What it does
+
+### Apprentice side (`/`)
+
+- **Home** — this month's hours and gross pay, this week at a glance, what's on the floor
+  today, OJT due-date status, level progress.
+- **Board** — the shared union show schedule: move-in/start/end dates, general contractor,
+  region. Flag yourself working/target/passed on any show; schedule the days you got called for.
+- **Calendar** — a month grid of logged hours, classes, bookings, and holidays, color-coded.
+- **OJT** — level ladder, category (A/B/C/D) progress toward EJ, per-company pay overrides,
+  class schedule, and the monthly OJT slip: submit a month's hours to your admin for review.
+
+Everything **auto-saves** — no save button anywhere. Every change lands in `localStorage`
+instantly (works with no bars) and syncs to Supabase in the background, diffed so only what
+actually changed gets pushed.
+
+### Admin side (`/admin`)
+
+A genuinely separate dashboard, not extra buttons bolted onto the apprentice view —
+`middleware.js` routes each account to the right one at sign-in, before any page renders.
+
+- **Roster** — every apprentice, their level, total *approved* OJT hours, pending-review
+  count, and what they're currently on the schedule for (working/target flags + bookings).
+- **Per-apprentice detail** — edit their profile (name, member ID, last-4 SSN, join date,
+  RSI credits), approve or reject a submitted OJT month, backfill/correct historical months,
+  reset their password.
+- **Schedule** — add a show, bulk-import a pasted union PDF, edit or delete existing shows.
+- **Add apprentice** — create a new account directly (email + temp password), no signup flow.
+
+### Submitted vs. approved hours
+
+An apprentice's monthly OJT submission lands as **pending** — it only counts toward their
+running total once an admin **approves** it. This is separate from (and doesn't touch)
+`work_entries`, which is the apprentice's own day-to-day logged hours. Three distinct records,
+on purpose, per the union's own three-way gap: what you worked, what you submitted, what's
+officially on file.
+
+### Auth
+
+Password sign-in is the default (an apprentice can set one from OJT → Account once they're
+in), with a magic-link email as a fallback for testing/lost passwords. There's no self-serve
+signup — accounts only get created by an admin.
+
+---
+
+## Setup
 
 ```bash
-cd ~/where-you-put-it/show-board
 npm install
+cp .env.example .env.local   # fill in the four values below
 npm run dev
 ```
 
-Open **http://localhost:3000**.
+### `.env.local`
 
-To see it on your phone while you develop, find your laptop's LAN address
-(`ipconfig getifaddr en0` on a Mac) and open `http://192.168.x.x:3000` on the phone —
-same Wi-Fi. That's the fastest loop for testing move-in-day stuff.
+| Var | Where it comes from |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | same page — public by design, RLS is the real gate |
+| `SUPABASE_SERVICE_ROLE_KEY` | same page — **server-only**, bypasses RLS, never expose client-side |
+| `ALLOWED_EMAILS` | comma-separated emails allowed to request a magic link |
 
----
+### Database
 
-## Put it on your phone for real
+Paste `supabase/schema.sql` into the Supabase SQL Editor once, on a fresh project. It creates
+every table, the RLS policies, the `is_admin_user()` helper, and the rate-limit function the
+API routes lean on.
 
-```bash
-git init
-git add -A
-git commit -m "show board"
-gh repo create show-board --private --source=. --push   # or push to a repo you make on github.com
+### Custom SMTP (recommended)
+
+Supabase's default shared SMTP has a very low send rate — fine for testing, not for two
+people signing in the same afternoon. Point Project Settings → Authentication → SMTP at a
+real provider (Resend, Postmark, etc.) once you're past initial setup.
+
+### Bootstrapping the first admin
+
+There's no UI path to create the first admin (chicken-and-egg — creating an apprentice
+requires an existing admin session). Use the Supabase service-role key directly:
+
+```js
+// one-off script, service-role key, never deployed
+const { data } = await supabase.auth.admin.createUser({ email, password, email_confirm: true });
+await supabase.from("profiles").update({ is_admin: true }).eq("id", data.user.id);
 ```
-
-Then on **vercel.com** → *Add New Project* → pick the repo → **Deploy**. No settings to
-change; Vercel detects Next.js. You get a URL like `show-board-xyz.vercel.app` in about a minute.
-
-On the phone: open that URL in Safari → **Share → Add to Home Screen**. It installs like a
-native app — full screen, own icon, no browser chrome. That's the PWA manifest doing its job.
-
-Every `git push` redeploys automatically.
 
 ---
 
@@ -61,76 +101,87 @@ Every `git push` redeploys automatically.
 ```
 show-board/
 ├── app/
-│   ├── layout.jsx        page shell, PWA metadata, viewport
-│   ├── page.jsx          renders <ShowBoard />
-│   └── globals.css       page background + 5 utility classes
+│   ├── page.jsx                 apprentice dashboard <ShowBoard />
+│   ├── admin/page.jsx            admin console <AdminBoard />
+│   ├── login/page.jsx            password + magic-link sign-in
+│   ├── auth/callback/route.js    magic-link redirect target
+│   └── api/
+│       ├── auth/                 sign-in, magic-link request, self-service set-password
+│       ├── admin/                create apprentice, edit profile/OJT-months, reset password
+│       └── (shows, entries, ojt-months, bookings, classes, rates, pins, ...)
 ├── components/
-│   └── ShowBoard.jsx     the whole app — 4 tabs, all the UI
+│   ├── ShowBoard.jsx             the apprentice app — 4 tabs, all the UI
+│   ├── AdminBoard.jsx            the admin console — roster, detail, schedule
+│   └── ShowEditor.jsx            shared add/edit/import-show UI (admin-only)
 ├── lib/
-│   ├── core.js           constants, seed data, pure helpers. No React.
-│   └── store.js          ← THE ONLY FILE THAT TOUCHES PERSISTENCE
-├── public/
-│   ├── manifest.webmanifest
-│   └── icon-*.png        home-screen icons
+│   ├── core.js                   constants, shared seed data, pure helpers — no React, no DOM
+│   ├── store.js                  ← THE ONLY FILE THAT TOUCHES PERSISTENCE (apprentice side)
+│   ├── apiGuard.js                shared wrapper: auth + rate limit + zod + admin check
+│   ├── rateLimit.js                Postgres-backed fixed-window rate limiter
+│   ├── schemas.js                  zod schemas for every mutation route
+│   ├── email.js                    minimal Resend sender for password-change notifications
+│   └── supabase/                   browser / server / service-role client factories
+├── middleware.js                 session gate + admin/apprentice routing
 └── supabase/
-    └── schema.sql        for the day your brother signs in. Not used yet.
+    └── schema.sql                 tables, RLS policies, rate-limit + is_admin_user() functions
 ```
 
-**`lib/store.js` is the important one.** The entire app reads and writes through
-`store.load()` and `store.save(data)`. Nothing else knows where the data lives. That's
-deliberate — when you go multi-user, you rewrite *that file* and nothing else changes.
+**`lib/store.js` is still the rule for the apprentice side** — everything reads and writes
+through `store.load()` / `store.save(data)`. The admin console doesn't use it (it's a
+different data shape — a roster, not one person's blob) but follows the same idea: reads go
+straight through Supabase client calls, writes go through the `/api/admin/*` routes.
 
 ---
 
-## What's your data vs. what's everyone's
+## Personal data
 
-In `lib/core.js`, clearly marked at the top:
+Nothing in this repo hardcodes any individual apprentice's data anymore — name, member ID,
+last-4 SSN, hours, rates, bookings, and classes all live in Supabase, scoped per-user by RLS
+(`user_id = auth.uid()`), never in source. `lib/personal-data.js` (gitignored) only exists for
+`scripts/seed.mjs`, a one-off local script to backfill your own historical hours.
 
-**Yours** — `APPRENTICE`, `OJT_SEED`, `CO_RATE_SEED`, `BOOKING_SEED`, `CLASS_SEED`.
-Your name, member ID, last-4, 748 submitted hours, Willwork's L4 rate, the Comic-Con
-booking, the Double Decker class.
-
-> **Before anyone else touches this app, that data has to come out of the source and into
-> a per-user table.** Right now your last-4 is sitting in a file that would go in a git repo.
-> Keep the repo **private** until it moves.
-
-**Everyone's** — `COMPANIES`, `RAW_MAY/JUNE/JULY`, `LEVELS`, `CATS_META`, `PAY`, `JATC`.
-Same for every apprentice in the local. These become shared tables, seeded once.
+**Still worth knowing before making this repo public:** `lib/core.js`'s `COMPANIES` and `JATC`
+constants are real shared directory data — foreman names and labor-line phone numbers, plus
+two named JATC office staff with a direct line and a personal SMS number. That's committed,
+versioned, third-party contact information, not the apprentice's own — it's a separate call
+from whether apprentice data is safe to expose.
 
 ---
 
 ## Updating the schedule each month
 
-Today: **Board tab → Import schedule**, paste the rows out of the union PDF. The parser
-reads move-in · start · end · name · location · booth · company. Duplicates are skipped,
-so re-pasting an overlapping sheet is safe.
-
-Later, when it's multi-user: you import once, and everyone's board updates. That's the
-whole reason `shows` is a shared table in the schema.
+**Admin → Schedule → Import schedule**, paste the rows out of the union PDF. The parser reads
+`move-in · start · end · name · location · booth · company` (tab- or double-space-separated,
+matching how PDF table columns paste). Duplicates (same name + start date) are skipped, so
+re-pasting an overlapping sheet is safe. Every apprentice's Board tab updates from the same
+shared `shows` table.
 
 ---
 
 ## Things worth knowing
 
-- **It's local-first on purpose.** Convention halls eat cell signal. The app has to work
-  with no bars, so it never blocks on a network call. Keep it that way.
-- **Clock hours ≠ paid hours.** The union gets the hours you stood on the floor. The
-  paycheck gets them weighted (OT ×1.5, DT ×2, holiday floor of 8 at OT). The app tracks
-  both and never mixes them. Don't "simplify" this later.
+- **It's local-first on purpose.** Convention halls eat cell signal. Every write lands in
+  `localStorage` instantly; Supabase sync happens in the background and never blocks the UI.
+- **Sync is diffed, not full-resync.** Each category (entries, bookings, shows, ...) only
+  posts what actually changed since the last successful sync — posting everything on every
+  save doesn't scale past a handful of shows and blows through the API's own rate limits.
+- **Clock hours ≠ paid hours.** The union gets the hours you stood on the floor. The paycheck
+  gets them weighted (OT ×1.5, DT ×2, holiday floor of 8 at OT). `entrySplit()` returns both
+  and they're never merged.
+- **Submitted ≠ approved ≠ logged.** Three separate records on purpose — see "Submitted vs.
+  approved hours" above.
 - **The OT multiplier (×1.5) is an assumption.** Everything else in `PAY` came off the
   contract. Confirm it with the hall and change the one constant.
-- **`YEAR = 2026` is hardcoded** in `core.js` because the union sheet prints dates as
-  `7/18` with no year. When 2027 rolls around, that constant needs to become smarter.
+- **`YEAR = 2026` is hardcoded** in `core.js` because the union sheet prints dates as `7/18`
+  with no year. When 2027 rolls around, that constant needs to become smarter.
 
 ---
 
 ## Next things to build
 
-Roughly in the order I'd do them:
-
 1. **Paycheck reconciliation.** Log what actually landed and diff it against what the app
-   predicted. This is the one that finds money.
-2. **`.ics` export.** Push scheduled days and class dates into the phone's real calendar
-   with alarms.
-3. **Travel pay.** $10/day is in the package and nothing counts it.
-4. **Multi-user** (see `supabase/schema.sql` and the plan doc).
+   predicted.
+2. **`.ics` export.** Push scheduled days and class dates into the phone's real calendar.
+3. **Travel pay.** In the pay package, not counted anywhere yet.
+4. **Self-service admin invite flow** — right now a second admin account has to be bootstrapped
+   with the service-role key directly (see Setup above).

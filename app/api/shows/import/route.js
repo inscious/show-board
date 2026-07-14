@@ -1,0 +1,30 @@
+import { guardedRoute } from "@/lib/apiGuard";
+import { showImportSchema } from "@/lib/schemas";
+
+/* Bulk import from a pasted union sheet — admin-only, capped at 500 rows
+   per request by showImportSchema. */
+export async function POST(request) {
+  return guardedRoute(
+    request,
+    "shows:import",
+    { schema: showImportSchema, requireAdmin: true, rateLimit: { max: 10, windowSeconds: 60 } },
+    async ({ supabase, user, data }) => {
+      const rows = data.shows.map((s) => ({
+        id: s.id,
+        name: s.name,
+        move_in: s.mi || null,
+        starts_on: s.start || null,
+        ends_on: s.end || null,
+        location: s.loc || null,
+        booth: s.booth || null,
+        gc: s.co || null,
+        region: s.region || null,
+        source: s.src || "union",
+        created_by: user.id,
+      }));
+      const { error } = await supabase.from("shows").upsert(rows);
+      if (error) return Response.json({ error: "Could not import" }, { status: 400 });
+      return Response.json({ ok: true, count: rows.length });
+    }
+  );
+}

@@ -2,17 +2,25 @@
   "name": "show-board",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "IUPAT Local 831 — show board, work calendar and OJT tracker",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed": "node --env-file=.env.local scripts/seed.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.1",
+    "@supabase/supabase-js": "^2.110.4",
     "lucide-react": "^0.408.0",
     "next": "^14.2.5",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "ws": "^8.21.0"
   }
 }
