@@ -101,15 +101,17 @@ create table bookings (
   day_notes jsonb not null default '{}'::jsonb  -- { "YYYY-MM-DD": "start time, gate, booth..." }, overrides `note` for one date
 );
 
--- union classes: mandatory, unpaid, scheduled per apprentice
+-- union classes: mandatory, unpaid, scheduled per apprentice. Admin-assigned
+-- only — apprentices can view but not add/edit/delete (see RLS below).
 create table classes (
-  id         text primary key,
-  user_id    uuid not null references auth.users on delete cascade,
-  name       text not null,
-  start_min  int,               -- minutes from midnight, matches TIME_SLOTS granularity
-  location   text,
-  note       text,
-  dates      date[] not null
+  id           text primary key,
+  user_id      uuid not null references auth.users on delete cascade,
+  name         text not null,
+  start_min    int,               -- minutes from midnight, matches TIME_SLOTS granularity
+  location     text,
+  note         text,
+  dates        date[] not null,
+  missed_dates date[] not null default '{}'  -- subset of `dates` the admin marked absent; revert by removing
 );
 
 -- one row per company per day. two shops in a day = two rows.
@@ -260,7 +262,7 @@ alter table pinned_companies enable row level security;
 create policy "own rows" on work_entries     for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "own rows" on ojt_months       for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "own rows" on bookings         for all using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "own rows" on classes          for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy "own rows read-only" on classes for select using (user_id = auth.uid());
 create policy "own rows" on show_flags       for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "own rows" on company_rates    for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "own rows" on pinned_companies for all using (user_id = auth.uid()) with check (user_id = auth.uid());

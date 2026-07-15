@@ -4,8 +4,8 @@ Show schedule, work calendar, and OJT tracker for IUPAT Local 831 apprentices �
 multi-user, backed by Supabase, with a separate admin console for the JATC/coordinator
 side of things.
 
-Next.js 14 (App Router) · React · Supabase (Postgres + Auth) · lucide-react. No Tailwind —
-colors and layout are inline, off the palette in `lib/core.js`.
+Next.js 14 (App Router) · React · Supabase (Postgres + Auth) · lucide-react · Recharts (the
+dashboard charts). No Tailwind — colors and layout are inline, off the palette in `lib/core.js`.
 
 ---
 
@@ -13,13 +13,20 @@ colors and layout are inline, off the palette in `lib/core.js`.
 
 ### Apprentice side (`/`)
 
-- **Home** — this month's hours and gross pay, this week at a glance, what's on the floor
-  today, OJT due-date status, level progress.
+- **Home** — this month's hours and gross pay, a monthly-hours chart (trailing calendar year,
+  A/B/C/D category breakdown — past months come off the submitted OJT record, the current
+  month comes live off the calendar), this week at a glance, what's on the floor today, OJT
+  due-date status, level progress.
 - **Board** — the shared union show schedule: move-in/start/end dates, general contractor,
-  region. Flag yourself working/target/passed on any show; schedule the days you got called for.
-- **Calendar** — a month grid of logged hours, classes, bookings, and holidays, color-coded.
-- **OJT** — level ladder, category (A/B/C/D) progress toward EJ, per-company pay overrides,
-  class schedule, and the monthly OJT slip: submit a month's hours to your admin for review.
+  region. Flag yourself working/target/passed on any show; schedule the days you got called for,
+  down to a note on an individual date (start time, gate, booth) distinct from the booking's
+  overall note.
+- **Calendar** — a month grid of logged hours, classes, bookings, and holidays, each rendered
+  as a filled/highlighted cell (not just a dot) so composition is visible at a glance.
+- **OJT** — level ladder, category (A/B/C/D) progress toward EJ, per-company pay overrides, the
+  monthly OJT slip (submit a month's hours to your admin for review), and your class schedule.
+  Classes are assigned by your admin only — tap one to see the details (time, location, note,
+  per-date status) in a read-only modal; you can't add, edit, or remove one yourself.
 
 Everything **auto-saves** — no save button anywhere. Every change lands in `localStorage`
 instantly (works with no bars) and syncs to Supabase in the background, diffed so only what
@@ -31,12 +38,27 @@ A genuinely separate dashboard, not extra buttons bolted onto the apprentice vie
 `middleware.js` routes each account to the right one at sign-in, before any page renders.
 
 - **Roster** — every apprentice, their level, total *approved* OJT hours, pending-review
-  count, and what they're currently on the schedule for (working/target flags + bookings).
-- **Per-apprentice detail** — edit their profile (name, member ID, last-4 SSN, join date,
-  RSI credits), approve or reject a submitted OJT month, backfill/correct historical months,
-  reset their password.
-- **Schedule** — add a show, bulk-import a pasted union PDF, edit or delete existing shows.
+  count, and what they're currently on the schedule for (working/target flags + bookings), plus
+  two roster-wide panels: hours-by-category across everyone (stacked bar, lifetime composition)
+  and certifications expiring within 60 days across the whole roster.
+- **Per-apprentice detail** — four tabs: **Overview** (stats, pending review, on-the-schedule),
+  **History** (approved months + backfill/correct a month), **Classes & Certs** (assign a class,
+  toggle any individual class date between attended/missed — the apprentice sees the flag on
+  their calendar and gets a notification; add/remove certifications), and **Settings** (edit
+  profile, reset their password).
+- **Schedule** — add a show, bulk-import a pasted union PDF, edit or delete existing shows,
+  each with a move-in countdown badge.
 - **Add apprentice** — create a new account directly (email + temp password), no signup flow.
+
+### Classes are admin-assigned, not self-service
+
+`classes` used to be full read/write for the apprentice who owned each row; it's now
+select-only for apprentices at the RLS layer (`supabase/schema.sql`) — the write path is
+`/api/admin/classes` exclusively. Admin can also toggle any individual date on an assigned
+class between attended and missed (`missed_dates`, a plain array of the dates within that
+class that got flagged) and revert it later by toggling it back. Both a calendar highlight and
+a row in the apprentice's notifications feed follow from marking a date missed — the same
+`notifications` table used for new class assignments.
 
 ### Submitted vs. approved hours
 
@@ -108,7 +130,8 @@ show-board/
 │   └── api/
 │       ├── auth/                 sign-in, magic-link request, self-service set-password
 │       ├── admin/                create apprentice, edit profile/OJT-months, reset password
-│       └── (shows, entries, ojt-months, bookings, classes, rates, pins, ...)
+│       └── (shows, entries, ojt-months, bookings, rates, pins, ...) — no apprentice-facing
+│           classes route; classes are admin-write-only, see below
 ├── components/
 │   ├── ShowBoard.jsx             the apprentice app — 4 tabs, all the UI
 │   ├── AdminBoard.jsx            the admin console — roster, detail, schedule
@@ -170,6 +193,10 @@ shared `shows` table.
   and they're never merged.
 - **Submitted ≠ approved ≠ logged.** Three separate records on purpose — see "Submitted vs.
   approved hours" above.
+- **Mobile-first, but desktop isn't an afterthought.** Both apps switch to a wider, centered
+  desktop layout above 900px (bottom nav → top pills, modals go from a mobile bottom-sheet to
+  centered) — same breakpoint, same `.sb`/`.admin-shell` scoped `<style>` block pattern, no
+  Tailwind, no separate desktop build.
 - **The OT multiplier (×1.5) is an assumption.** Everything else in `PAY` came off the
   contract. Confirm it with the hall and change the one constant.
 - **`YEAR = 2026` is hardcoded** in `core.js` because the union sheet prints dates as `7/18`

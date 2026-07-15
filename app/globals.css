@@ -4,6 +4,13 @@
 
 * { box-sizing: border-box; }
 
+html {
+  /* reserves the scrollbar's width on every page regardless of whether that
+     page's content is tall enough to need one — without this, switching to a
+     shorter tab drops the scrollbar and the whole layout jumps sideways */
+  scrollbar-gutter: stable;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -19,3 +26,14 @@ html, body {
 .min-w-0   { min-width: 0; }
 .max-w-xl  { max-width: 576px; }
 .truncate  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* loading placeholders — shared by both apps while data is still in flight */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+.skeleton {
+  background: #242932;
+  border-radius: 8px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useContext, createContext } from "react";
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import {
     Phone,
     Plus,
@@ -879,7 +879,7 @@ function Modal({ title, sub, onClose, children }) {
                         <X size={16} />
                     </button>
                 </div>
-                <div style={{ padding: 18, overflowY: "auto" }}>{children}</div>
+                <div style={{ padding: 20, overflowY: "auto" }}>{children}</div>
             </div>
         </div>
     );
@@ -1424,7 +1424,6 @@ function DaySheet({
     classes,
     onDelBooking,
     onSaveBooking,
-    onDropClassDay,
 }) {
     const { companies } = useContext(DirectoryContext);
     const d = fromKey(dayKey);
@@ -1589,7 +1588,7 @@ function DaySheet({
                         background: "rgba(232,146,124,0.08)",
                         border: "1px solid " + KLASS + "55",
                         borderRadius: 11,
-                        padding: "12px 13px",
+                        padding: "16px 17px",
                         marginBottom: 12,
                     }}
                 >
@@ -1801,29 +1800,6 @@ function DaySheet({
                             {c.note}
                         </div>
                     )}
-
-                    <button
-                        className="foc"
-                        onClick={() => onDropClassDay(c.id, dayKey)}
-                        style={{
-                            width: "100%",
-                            marginTop: 10,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            gap: 6,
-                            background: "transparent",
-                            color: C.lo,
-                            border: "1px dashed " + C.line,
-                            borderRadius: 8,
-                            padding: "9px",
-                            fontSize: 12,
-                            fontWeight: 600,
-                        }}
-                    >
-                        <X size={13} />
-                        No class this day — let me log hours instead
-                    </button>
                 </div>
             ))}
 
@@ -3409,438 +3385,6 @@ function BookingForm({
     );
 }
 
-/* ---------- union class ---------- */
-function ClassForm({ initial, onSave, onDelete, onClose }) {
-    const t0 = todayMid();
-    const [name, setName] = useState(initial ? initial.name : "");
-    const [start, setStart] = useState(initial ? initial.start : PAY.stStart);
-    const [loc, setLoc] = useState(initial ? initial.loc || "" : "");
-    const [note, setNote] = useState(initial ? initial.note || "" : "");
-    const [dates, setDates] = useState(
-        initial ? (initial.dates || []).slice() : [],
-    );
-    const [touched, setTouched] = useState(false);
-    const first = dates.length ? fromKey(dates.slice().sort()[0]) : t0;
-    const [cur, setCur] = useState({
-        y: first.getFullYear(),
-        m: first.getMonth(),
-    });
-
-    const cells = monthGrid(cur.y, cur.m);
-    const step = (n) =>
-        setCur((p) => {
-            const d = new Date(p.y, p.m + n, 1);
-            return { y: d.getFullYear(), m: d.getMonth() };
-        });
-    const toggle = (k) =>
-        setDates((p) =>
-            p.indexOf(k) !== -1 ? p.filter((x) => x !== k) : [...p, k].sort(),
-        );
-    const missing = [];
-    if (!name.trim()) missing.push("name");
-    if (!dates.length) missing.push("day");
-    const ok = missing.length === 0;
-
-    return (
-        <div>
-            <div
-                style={{
-                    fontSize: 10,
-                    letterSpacing: 0.5,
-                    color: C.lo,
-                    fontFamily: FM,
-                    marginBottom: 4,
-                }}
-            >
-                CLASS{" "}
-                <span
-                    style={{ color: touched && !name.trim() ? C.danger : C.lo }}
-                >
-                    *
-                </span>
-            </div>
-            <input
-                className="foc"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="#39-#43 Double Decker"
-                style={{
-                    width: "100%",
-                    background: C.sunk,
-                    color: C.hi,
-                    border:
-                        "1px solid " +
-                        (touched && !name.trim() ? C.danger : C.line),
-                    borderRadius: 9,
-                    padding: "11px",
-                    fontSize: 14,
-                    fontFamily: FS,
-                }}
-            />
-
-            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                <div style={{ width: 110, flexShrink: 0 }}>
-                    <div
-                        style={{
-                            fontSize: 10,
-                            letterSpacing: 0.5,
-                            color: C.lo,
-                            fontFamily: FM,
-                            marginBottom: 4,
-                        }}
-                    >
-                        START
-                    </div>
-                    <select
-                        className="foc"
-                        value={start}
-                        onChange={(e) => setStart(Number(e.target.value))}
-                        style={{
-                            width: "100%",
-                            background: C.sunk,
-                            color: C.hi,
-                            border: "1px solid " + C.line,
-                            borderRadius: 9,
-                            padding: "11px 6px",
-                            fontSize: 14,
-                            fontFamily: FM,
-                            fontWeight: 700,
-                        }}
-                    >
-                        {TIME_SLOTS.map((m) => (
-                            <option key={m} value={m}>
-                                {fmtClock(m)}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                        style={{
-                            fontSize: 10,
-                            letterSpacing: 0.5,
-                            color: C.lo,
-                            fontFamily: FM,
-                            marginBottom: 4,
-                        }}
-                    >
-                        LOCATION
-                    </div>
-                    <input
-                        className="foc"
-                        value={loc}
-                        onChange={(e) => setLoc(e.target.value)}
-                        placeholder="14930 Marquardt Ave"
-                        style={{
-                            width: "100%",
-                            background: C.sunk,
-                            color: C.hi,
-                            border: "1px solid " + C.line,
-                            borderRadius: 9,
-                            padding: "11px",
-                            fontSize: 14,
-                            fontFamily: FS,
-                        }}
-                    />
-                </div>
-            </div>
-
-            <div
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    margin: "16px 0 8px",
-                }}
-            >
-                <div
-                    style={{
-                        fontSize: 10,
-                        letterSpacing: 0.5,
-                        color: C.lo,
-                        fontFamily: FM,
-                    }}
-                >
-                    WHICH DAYS{" "}
-                    <span
-                        style={{
-                            color: touched && !dates.length ? C.danger : C.lo,
-                        }}
-                    >
-                        *
-                    </span>
-                </div>
-                <div
-                    style={{
-                        marginLeft: "auto",
-                        fontFamily: FM,
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: dates.length ? KLASS : C.lo,
-                    }}
-                >
-                    {dates.length} SELECTED
-                </div>
-            </div>
-
-            <div
-                style={{
-                    background: C.sunk,
-                    border: "1px solid " + C.line,
-                    borderRadius: 11,
-                    padding: 10,
-                }}
-            >
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        marginBottom: 8,
-                    }}
-                >
-                    <button
-                        className="foc"
-                        onClick={() => step(-1)}
-                        style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 8,
-                            background: C.raise,
-                            border: "1px solid " + C.line,
-                            color: C.hi,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                        }}
-                    >
-                        <ChevronLeft size={15} />
-                    </button>
-                    <div
-                        style={{
-                            flex: 1,
-                            textAlign: "center",
-                            fontFamily: FM,
-                            fontSize: 13,
-                            fontWeight: 800,
-                            letterSpacing: 1.5,
-                            color: C.hi,
-                        }}
-                    >
-                        {MONTHS[cur.m]} {cur.y}
-                    </div>
-                    <button
-                        className="foc"
-                        onClick={() => step(1)}
-                        style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 8,
-                            background: C.raise,
-                            border: "1px solid " + C.line,
-                            color: C.hi,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                        }}
-                    >
-                        <ChevronRight size={15} />
-                    </button>
-                </div>
-                <div
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(7, 1fr)",
-                        gap: 4,
-                        marginBottom: 5,
-                    }}
-                >
-                    {DOW.map((d, i) => (
-                        <div
-                            key={i}
-                            style={{
-                                textAlign: "center",
-                                fontSize: 9.5,
-                                fontFamily: FM,
-                                fontWeight: 700,
-                                color: C.lo,
-                            }}
-                        >
-                            {d}
-                        </div>
-                    ))}
-                </div>
-                <div
-                    style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(7, 1fr)",
-                        gap: 4,
-                    }}
-                >
-                    {cells.map((d, i) => {
-                        const inMonth = d.getMonth() === cur.m;
-                        const k = keyOf(d);
-                        const on = dates.indexOf(k) !== -1;
-                        const today = sameDay(d, t0);
-                        return (
-                            <button
-                                key={i}
-                                className="foc"
-                                onClick={() => toggle(k)}
-                                style={{
-                                    height: 38,
-                                    borderRadius: 8,
-                                    fontFamily: FM,
-                                    fontSize: 12.5,
-                                    fontWeight: on ? 800 : 600,
-                                    background: on
-                                        ? KLASS
-                                        : inMonth
-                                          ? C.panel
-                                          : "transparent",
-                                    color: on
-                                        ? "#1F1210"
-                                        : today
-                                          ? C.brand
-                                          : inMonth
-                                            ? C.mid
-                                            : C.lo,
-                                    border:
-                                        "1px solid " +
-                                        (on
-                                            ? KLASS
-                                            : today
-                                              ? C.brand
-                                              : inMonth
-                                                ? C.line
-                                                : "transparent"),
-                                    opacity: inMonth ? 1 : 0.3,
-                                }}
-                            >
-                                {d.getDate()}
-                            </button>
-                        );
-                    })}
-                </div>
-            </div>
-
-            <div
-                style={{
-                    fontSize: 10,
-                    letterSpacing: 0.5,
-                    color: C.lo,
-                    fontFamily: FM,
-                    margin: "14px 0 6px",
-                }}
-            >
-                NOTE
-            </div>
-            <textarea
-                className="foc"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={2}
-                placeholder="bring tools + book, 30-min lunch…"
-                style={{
-                    width: "100%",
-                    resize: "vertical",
-                    background: C.sunk,
-                    color: C.hi,
-                    border: "1px solid " + C.line,
-                    borderRadius: 9,
-                    padding: "10px 11px",
-                    fontSize: 13,
-                    fontFamily: FS,
-                }}
-            />
-
-            {touched && !ok && (
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 7,
-                        marginTop: 12,
-                        background: "rgba(232,146,124,0.1)",
-                        border: "1px solid " + C.danger + "55",
-                        borderRadius: 9,
-                        padding: "9px 11px",
-                    }}
-                >
-                    <Ban size={13} color={C.danger} style={{ flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: C.mid }}>
-                        Needs a {missing.join(" and at least one ")}.
-                    </span>
-                </div>
-            )}
-
-            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                {initial ? (
-                    <button
-                        className="foc"
-                        onClick={onDelete}
-                        style={{
-                            flexShrink: 0,
-                            padding: "13px 14px",
-                            borderRadius: 10,
-                            background: "transparent",
-                            color: C.danger,
-                            border: "1px solid " + C.line,
-                        }}
-                    >
-                        <Trash2 size={14} />
-                    </button>
-                ) : (
-                    <button
-                        className="foc"
-                        onClick={onClose}
-                        style={{
-                            flex: 1,
-                            padding: "13px",
-                            borderRadius: 10,
-                            background: C.raise,
-                            color: C.hi,
-                            border: "1px solid " + C.line,
-                            fontWeight: 700,
-                            fontSize: 14,
-                        }}
-                    >
-                        Cancel
-                    </button>
-                )}
-                <button
-                    className="foc"
-                    onClick={() => {
-                        setTouched(true);
-                        if (ok)
-                            onSave({
-                                id: initial
-                                    ? initial.id
-                                    : "cl" + Date.now().toString(36),
-                                name: name.trim(),
-                                start,
-                                loc: loc.trim(),
-                                note: note.trim(),
-                                dates,
-                            });
-                    }}
-                    style={{
-                        flex: 2,
-                        padding: "13px",
-                        borderRadius: 10,
-                        background: ok ? KLASS : C.raise,
-                        color: ok ? "#1F1210" : C.lo,
-                        border: "1px solid " + (ok ? KLASS : C.line),
-                        fontWeight: 800,
-                        fontSize: 14,
-                    }}
-                >
-                    {initial ? "Save class" : "Add class"}
-                </button>
-            </div>
-        </div>
-    );
-}
-
 /* ---------- calendar tab ---------- */
 function CalTab({
     shows,
@@ -3990,7 +3534,7 @@ function CalTab({
                         background: C.panel,
                         border: "1px solid " + C.edge,
                         borderRadius: 12,
-                        padding: "11px 12px",
+                        padding: "15px 16px",
                         boxShadow: SHADOW,
                     }}
                 >
@@ -4022,7 +3566,7 @@ function CalTab({
                         background: C.panel,
                         border: "1px solid " + C.edge,
                         borderRadius: 12,
-                        padding: "11px 12px",
+                        padding: "15px 16px",
                         boxShadow: SHADOW,
                     }}
                 >
@@ -4054,7 +3598,7 @@ function CalTab({
                         background: C.panel,
                         border: "1px solid " + C.edge,
                         borderRadius: 12,
-                        padding: "11px 12px",
+                        padding: "15px 16px",
                         boxShadow: SHADOW,
                         minWidth: 0,
                     }}
@@ -4160,13 +3704,25 @@ function CalTab({
                         );
                         const isToday = sameDay(d, today);
                         const hol = holidayName(d);
-                        const hasClass = classOn(classes, k).length > 0;
+                        const classesToday = classOn(classes, k);
+                        const hasClass = classesToday.length > 0;
+                        const missedClass = classesToday.some(
+                            (c) => (c.missedDates || []).indexOf(k) !== -1,
+                        );
                         const hasBook = bookingOn(bookings, k).length > 0;
                         const onBoard = showsOn(shows, d).length > 0;
                         const flag = statusOn(shows, d);
 
-                        /* FILL = your day. worked beats scheduled. */
-                        const fill = hrs ? C.working : hasBook ? BOOKED : null;
+                        /* FILL = your day. worked beats scheduled beats class. */
+                        const fill = hrs
+                            ? C.working
+                            : hasBook
+                              ? BOOKED
+                              : hasClass
+                                ? missedClass
+                                  ? C.danger
+                                  : KLASS
+                                : null;
                         const bg = fill
                             ? "rgba(" +
                               hexRgb(fill) +
@@ -4187,7 +3743,6 @@ function CalTab({
                         const spine = flag ? STATUS[flag].color : null;
                         /* DOTS = markers */
                         const dots = [];
-                        if (hasClass) dots.push(KLASS);
                         if (onBoard) dots.push(C.gc);
 
                         return (
@@ -4297,6 +3852,19 @@ function CalTab({
                                             SCHED
                                         </span>
                                     )}
+                                    {hasClass && !hasBook && !hrs && (
+                                        <span
+                                            style={{
+                                                fontFamily: FM,
+                                                fontSize: 9,
+                                                fontWeight: 800,
+                                                color: missedClass ? C.danger : KLASS,
+                                                lineHeight: 1,
+                                            }}
+                                        >
+                                            {missedClass ? "MISSED" : "CLASS"}
+                                        </span>
+                                    )}
                                     {hrs > 0 && (
                                         <span
                                             style={{
@@ -4338,7 +3906,7 @@ function CalTab({
                                     background: C.panel,
                                     border: "1px solid " + C.edge,
                                     borderRadius: 12,
-                                    padding: "12px 13px",
+                                    padding: "16px 17px",
                                     boxShadow: SHADOW,
                                 }}
                             >
@@ -4495,7 +4063,7 @@ function CalTab({
                             background: C.panel,
                             border: "1px solid " + C.edge,
                             borderRadius: 12,
-                            padding: "12px 13px",
+                            padding: "16px 17px",
                             boxShadow: SHADOW,
                         }}
                     >
@@ -4683,10 +4251,11 @@ function CalTab({
                 <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <span
                         style={{
-                            width: 6,
-                            height: 6,
-                            borderRadius: 9,
-                            background: KLASS,
+                            width: 10,
+                            height: 10,
+                            borderRadius: 3,
+                            background: "rgba(232,146,124,0.22)",
+                            border: "1px solid " + KLASS,
                         }}
                     />
                     Class
@@ -4917,7 +4486,7 @@ function Summary({ entries, cur }) {
                     color: C.hi,
                     border: "1px solid " + C.line,
                     borderRadius: 10,
-                    padding: "11px 12px",
+                    padding: "15px 16px",
                     fontSize: 12,
                     fontFamily: FM,
                     lineHeight: 1.6,
@@ -4969,7 +4538,7 @@ function Fold({ icon: Ico, title, color, children }) {
                     background: C.panel,
                     border: "1px solid " + C.line,
                     borderRadius: 10,
-                    padding: "11px 12px",
+                    padding: "15px 16px",
                     color: C.hi,
                 }}
             >
@@ -4992,7 +4561,7 @@ function Fold({ icon: Ico, title, color, children }) {
                         background: C.panel,
                         border: "1px solid " + C.line,
                         borderRadius: 10,
-                        padding: "12px 13px",
+                        padding: "16px 17px",
                     }}
                 >
                     {children}
@@ -5009,7 +4578,7 @@ function Stat({ label, value, sub, color }) {
                 background: C.panel,
                 border: "1px solid " + C.edge,
                 borderRadius: 12,
-                padding: "11px 12px",
+                padding: "15px 16px",
                 boxShadow: SHADOW,
                 minWidth: 0,
             }}
@@ -5058,7 +4627,7 @@ function LevelList({ total, avg, lastMonth }) {
                 background: C.panel,
                 border: "1px solid " + C.edge,
                 borderRadius: 12,
-                padding: "12px 13px",
+                padding: "16px 17px",
                 boxShadow: SHADOW,
             }}
         >
@@ -5345,7 +4914,7 @@ function CatBars({ t }) {
                 background: C.panel,
                 border: "1px solid " + C.edge,
                 borderRadius: 12,
-                padding: "12px 13px",
+                padding: "16px 17px",
                 boxShadow: SHADOW,
             }}
         >
@@ -5516,7 +5085,7 @@ function OjtLog({ rows, roll, onEdit }) {
                 background: C.panel,
                 border: "1px solid " + C.edge,
                 borderRadius: 12,
-                padding: "12px 13px",
+                padding: "16px 17px",
                 boxShadow: SHADOW,
             }}
         >
@@ -6000,7 +5569,7 @@ function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }) {
                     background: C.sunk,
                     border: "1px solid " + C.line,
                     borderRadius: 9,
-                    padding: "11px 12px",
+                    padding: "15px 16px",
                 }}
             >
                 <span
@@ -6615,7 +6184,7 @@ function OjtExport({ entries, months, roll, profile }) {
                     background: C.sunk,
                     border: "1px solid " + C.line,
                     borderRadius: 11,
-                    padding: "12px 13px",
+                    padding: "16px 17px",
                     marginBottom: 12,
                 }}
             >
@@ -7024,8 +6593,6 @@ function OjtTab({
     onRemoveRate,
     onAddRateCo,
     classes,
-    onEditClass,
-    onAddClass,
     email,
     isAdmin,
     onSignOut,
@@ -7036,6 +6603,7 @@ function OjtTab({
     const { jatcContacts } = useContext(DirectoryContext);
     const [signingOut, setSigningOut] = useState(false);
     const [pwModal, setPwModal] = useState(false);
+    const [classInfo, setClassInfo] = useState(null);
     const months = ojt.months || [];
     // only admin-approved months count toward level/total — a submitted month
     // sits as "pending" until an admin signs off (see ojt_months.status).
@@ -7089,7 +6657,7 @@ function OjtTab({
                     background: C.panel,
                     border: "1px solid " + C.edge,
                     borderRadius: 12,
-                    padding: "12px 13px",
+                    padding: "16px 17px",
                     boxShadow: SHADOW,
                 }}
             >
@@ -7285,7 +6853,7 @@ function OjtTab({
                             background: "rgba(255,176,32,0.07)",
                             border: "1px solid rgba(255,176,32,0.3)",
                             borderRadius: 10,
-                            padding: "11px 12px",
+                            padding: "15px 16px",
                         }}
                     >
                         <div
@@ -7411,7 +6979,7 @@ function OjtTab({
                             background: C.panel,
                             border: "1px solid rgba(127,178,255,0.35)",
                             borderRadius: 12,
-                            padding: "12px 13px",
+                            padding: "16px 17px",
                             boxShadow: SHADOW,
                         }}
                     >
@@ -7536,7 +7104,7 @@ function OjtTab({
                             background: "rgba(255,176,32,0.07)",
                             border: "1px solid rgba(255,176,32,0.3)",
                             borderRadius: 12,
-                            padding: "12px 13px",
+                            padding: "16px 17px",
                             boxShadow: SHADOW,
                         }}
                     >
@@ -7636,7 +7204,7 @@ function OjtTab({
                         background: C.panel,
                         border: "1px solid " + C.edge,
                         borderRadius: 12,
-                        padding: "12px 13px",
+                        padding: "16px 17px",
                         boxShadow: SHADOW,
                     }}
                 >
@@ -7657,30 +7225,11 @@ function OjtTab({
                         >
                             CLASS SCHEDULE
                         </div>
-                        <button
-                            className="foc"
-                            onClick={onAddClass}
-                            style={{
-                                marginLeft: "auto",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 4,
-                                background: "transparent",
-                                border: "none",
-                                color: KLASS,
-                                fontSize: 11.5,
-                                fontWeight: 700,
-                                padding: 0,
-                            }}
-                        >
-                            <Plus size={13} />
-                            Add
-                        </button>
                     </div>
                     {classRows.length === 0 ? (
                         <div style={{ fontSize: 12.5, color: C.lo }}>
-                            No classes on the books. Add them as the emails come
-                            in.
+                            No classes on the books yet — your admin assigns
+                            these as the union emails come in.
                         </div>
                     ) : (
                         <div
@@ -7704,7 +7253,7 @@ function OjtTab({
                                     <button
                                         key={c.id}
                                         className="foc"
-                                        onClick={() => onEditClass(c)}
+                                        onClick={() => setClassInfo(c)}
                                         style={{
                                             width: "100%",
                                             textAlign: "left",
@@ -8509,6 +8058,143 @@ function OjtTab({
                 </Modal>
             )}
 
+            {classInfo && (
+                <Modal
+                    title={classInfo.name}
+                    sub="Assigned by your admin — mandatory, unpaid"
+                    onClose={() => setClassInfo(null)}
+                >
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        {classInfo.start != null && (
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                                <Clock size={14} color={C.lo} style={{ flexShrink: 0 }} />
+                                <span style={{ color: C.hi, fontWeight: 700 }}>{fmtClock(classInfo.start)}</span>
+                            </div>
+                        )}
+                        {classInfo.loc && (
+                            <a
+                                className="foc"
+                                href={mapsUrl(classInfo.loc)}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 8,
+                                    background: C.raise,
+                                    border: "1px solid " + C.line,
+                                    borderRadius: 9,
+                                    padding: "10px 11px",
+                                    textDecoration: "none",
+                                }}
+                            >
+                                <MapPin size={14} color={KLASS} style={{ flexShrink: 0 }} />
+                                <span
+                                    className="truncate"
+                                    style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: C.hi }}
+                                >
+                                    {classInfo.loc}
+                                </span>
+                                <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 10, fontWeight: 800, color: KLASS }}>
+                                    DIRECTIONS
+                                </span>
+                                <ChevronRight size={14} color={C.lo} style={{ flexShrink: 0 }} />
+                            </a>
+                        )}
+                        {classInfo.note && (
+                            <div
+                                style={{
+                                    background: C.sunk,
+                                    border: "1px solid " + C.line,
+                                    borderRadius: 9,
+                                    padding: "9px 10px",
+                                    fontSize: 12.5,
+                                    color: C.mid,
+                                    lineHeight: 1.5,
+                                }}
+                            >
+                                {classInfo.note}
+                            </div>
+                        )}
+                        <div>
+                            <div
+                                style={{
+                                    fontSize: 10,
+                                    letterSpacing: 0.5,
+                                    color: C.lo,
+                                    fontFamily: FM,
+                                    marginBottom: 6,
+                                }}
+                            >
+                                DATES
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                                {(classInfo.dates || [])
+                                    .slice()
+                                    .sort()
+                                    .map((d) => {
+                                        const missed =
+                                            (classInfo.missedDates || []).indexOf(d) !== -1;
+                                        return (
+                                            <div
+                                                key={d}
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: 9,
+                                                    background: C.raise,
+                                                    border:
+                                                        "1px solid " +
+                                                        (missed ? C.danger + "55" : C.edge),
+                                                    borderRadius: 8,
+                                                    padding: "8px 10px",
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        width: 3,
+                                                        alignSelf: "stretch",
+                                                        borderRadius: 2,
+                                                        background: missed ? C.danger : C.working,
+                                                        flexShrink: 0,
+                                                    }}
+                                                />
+                                                <span
+                                                    style={{
+                                                        fontFamily: FM,
+                                                        fontSize: 12.5,
+                                                        fontWeight: 700,
+                                                        color: C.hi,
+                                                        flex: 1,
+                                                    }}
+                                                >
+                                                    {longDate(fromKey(d))}
+                                                </span>
+                                                <span
+                                                    style={{
+                                                        fontFamily: FM,
+                                                        fontSize: 9,
+                                                        fontWeight: 800,
+                                                        color: missed ? C.danger : C.working,
+                                                        border:
+                                                            "1px solid " +
+                                                            (missed ? C.danger : C.working) +
+                                                            "55",
+                                                        borderRadius: 5,
+                                                        padding: "2px 6px",
+                                                    }}
+                                                >
+                                                    {missed ? "MISSED" : "SCHEDULED"}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
             {/* JATC office */}
             <Fold icon={Phone} title="JATC office" color={C.working}>
                 <div
@@ -8663,32 +8349,79 @@ function OjtTab({
 }
 
 /* ---------- monthly hours line chart ---------- */
+const CAT_KEYS = ["a", "b", "c", "d"];
+
 function HoursTooltip({ active, payload, label }) {
     if (!active || !payload || !payload.length) return null;
+    const row = payload[0].payload;
+    const total = row.hrs;
     return (
         <div
             style={{
                 background: C.raise,
                 border: "1px solid " + C.line,
                 borderRadius: 8,
-                padding: "6px 10px",
+                padding: "8px 10px",
                 boxShadow: SHADOW,
+                minWidth: 108,
             }}
         >
             <div
                 style={{
-                    fontSize: 9.5,
-                    letterSpacing: 0.5,
-                    color: C.lo,
-                    fontFamily: FM,
-                    marginBottom: 2,
+                    display: "flex",
+                    alignItems: "baseline",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    marginBottom: total ? 6 : 0,
                 }}
             >
-                {label}
+                <span
+                    style={{
+                        fontSize: 9.5,
+                        letterSpacing: 0.5,
+                        color: C.lo,
+                        fontFamily: FM,
+                    }}
+                >
+                    {label}
+                </span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: C.hi, fontFamily: FM }}>
+                    {hrsFmt(total)}h
+                </span>
             </div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: C.hi, fontFamily: FM }}>
-                {hrsFmt(payload[0].value)}h
-            </div>
+            {total > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    {CAT_KEYS.filter((k) => row[k] > 0).map((k) => {
+                        const meta = CATS_META[k.toUpperCase()];
+                        return (
+                            <div
+                                key={k}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    fontSize: 11,
+                                    fontFamily: FM,
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        width: 7,
+                                        height: 7,
+                                        borderRadius: 2,
+                                        background: meta.color,
+                                        flexShrink: 0,
+                                    }}
+                                />
+                                <span style={{ color: C.mid, flex: 1 }}>{k.toUpperCase()}</span>
+                                <span style={{ color: C.hi, fontWeight: 700 }}>
+                                    {hrsFmt(row[k])}h
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
@@ -8707,44 +8440,94 @@ function MonthlyHoursChart({ series }) {
         >
             <div
                 style={{
-                    fontSize: 9.5,
-                    letterSpacing: 0.8,
-                    color: C.lo,
-                    fontFamily: FM,
-                    marginBottom: 4,
+                    display: "flex",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: 10,
+                    marginBottom: 8,
                 }}
             >
-                MONTHLY HOURS
+                <div
+                    style={{
+                        fontSize: 9.5,
+                        letterSpacing: 0.8,
+                        color: C.lo,
+                        fontFamily: FM,
+                    }}
+                >
+                    MONTHLY HOURS · {YEAR}
+                </div>
+                <div style={{ display: "flex", gap: 9, marginLeft: "auto" }}>
+                    {CAT_KEYS.map((k) => {
+                        const meta = CATS_META[k.toUpperCase()];
+                        return (
+                            <div
+                                key={k}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        width: 7,
+                                        height: 7,
+                                        borderRadius: 2,
+                                        background: meta.color,
+                                        flexShrink: 0,
+                                    }}
+                                />
+                                <span
+                                    style={{
+                                        fontSize: 9.5,
+                                        fontFamily: FM,
+                                        color: C.lo,
+                                    }}
+                                >
+                                    {k.toUpperCase()}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
             <div
-                style={{ width: "100%", height: 140 }}
+                style={{ width: "100%", height: 160 }}
                 role="img"
                 aria-label={
-                    "Monthly hours worked: " +
+                    "Monthly hours worked in " +
+                    YEAR +
+                    ": " +
                     series.map((s) => s.label + " " + hrsFmt(s.hrs) + "h").join(", ")
                 }
             >
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={series} margin={{ top: 16, right: 8, bottom: 0, left: 8 }}>
+                    <BarChart data={series} margin={{ top: 4, right: 4, bottom: 0, left: 4 }} barCategoryGap="28%">
+                        <CartesianGrid vertical={false} stroke={C.line} strokeOpacity={0.5} />
                         <XAxis
                             dataKey="label"
                             axisLine={{ stroke: C.line }}
                             tickLine={false}
-                            tick={{ fill: C.lo, fontSize: 9.5, fontFamily: FM }}
+                            tick={{ fill: C.lo, fontSize: 9, fontFamily: FM }}
                             dy={6}
+                            interval={0}
                         />
                         <YAxis hide domain={[0, "dataMax + 10"]} />
-                        <Tooltip content={<HoursTooltip />} cursor={{ stroke: C.line }} />
-                        <Line
-                            type="monotone"
-                            dataKey="hrs"
-                            stroke={C.working}
-                            strokeWidth={2}
-                            dot={{ r: 4, fill: C.working, stroke: C.panel, strokeWidth: 2 }}
-                            activeDot={{ r: 5.5, fill: C.working, stroke: C.panel, strokeWidth: 2 }}
-                            isAnimationActive={false}
-                        />
-                    </LineChart>
+                        <Tooltip content={<HoursTooltip />} cursor={{ fill: C.line, fillOpacity: 0.35 }} />
+                        {CAT_KEYS.map((k, i) => (
+                            <Bar
+                                key={k}
+                                dataKey={k}
+                                stackId="hrs"
+                                fill={CATS_META[k.toUpperCase()].color}
+                                stroke={C.panel}
+                                strokeWidth={1}
+                                radius={i === CAT_KEYS.length - 1 ? [3, 3, 0, 0] : 0}
+                                isAnimationActive={false}
+                            />
+                        ))}
+                    </BarChart>
                 </ResponsiveContainer>
             </div>
         </div>
@@ -8795,26 +8578,33 @@ function HomeTab({
     // the calendar only has this year's logged entries, and never for months
     // already submitted. The current month is the one exception: it's still
     // being logged and hasn't been turned in yet, so it comes from the
-    // calendar instead.
+    // calendar instead. Category (A/B/C/D) breakdown travels with both
+    // sources so the chart can show composition, not just a total.
     const submittedByMonth = useMemo(() => {
         const out = {};
         approvedMonths.forEach((mo) => {
-            out[mo.m] = monthTotal(mo);
+            out[mo.m] = { a: num(mo.a), b: num(mo.b), c: num(mo.c), d: num(mo.d) };
         });
         return out;
     }, [approvedMonths]);
     const monthlySeries = useMemo(() => {
+        const janKey = mKey(mParse(mk).y, 0);
         const out = [];
-        for (let i = 5; i >= 0; i--) {
-            const k = mAdd(mk, -i);
+        for (let i = 0; i < 12; i++) {
+            const k = mAdd(janKey, i);
+            const cats =
+                k === mk
+                    ? { a: num(m.a), b: num(m.b), c: num(m.c), d: num(m.d) }
+                    : submittedByMonth[k] || { a: 0, b: 0, c: 0, d: 0 };
             out.push({
                 k,
                 label: MONTHS[mParse(k).m],
-                hrs: k === mk ? (roll[k] || {}).total || 0 : submittedByMonth[k] || 0,
+                ...cats,
+                hrs: cats.a + cats.b + cats.c + cats.d,
             });
         }
         return out;
-    }, [roll, mk, submittedByMonth]);
+    }, [mk, m, submittedByMonth]);
     const t = useMemo(() => ojtTotals(approvedMonths), [approvedMonths]);
     const idx = levelIndex(t.total);
     const todayKey = keyOf(today);
@@ -9449,7 +9239,7 @@ function HomeTab({
                     background: C.panel,
                     border: "1px solid " + C.edge,
                     borderRadius: 12,
-                    padding: "11px 12px",
+                    padding: "15px 16px",
                     boxShadow: SHADOW,
                 }}
             >
@@ -9477,11 +9267,23 @@ function HomeTab({
                         const hrs = list.reduce((a, e) => a + num(e.hrs), 0);
                         const flagS = statusOn(shows, d);
                         const spine = flagS ? STATUS[flagS].color : null;
-                        const hasClass = classOn(classes, k).length > 0;
+                        const classesToday = classOn(classes, k);
+                        const hasClass = classesToday.length > 0;
+                        const missedClass = classesToday.some(
+                            (c) => (c.missedDates || []).indexOf(k) !== -1,
+                        );
                         const hasBook = bookingOn(bookings, k).length > 0;
                         const isToday = sameDay(d, today);
                         const board = showsOn(shows, d).length;
-                        const fill = hrs ? C.working : hasBook ? BOOKED : null;
+                        const fill = hrs
+                            ? C.working
+                            : hasBook
+                              ? BOOKED
+                              : hasClass
+                                ? missedClass
+                                  ? C.danger
+                                  : KLASS
+                                : null;
                         return (
                             <button
                                 key={i}
@@ -9533,16 +9335,6 @@ function HomeTab({
                                         gap: 2,
                                     }}
                                 >
-                                    {hasClass && (
-                                        <span
-                                            style={{
-                                                width: 4,
-                                                height: 4,
-                                                borderRadius: 5,
-                                                background: KLASS,
-                                            }}
-                                        />
-                                    )}
                                     {board > 0 && (
                                         <span
                                             style={{
@@ -9778,7 +9570,7 @@ function HomeTab({
                             background: C.panel,
                             border: "1px solid " + C.edge,
                             borderRadius: 12,
-                            padding: "12px 13px",
+                            padding: "16px 17px",
                             boxShadow: SHADOW,
                         }}
                     >
@@ -9902,7 +9694,7 @@ function HomeTab({
                         background: C.panel,
                         border: "1px solid " + C.edge,
                         borderRadius: 12,
-                        padding: "12px 13px",
+                        padding: "16px 17px",
                         boxShadow: SHADOW,
                     }}
                 >
@@ -10016,7 +9808,7 @@ function HomeTab({
                     background: C.panel,
                     border: "1px solid " + C.edge,
                     borderRadius: 12,
-                    padding: "12px 13px",
+                    padding: "16px 17px",
                     boxShadow: SHADOW,
                 }}
             >
@@ -10711,13 +10503,6 @@ export default function App() {
         });
     const delBooking = (id) =>
         setBookings((prev) => prev.filter((x) => x.id !== id));
-    const saveClass = (c) =>
-        setClasses((prev) => {
-            const rest = prev.filter((x) => x.id !== c.id);
-            return c.dates && c.dates.length ? [...rest, c] : rest;
-        });
-    const delClass = (id) =>
-        setClasses((prev) => prev.filter((x) => x.id !== id));
     const lvIdx = levelIndex(ojtTotals(ojt.months).total);
     const delEntry = (k, id) =>
         setEntries((prev) => {
@@ -10740,22 +10525,6 @@ export default function App() {
         });
         return out;
     }, [shows, bookings]);
-    const dropClassDay = (id, dayKey) =>
-        setClasses((prev) =>
-            prev
-                .map((c) =>
-                    c.id === id
-                        ? {
-                              ...c,
-                              dates: (c.dates || []).filter(
-                                  (d) => d !== dayKey,
-                              ),
-                          }
-                        : c,
-                )
-                .filter((c) => (c.dates || []).length),
-        );
-
     const isOpen = (g) =>
         openMonths[g.label] !== undefined
             ? openMonths[g.label]
@@ -10777,7 +10546,7 @@ export default function App() {
     .sb .modal-ovl{ display: flex; flex-direction: column; justify-content: flex-end; }
     .sb .modal-panel{ width: 100%; max-width: 576px; margin: 0 auto; border-top-left-radius: 18px; border-top-right-radius: 18px; border-top: 1px solid ${C.edge}; max-height: 92vh; }
     @media (min-width: 900px){
-      .sb .wrap{ max-width: 1060px; }
+      .sb .wrap{ max-width: 1280px; }
       .sb .page{ padding: 0 20px 108px; }
       .sb .navtop{ display: block; margin-bottom: 10px; }
       .sb .navbot{ display: none; }
@@ -11096,15 +10865,19 @@ export default function App() {
                 </div>
 
                 {!loaded ? (
-                    <div
-                        style={{
-                            color: C.lo,
-                            textAlign: "center",
-                            padding: "40px 0",
-                            fontSize: 13,
-                        }}
-                    >
-                        Loading…
+                    <div className="dgrid">
+                        <div
+                            className="skeleton dspan"
+                            style={{ height: 148 }}
+                        />
+                        <div
+                            className="skeleton dspan"
+                            style={{ height: 160 }}
+                        />
+                        <div
+                            className="skeleton dspan"
+                            style={{ height: 108 }}
+                        />
                     </div>
                 ) : tab === "home" ? (
                     <HomeTab
@@ -11144,10 +10917,6 @@ export default function App() {
                         onSetRate={setRate}
                         onRemoveRate={removeRate}
                         onAddRateCo={() => setModal({ type: "ratecos" })}
-                        onAddClass={() => setModal({ type: "class" })}
-                        onEditClass={(c) =>
-                            setModal({ type: "class", klass: c })
-                        }
                         onAddMonth={(k) =>
                             setModal({ type: "month", prefill: k })
                         }
@@ -11768,26 +11537,6 @@ export default function App() {
                     />
                 </Modal>
             )}
-            {modal?.type === "class" && (
-                <Modal
-                    title={modal.klass ? "Edit class" : "Add class"}
-                    sub="Mandatory, unpaid — straight off the union email"
-                    onClose={() => setModal(null)}
-                >
-                    <ClassForm
-                        initial={modal.klass}
-                        onSave={(c) => {
-                            saveClass(c);
-                            setModal(null);
-                        }}
-                        onDelete={() => {
-                            delClass(modal.klass.id);
-                            setModal(null);
-                        }}
-                        onClose={() => setModal(null)}
-                    />
-                </Modal>
-            )}
             {modal?.type === "ratecos" && (
                 <Modal
                     title="Add a company"
@@ -11876,7 +11625,6 @@ export default function App() {
                         classes={classes}
                         onDelBooking={delBooking}
                         onSaveBooking={saveBooking}
-                        onDropClassDay={dropClassDay}
                         onSave={(k, e) => {
                             saveEntry(k, e);
                             setModal(null);
