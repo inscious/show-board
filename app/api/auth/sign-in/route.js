@@ -30,9 +30,9 @@ export async function POST(request) {
   const supabase = createClient();
   const ip = clientIp(request);
 
-  // 8 attempts / 15 minutes, keyed on email+IP together — the brute-force
+  // 20 attempts / 15 minutes, keyed on email+IP together — the brute-force
   // guard a password ties to a real credential needs, that a magic link doesn't.
-  const ok = await checkRateLimit(supabase, `auth:sign-in:${email}:${ip}`, 8, 15 * 60);
+  const ok = await checkRateLimit(supabase, `auth:sign-in:${email}:${ip}`, 20, 15 * 60);
   if (!ok) {
     return Response.json({ error: "Too many attempts. Wait a few minutes and try again." }, { status: 429 });
   }
