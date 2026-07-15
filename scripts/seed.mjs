@@ -75,7 +75,7 @@ async function seedPersonal() {
   );
 
   await supabase.from("ojt_months").upsert(
-    OJT_SEED.map((m) => ({ user_id: userId, month: m.m, cat_a: m.a, cat_b: m.b, cat_c: m.c, cat_d: m.d }))
+    OJT_SEED.map((m) => ({ user_id: userId, month: m.m, cat_a: m.a, cat_b: m.b, cat_c: m.c, cat_d: m.d, status: "approved" }))
   );
 
   await supabase.from("bookings").upsert(

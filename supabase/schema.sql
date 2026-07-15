@@ -148,7 +148,7 @@ create table ojt_months (
   cat_b        numeric default 0,
   cat_c        numeric default 0,
   cat_d        numeric default 0,
-  status       text not null default 'approved' check (status in ('pending','approved','rejected')),
+  status       text not null default 'pending' check (status in ('pending','approved','rejected')),
   submitted_on date default now(),
   primary key (user_id, month)
 );
@@ -311,6 +311,60 @@ stable
 as $$
   select coalesce((select is_admin from profiles where id = auth.uid()), false);
 $$;
+
+-- ============================================================================
+-- Column-level guards. RLS's `with check` only sees whether id/user_id
+-- matches the caller — it can't say "this column, but not that one" — so
+-- "own profile" / "own rows" above are wide enough that an apprentice could
+-- otherwise UPDATE their own is_admin or ojt_months.status directly (bypassing
+-- the app entirely, e.g. from the browser console) and grant themselves admin
+-- or self-approve hours. These triggers close that: any writer who isn't
+-- already admin gets the privileged column silently reset to what it was
+-- (or forced to 'pending'), same as the app-layer logic already does.
+-- auth.uid() is null for service-role calls (scripts/seed.mjs's trusted
+-- historical backfill, already-approved by definition) — those pass through.
+-- ============================================================================
+create or replace function protect_profile_privilege_columns()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is not null and not is_admin_user() then
+    new.is_admin := old.is_admin;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger protect_profiles_is_admin
+before update on profiles
+for each row execute function protect_profile_privilege_columns();
+
+create or replace function protect_ojt_months_status()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is not null and not is_admin_user() then
+    if TG_OP = 'INSERT' then
+      new.status := 'pending';
+    elsif (new.cat_a, new.cat_b, new.cat_c, new.cat_d) is distinct from (old.cat_a, old.cat_b, old.cat_c, old.cat_d) then
+      new.status := 'pending';
+    else
+      new.status := old.status;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger protect_ojt_months_status
+before insert or update on ojt_months
+for each row execute function protect_ojt_months_status();
 
 -- admin can see and correct every apprentice's profile + OJT-months-on-file.
 -- work_entries (the apprentice's own day-to-day log) stays apprentice-only —
