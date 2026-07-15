@@ -154,19 +154,7 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
     onChanged();
   };
 
-  const [newCert, setNewCert] = useState({ name: "", exp: "" });
-  const [certMsg, setCertMsg] = useState("");
-  const addCert = async () => {
-    if (!newCert.name.trim() || !newCert.exp) { setCertMsg("Needs a name and expiration date."); return; }
-    try {
-      await req("POST", "/api/admin/certs", { userId: apprentice.id, id: "cert" + Date.now().toString(36), name: newCert.name.trim(), exp: newCert.exp });
-      setNewCert({ name: "", exp: "" });
-      setCertMsg("");
-      onChanged();
-    } catch (e) {
-      setCertMsg(e.message);
-    }
-  };
+  const [certModal, setCertModal] = useState(false);
   const removeCert = async (id) => {
     await req("DELETE", "/api/admin/certs", { userId: apprentice.id, id });
     onChanged();
@@ -312,11 +300,14 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
       </div>
 
       <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "12px 13px", boxShadow: SHADOW, marginBottom: 12 }}>
-        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.gc, fontFamily: FM, marginBottom: 9 }}>CERTIFICATIONS</div>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 9 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.gc, fontFamily: FM }}>CERTIFICATIONS</div>
+          <button className="foc" onClick={() => setCertModal(true)} style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.gc, fontSize: 11.5, fontWeight: 700, padding: 0 }}>+ Add</button>
+        </div>
         {certs.length === 0 ? (
-          <div style={{ fontSize: 12.5, color: C.lo, marginBottom: 10 }}>Nothing on file yet.</div>
+          <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file yet.</div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {certs.map((c) => {
               const st = certState(c.exp);
               return (
@@ -333,15 +324,13 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
             })}
           </div>
         )}
-        <div style={{ display: "flex", gap: 6 }}>
-          <input value={newCert.name} onChange={(e) => setNewCert((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. OSHA 10"
-            style={{ flex: 1, minWidth: 0, background: C.sunk, border: "1px solid " + C.line, borderRadius: 7, padding: "7px 9px", color: C.hi, fontSize: 12.5 }} />
-          <input type="date" value={newCert.exp} onChange={(e) => setNewCert((p) => ({ ...p, exp: e.target.value }))}
-            style={{ width: 140, flexShrink: 0, background: C.sunk, border: "1px solid " + C.line, borderRadius: 7, padding: "7px 9px", color: C.hi, fontSize: 12.5 }} />
-          <button className="foc" onClick={addCert} style={{ flexShrink: 0, background: C.raise, color: C.hi, border: "1px solid " + C.line, borderRadius: 7, padding: "7px 12px", fontSize: 12, fontWeight: 700 }}>Add</button>
-        </div>
-        {certMsg && <div style={{ marginTop: 6, fontSize: 11.5, color: C.danger }}>{certMsg}</div>}
       </div>
+
+      {certModal && (
+        <Modal title="Add certification" onClose={() => setCertModal(false)}>
+          <AddCertForm userId={apprentice.id} onAdded={onChanged} onClose={() => setCertModal(false)} />
+        </Modal>
+      )}
 
       <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "12px 13px", boxShadow: SHADOW, marginBottom: 12 }}>
         <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>PROFILE</div>
@@ -525,6 +514,47 @@ function AssignClassForm({ apprentices, preselected, onAssigned, onClose }) {
       <button type="submit" disabled={state === "saving"}
         style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
         {state === "saving" ? "Assigning…" : state === "done" ? "Assigned" : "Assign class to " + selected.size + " apprentice" + (selected.size === 1 ? "" : "s")}
+      </button>
+      {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
+    </form>
+  );
+}
+
+function AddCertForm({ userId, onAdded, onClose }) {
+  const [name, setName] = useState("");
+  const [exp, setExp] = useState("");
+  const [state, setState] = useState("idle");
+  const [msg, setMsg] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!name.trim() || !exp) { setState("error"); setMsg("Needs a name and expiration date."); return; }
+    setState("saving");
+    setMsg("");
+    try {
+      await req("POST", "/api/admin/certs", { userId, id: "cert" + Date.now().toString(36), name: name.trim(), exp });
+      setState("done");
+      onAdded();
+      setTimeout(onClose, 900);
+    } catch (e2) {
+      setState("error");
+      setMsg(e2.message);
+    }
+  };
+
+  return (
+    <form onSubmit={submit}>
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CERTIFICATION NAME</div>
+      <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. OSHA 10"
+        style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
+
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EXPIRES</div>
+      <input type="date" required value={exp} onChange={(e) => setExp(e.target.value)}
+        style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 14 }} />
+
+      <button type="submit" disabled={state === "saving"}
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+        {state === "saving" ? "Adding…" : state === "done" ? "Added" : "Add certification"}
       </button>
       {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
     </form>

@@ -10,6 +10,7 @@ export async function POST(request) {
       show: data.show || null,
       note: data.note || null,
       dates: data.dates,
+      day_notes: data.dayNotes || {},
     });
     if (error) return Response.json({ error: "Could not save" }, { status: 400 });
     return Response.json({ ok: true });

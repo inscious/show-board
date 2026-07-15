@@ -92,12 +92,13 @@ create table company_rates (
 -- days you've been asked to work, before any hours exist.
 -- one show can have several rows: Eagle for four days, Freeman for two.
 create table bookings (
-  id      text primary key,
-  user_id uuid not null references auth.users on delete cascade,
-  company text not null,          -- who called YOU, not the general on the floor
-  show    text,
-  note    text,
-  dates   date[] not null
+  id        text primary key,
+  user_id   uuid not null references auth.users on delete cascade,
+  company   text not null,          -- who called YOU, not the general on the floor
+  show      text,
+  note      text,                   -- applies to every date in `dates`
+  dates     date[] not null,
+  day_notes jsonb not null default '{}'::jsonb  -- { "YYYY-MM-DD": "start time, gate, booth..." }, overrides `note` for one date
 );
 
 -- union classes: mandatory, unpaid, scheduled per apprentice

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useContext, createContext } from "react";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 import {
     Phone,
     Plus,
@@ -812,26 +813,20 @@ function Card({
 function Modal({ title, sub, onClose, children }) {
     return (
         <div
+            className="modal-ovl"
             style={{
                 position: "fixed",
                 inset: 0,
                 zIndex: 50,
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "flex-end",
                 background: "rgba(0,0,0,0.62)",
             }}
             onClick={onClose}
         >
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="max-w-xl mx-auto w-full"
+                className="modal-panel"
                 style={{
                     background: C.panel,
-                    borderTopLeftRadius: 18,
-                    borderTopRightRadius: 18,
-                    borderTop: "1px solid " + C.edge,
-                    maxHeight: "92vh",
                     display: "flex",
                     flexDirection: "column",
                 }}
@@ -1387,6 +1382,33 @@ function SplitChips({ sp, size }) {
     );
 }
 
+/* per-day note on a (possibly multi-day) booking — a start time or booth
+   number that only applies to this one date, distinct from the booking's
+   blanket note across every day it spans */
+function DayNoteField({ value, onSave }) {
+    const [v, setV] = useState(value || "");
+    useEffect(() => setV(value || ""), [value]);
+    return (
+        <input
+            value={v}
+            onChange={(e) => setV(e.target.value)}
+            onBlur={() => {
+                if (v !== (value || "")) onSave(v);
+            }}
+            placeholder="note for today — start time, gate, booth…"
+            style={{
+                width: "100%",
+                background: C.sunk,
+                border: "1px solid " + C.line,
+                borderRadius: 7,
+                padding: "7px 9px",
+                color: C.hi,
+                fontSize: 12,
+            }}
+        />
+    );
+}
+
 function DaySheet({
     dayKey,
     shows,
@@ -1401,6 +1423,7 @@ function DaySheet({
     bookings,
     classes,
     onDelBooking,
+    onSaveBooking,
     onDropClassDay,
 }) {
     const { companies } = useContext(DirectoryContext);
@@ -1829,84 +1852,101 @@ function DaySheet({
                                 key={b.id}
                                 style={{
                                     display: "flex",
-                                    alignItems: "center",
-                                    gap: 8,
+                                    flexDirection: "column",
+                                    gap: 7,
                                     background: "rgba(180,155,240,0.09)",
                                     border: "1px solid " + BOOKED + "55",
                                     borderRadius: 9,
                                     padding: "9px 10px",
                                 }}
                             >
-                                <span
+                                <div
                                     style={{
-                                        width: 3,
-                                        alignSelf: "stretch",
-                                        borderRadius: 2,
-                                        background: BOOKED,
-                                        flexShrink: 0,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                    }}
+                                >
+                                    <span
+                                        style={{
+                                            width: 3,
+                                            alignSelf: "stretch",
+                                            borderRadius: 2,
+                                            background: BOOKED,
+                                            flexShrink: 0,
+                                        }}
+                                    />
+                                    <button
+                                        className="foc"
+                                        onClick={() => {
+                                            setCo(b.co);
+                                            setNote(b.show || b.note || "");
+                                        }}
+                                        style={{
+                                            flex: 1,
+                                            minWidth: 0,
+                                            textAlign: "left",
+                                            background: "transparent",
+                                            border: "none",
+                                            padding: 0,
+                                        }}
+                                    >
+                                        <div
+                                            className="truncate"
+                                            style={{
+                                                fontSize: 13,
+                                                fontWeight: 700,
+                                                color: C.hi,
+                                            }}
+                                        >
+                                            {b.show || b.co}
+                                        </div>
+                                        <div
+                                            className="truncate"
+                                            style={{
+                                                fontSize: 11,
+                                                color: C.mid,
+                                                marginTop: 2,
+                                            }}
+                                        >
+                                            {b.co}
+                                            {b.note ? " · " + b.note : ""}
+                                        </div>
+                                        <div
+                                            style={{
+                                                fontFamily: FM,
+                                                fontSize: 10,
+                                                fontWeight: 800,
+                                                color: BOOKED,
+                                                marginTop: 4,
+                                            }}
+                                        >
+                                            TAP TO FILL THE FORM
+                                        </div>
+                                    </button>
+                                    <button
+                                        className="foc"
+                                        onClick={() => onDelBooking(b.id)}
+                                        style={{
+                                            flexShrink: 0,
+                                            background: "transparent",
+                                            border: "none",
+                                            color: C.lo,
+                                            padding: 3,
+                                        }}
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                                <DayNoteField
+                                    value={b.dayNotes?.[dayKey]}
+                                    onSave={(v) => {
+                                        const dn = { ...(b.dayNotes || {}) };
+                                        if (v.trim()) dn[dayKey] = v.trim();
+                                        else delete dn[dayKey];
+                                        onSaveBooking({ ...b, dayNotes: dn });
                                     }}
                                 />
-                                <button
-                                    className="foc"
-                                    onClick={() => {
-                                        setCo(b.co);
-                                        setNote(b.show || b.note || "");
-                                    }}
-                                    style={{
-                                        flex: 1,
-                                        minWidth: 0,
-                                        textAlign: "left",
-                                        background: "transparent",
-                                        border: "none",
-                                        padding: 0,
-                                    }}
-                                >
-                                    <div
-                                        className="truncate"
-                                        style={{
-                                            fontSize: 13,
-                                            fontWeight: 700,
-                                            color: C.hi,
-                                        }}
-                                    >
-                                        {b.show || b.co}
-                                    </div>
-                                    <div
-                                        className="truncate"
-                                        style={{
-                                            fontSize: 11,
-                                            color: C.mid,
-                                            marginTop: 2,
-                                        }}
-                                    >
-                                        {b.co}
-                                        {b.note ? " · " + b.note : ""}
-                                    </div>
-                                    <div
-                                        style={{
-                                            fontFamily: FM,
-                                            fontSize: 10,
-                                            fontWeight: 800,
-                                            color: BOOKED,
-                                            marginTop: 4,
-                                        }}
-                                    >
-                                        TAP TO FILL THE FORM
-                                    </div>
-                                </button>
-                                <button
-                                    className="foc"
-                                    onClick={() => onDelBooking(b.id)}
-                                    style={{
-                                        flexShrink: 0,
-                                        background: "transparent",
-                                        border: "none",
-                                        color: C.lo,
-                                        padding: 3,
-                                    }}
-                                >
-                                    <Trash2 size={14} />
-                                </button>
                             </div>
                         ))}
                     </div>
@@ -6902,25 +6942,7 @@ function PasswordSetter({ onSaved }) {
     };
 
     return (
-        <form
-            onSubmit={submit}
-            style={{
-                marginTop: 12,
-                paddingTop: 12,
-                borderTop: "1px solid " + C.line,
-            }}
-        >
-            <div
-                style={{
-                    fontSize: 10,
-                    letterSpacing: 0.5,
-                    color: C.lo,
-                    fontFamily: FM,
-                    marginBottom: 6,
-                }}
-            >
-                SET A PASSWORD
-            </div>
+        <form onSubmit={submit}>
             <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                 <PwInput
                     value={pw}
@@ -6943,13 +6965,13 @@ function PasswordSetter({ onSaved }) {
                     type="submit"
                     disabled={state === "saving" || !pw || !pw2}
                     style={{
-                        background: state === "done" ? C.working : C.raise,
-                        color: state === "done" ? "#06120C" : C.hi,
-                        border: "1px solid " + C.line,
-                        borderRadius: 8,
-                        padding: "9px 12px",
-                        fontSize: 12.5,
-                        fontWeight: 700,
+                        background: state === "done" ? C.working : C.brand,
+                        color: state === "done" ? "#06120C" : "#1A1206",
+                        border: "none",
+                        borderRadius: 10,
+                        padding: "12px",
+                        fontSize: 14,
+                        fontWeight: 800,
                         opacity: state === "saving" ? 0.6 : 1,
                         display: "flex",
                         alignItems: "center",
@@ -7013,6 +7035,7 @@ function OjtTab({
 }) {
     const { jatcContacts } = useContext(DirectoryContext);
     const [signingOut, setSigningOut] = useState(false);
+    const [pwModal, setPwModal] = useState(false);
     const months = ojt.months || [];
     // only admin-approved months count toward level/total — a submitted month
     // sits as "pending" until an admin signs off (see ojt_months.status).
@@ -8461,8 +8484,30 @@ function OjtTab({
                     edit them, and you can't see his. The schedule (Board tab)
                     is shared; only an admin can add or change it.
                 </div>
-                <PasswordSetter onSaved={onPasswordSet} />
+                <button
+                    className="foc"
+                    onClick={() => setPwModal(true)}
+                    style={{
+                        width: "100%",
+                        marginTop: 8,
+                        background: "transparent",
+                        color: C.gc,
+                        border: "1px solid " + C.line,
+                        borderRadius: 9,
+                        padding: "10px",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                    }}
+                >
+                    Change password
+                </button>
             </Fold>
+
+            {pwModal && (
+                <Modal title="Change password" onClose={() => setPwModal(false)}>
+                    <PasswordSetter onSaved={onPasswordSet} />
+                </Modal>
+            )}
 
             {/* JATC office */}
             <Fold icon={Phone} title="JATC office" color={C.working}>
@@ -8617,6 +8662,95 @@ function OjtTab({
     );
 }
 
+/* ---------- monthly hours line chart ---------- */
+function HoursTooltip({ active, payload, label }) {
+    if (!active || !payload || !payload.length) return null;
+    return (
+        <div
+            style={{
+                background: C.raise,
+                border: "1px solid " + C.line,
+                borderRadius: 8,
+                padding: "6px 10px",
+                boxShadow: SHADOW,
+            }}
+        >
+            <div
+                style={{
+                    fontSize: 9.5,
+                    letterSpacing: 0.5,
+                    color: C.lo,
+                    fontFamily: FM,
+                    marginBottom: 2,
+                }}
+            >
+                {label}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.hi, fontFamily: FM }}>
+                {hrsFmt(payload[0].value)}h
+            </div>
+        </div>
+    );
+}
+
+function MonthlyHoursChart({ series }) {
+    return (
+        <div
+            className="dspan"
+            style={{
+                background: C.panel,
+                border: "1px solid " + C.edge,
+                borderRadius: 12,
+                padding: "11px 12px 4px",
+                boxShadow: SHADOW,
+            }}
+        >
+            <div
+                style={{
+                    fontSize: 9.5,
+                    letterSpacing: 0.8,
+                    color: C.lo,
+                    fontFamily: FM,
+                    marginBottom: 4,
+                }}
+            >
+                MONTHLY HOURS
+            </div>
+            <div
+                style={{ width: "100%", height: 140 }}
+                role="img"
+                aria-label={
+                    "Monthly hours worked: " +
+                    series.map((s) => s.label + " " + hrsFmt(s.hrs) + "h").join(", ")
+                }
+            >
+                <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={series} margin={{ top: 16, right: 8, bottom: 0, left: 8 }}>
+                        <XAxis
+                            dataKey="label"
+                            axisLine={{ stroke: C.line }}
+                            tickLine={false}
+                            tick={{ fill: C.lo, fontSize: 9.5, fontFamily: FM }}
+                            dy={6}
+                        />
+                        <YAxis hide domain={[0, "dataMax + 10"]} />
+                        <Tooltip content={<HoursTooltip />} cursor={{ stroke: C.line }} />
+                        <Line
+                            type="monotone"
+                            dataKey="hrs"
+                            stroke={C.working}
+                            strokeWidth={2}
+                            dot={{ r: 4, fill: C.working, stroke: C.panel, strokeWidth: 2 }}
+                            activeDot={{ r: 5.5, fill: C.working, stroke: C.panel, strokeWidth: 2 }}
+                            isAnimationActive={false}
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+}
+
 /* ---------- dashboard ---------- */
 function HomeTab({
     shows,
@@ -8656,6 +8790,31 @@ function HomeTab({
         () => months.filter((mo) => mo.status === "approved"),
         [months],
     );
+
+    // past months come off what's actually on file with the union (ojt.months) —
+    // the calendar only has this year's logged entries, and never for months
+    // already submitted. The current month is the one exception: it's still
+    // being logged and hasn't been turned in yet, so it comes from the
+    // calendar instead.
+    const submittedByMonth = useMemo(() => {
+        const out = {};
+        approvedMonths.forEach((mo) => {
+            out[mo.m] = monthTotal(mo);
+        });
+        return out;
+    }, [approvedMonths]);
+    const monthlySeries = useMemo(() => {
+        const out = [];
+        for (let i = 5; i >= 0; i--) {
+            const k = mAdd(mk, -i);
+            out.push({
+                k,
+                label: MONTHS[mParse(k).m],
+                hrs: k === mk ? (roll[k] || {}).total || 0 : submittedByMonth[k] || 0,
+            });
+        }
+        return out;
+    }, [roll, mk, submittedByMonth]);
     const t = useMemo(() => ojtTotals(approvedMonths), [approvedMonths]);
     const idx = levelIndex(t.total);
     const todayKey = keyOf(today);
@@ -9280,6 +9439,8 @@ function HomeTab({
                     </div>
                 </div>
             </div>
+
+            <MonthlyHoursChart series={monthlySeries} />
 
             {/* this week */}
             <div
@@ -10613,6 +10774,8 @@ export default function App() {
     .sb .bgrid{ display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
     .sb .dcell{ height: 54px; }
     .sb .wcell{ height: 58px; }
+    .sb .modal-ovl{ display: flex; flex-direction: column; justify-content: flex-end; }
+    .sb .modal-panel{ width: 100%; max-width: 576px; margin: 0 auto; border-top-left-radius: 18px; border-top-right-radius: 18px; border-top: 1px solid ${C.edge}; max-height: 92vh; }
     @media (min-width: 900px){
       .sb .wrap{ max-width: 1060px; }
       .sb .page{ padding: 0 20px 108px; }
@@ -10625,6 +10788,8 @@ export default function App() {
       .sb .dcell{ height: 84px; }
       .sb .wcell{ height: 74px; }
       .sb .htitle{ font-size: 32px !important; }
+      .sb .modal-ovl{ justify-content: center; align-items: center; padding: 24px; }
+      .sb .modal-panel{ max-width: 520px; max-height: 88vh; border-radius: 16px; border: 1px solid ${C.edge}; }
     }
     .sb button{ cursor: pointer; }
     .sb input, .sb textarea, .sb select{ outline: none; }
@@ -11710,6 +11875,7 @@ export default function App() {
                         bookings={bookings}
                         classes={classes}
                         onDelBooking={delBooking}
+                        onSaveBooking={saveBooking}
                         onDropClassDay={dropClassDay}
                         onSave={(k, e) => {
                             saveEntry(k, e);
