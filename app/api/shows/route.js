@@ -21,6 +21,16 @@ export async function POST(request) {
       created_by: user.id,
     });
     if (error) return Response.json({ error: "Could not save" }, { status: 400 });
+
+    // best-effort broadcast — the shared schedule changed, every apprentice gets a heads-up
+    const { data: apprentices } = await supabase.from("profiles").select("id").eq("is_admin", false);
+    if (apprentices?.length) {
+      await supabase.from("notifications").insert(apprentices.map((a, i) => ({
+        id: "ns" + Date.now().toString(36) + i, user_id: a.id, type: "schedule",
+        message: `Schedule updated: ${data.name}`,
+      })));
+    }
+
     return Response.json({ ok: true });
   });
 }

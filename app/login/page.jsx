@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Mail, HardHat, Lock, Eye, EyeOff } from "lucide-react";
-import { C, SHADOW } from "@/lib/core";
+import { C, SHADOW, FM, FS } from "@/lib/core";
 
 export default function LoginPage() {
   const [mode, setMode] = useState("password"); // password | magiclink
@@ -75,13 +75,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, padding: 20 }}>
-      <div style={{ width: "100%", maxWidth: 360, background: C.panel, border: "1px solid " + C.edge, borderRadius: 16, padding: 24, boxShadow: SHADOW }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <HardHat size={22} color={C.brand} />
-          <div style={{ fontWeight: 800, fontSize: 18, color: C.hi }}>Show Board</div>
+    <div className="login-shell" style={{
+      minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+      fontFamily: FS, background: C.bg,
+      backgroundImage: `radial-gradient(560px 420px at 50% 18%, rgba(255,176,32,0.10), transparent 65%)`,
+    }}>
+      <style>{`
+        .login-shell input, .login-shell button { font-family: ${FS}; }
+        .login-shell .login-field:focus-within{ border-color: ${C.brand}99 !important; box-shadow: 0 0 0 3px rgba(255,176,32,0.12); }
+        .login-shell .login-submit:hover:not(:disabled){ filter: brightness(1.08); }
+        .login-shell .login-link:hover{ color: ${C.brand}; }
+        .login-shell button{ transition: filter .12s, color .12s, box-shadow .15s, border-color .15s; }
+      `}</style>
+      <div style={{ width: "100%", maxWidth: 360, background: C.panel, border: "1px solid " + C.edge, borderRadius: 18, padding: "26px 24px", boxShadow: SHADOW + ", 0 0 60px rgba(255,176,32,0.06)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, transparent, ${C.brand}, transparent)` }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
+          <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 9, background: "rgba(255,176,32,0.14)", border: "1px solid rgba(255,176,32,0.35)", flexShrink: 0 }}>
+            <HardHat size={18} color={C.brand} />
+          </span>
+          <div style={{ fontWeight: 800, fontSize: 19, color: C.hi }}>L831 Tracker</div>
         </div>
-        <div style={{ fontSize: 12.5, color: C.mid, marginBottom: 18 }}>IUPAT Local 831</div>
+        <div style={{ fontSize: 11.5, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 20 }}>IUPAT LOCAL 831</div>
 
         {state === "sent" ? (
           <div style={{ fontSize: 13.5, color: C.hi, lineHeight: 1.5 }}>
@@ -89,8 +103,8 @@ export default function LoginPage() {
           </div>
         ) : mode === "password" ? (
           <form onSubmit={submitPassword}>
-            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: "monospace", marginBottom: 4 }}>EMAIL</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12 }}>
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EMAIL</div>
+            <div className="login-field" style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12, transition: "border-color .15s, box-shadow .15s" }}>
               <Mail size={15} color={C.lo} />
               <input
                 type="email"
@@ -102,8 +116,8 @@ export default function LoginPage() {
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
               />
             </div>
-            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: "monospace", marginBottom: 4 }}>PASSWORD</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12 }}>
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>PASSWORD</div>
+            <div className="login-field" style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12, transition: "border-color .15s, box-shadow .15s" }}>
               <Lock size={15} color={C.lo} />
               <input
                 type={showPw ? "text" : "password"}
@@ -119,22 +133,23 @@ export default function LoginPage() {
               </button>
             </div>
             <button
+              className="login-submit"
               type="submit"
               disabled={state === "sending" || !email.trim() || !password}
-              style={{ width: "100%", padding: "11px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14, opacity: state === "sending" ? 0.6 : 1 }}
+              style={{ width: "100%", padding: "12px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14, opacity: state === "sending" ? 0.6 : 1, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}
             >
               {state === "sending" ? "Signing in…" : "Sign in"}
             </button>
             {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
-            <button type="button" onClick={() => switchMode("magiclink")}
-              style={{ width: "100%", marginTop: 14, background: "transparent", border: "none", color: C.gc, fontSize: 12.5, fontWeight: 700, padding: 0 }}>
+            <button className="login-link" type="button" onClick={() => switchMode("magiclink")}
+              style={{ width: "100%", marginTop: 16, background: "transparent", border: "none", color: C.gc, fontSize: 12.5, fontWeight: 700, padding: 0 }}>
               Email me a sign-in link instead
             </button>
           </form>
         ) : (
           <form onSubmit={submitMagicLink}>
-            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: "monospace", marginBottom: 4 }}>EMAIL</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12 }}>
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EMAIL</div>
+            <div className="login-field" style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12, transition: "border-color .15s, box-shadow .15s" }}>
               <Mail size={15} color={C.lo} />
               <input
                 type="email"
@@ -147,15 +162,16 @@ export default function LoginPage() {
               />
             </div>
             <button
+              className="login-submit"
               type="submit"
               disabled={state === "sending" || !email.trim()}
-              style={{ width: "100%", padding: "11px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14, opacity: state === "sending" ? 0.6 : 1 }}
+              style={{ width: "100%", padding: "12px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14, opacity: state === "sending" ? 0.6 : 1, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}
             >
               {state === "sending" ? "Sending…" : "Email me a sign-in link"}
             </button>
             {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
-            <button type="button" onClick={() => switchMode("password")}
-              style={{ width: "100%", marginTop: 14, background: "transparent", border: "none", color: C.gc, fontSize: 12.5, fontWeight: 700, padding: 0 }}>
+            <button className="login-link" type="button" onClick={() => switchMode("password")}
+              style={{ width: "100%", marginTop: 16, background: "transparent", border: "none", color: C.gc, fontSize: 12.5, fontWeight: 700, padding: 0 }}>
               Sign in with a password instead
             </button>
           </form>

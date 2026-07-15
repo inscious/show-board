@@ -16,8 +16,8 @@ export async function POST(request) {
     if (profile?.email) {
       await sendEmail({
         to: profile.email,
-        subject: "Show Board — your password was changed",
-        html: `<p>An admin changed the password on your Show Board account (${profile.email}).</p><p>If you weren't expecting this, ask your admin.</p>`,
+        subject: "L831 Tracker — your password was changed",
+        html: `<p>An admin changed the password on your L831 Tracker account (${profile.email}).</p><p>If you weren't expecting this, ask your admin.</p>`,
       });
     }
 

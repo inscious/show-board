@@ -11,8 +11,8 @@ export async function POST(request) {
 
     await sendEmail({
       to: user.email,
-      subject: "Show Board — your password was changed",
-      html: `<p>The password on your Show Board account (${user.email}) was just changed.</p><p>If that wasn't you, sign in and change it again right away.</p>`,
+      subject: "L831 Tracker — your password was changed",
+      html: `<p>The password on your L831 Tracker account (${user.email}) was just changed.</p><p>If that wasn't you, sign in and change it again right away.</p>`,
     });
 
     return Response.json({ ok: true });

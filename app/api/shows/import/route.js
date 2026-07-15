@@ -24,6 +24,16 @@ export async function POST(request) {
       }));
       const { error } = await supabase.from("shows").upsert(rows);
       if (error) return Response.json({ error: "Could not import" }, { status: 400 });
+
+      // one notification per apprentice, not per show — a 40-row import shouldn't spam 40 alerts
+      const { data: apprentices } = await supabase.from("profiles").select("id").eq("is_admin", false);
+      if (apprentices?.length) {
+        await supabase.from("notifications").insert(apprentices.map((a, i) => ({
+          id: "ni" + Date.now().toString(36) + i, user_id: a.id, type: "schedule",
+          message: `Schedule updated: ${rows.length} show${rows.length === 1 ? "" : "s"} added`,
+        })));
+      }
+
       return Response.json({ ok: true, count: rows.length });
     }
   );

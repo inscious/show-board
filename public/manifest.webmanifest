@@ -1,6 +1,6 @@
 {
-  "name": "Show Board — Local 831",
-  "short_name": "Show Board",
+  "name": "L831 Tracker",
+  "short_name": "L831 Tracker",
   "description": "Show schedule, work calendar and OJT tracker",
   "start_url": "/",
   "display": "standalone",

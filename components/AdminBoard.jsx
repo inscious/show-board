@@ -10,7 +10,7 @@ import {
   Check, X, Trash2, Eye, EyeOff, Lock, Mail, GraduationCap,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { C, SHADOW, FM, FS, hrsFmt, mMed, levelIndex, ojtTotals, LEVELS, money, STATUS } from "@/lib/core";
+import { C, SHADOW, FM, FS, hrsFmt, mMed, levelIndex, ojtTotals, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn } from "@/lib/core";
 import { ShowForm, ImportForm, EMPTY } from "@/components/ShowEditor";
 
 /* ---------- small shared bits (duplicated from ShowBoard.jsx on purpose —
@@ -41,8 +41,8 @@ function PwField({ value, onChange, placeholder }) {
 
 function Modal({ title, onClose, children }) {
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end", justifyContent: "center", zIndex: 50 }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, maxHeight: "88vh", background: C.panel, border: "1px solid " + C.edge, borderRadius: "16px 16px 0 0", boxShadow: SHADOW, display: "flex", flexDirection: "column" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, maxHeight: "88vh", background: C.panel, border: "1px solid " + C.edge, borderRadius: 16, boxShadow: SHADOW, display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", padding: "14px 16px", borderBottom: "1px solid " + C.line }}>
           <span style={{ fontWeight: 800, fontSize: 15, color: C.hi }}>{title}</span>
           <button className="foc" onClick={onClose} style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.lo, padding: 4 }}><X size={18} /></button>
@@ -68,7 +68,7 @@ function groupByUser(rows) {
 function monthHours(m) { return Number(m.a || 0) + Number(m.b || 0) + Number(m.c || 0) + Number(m.d || 0); }
 
 /* ---------- apprentice detail ---------- */
-function ApprenticeDetail({ apprentice, months, bookings, flags, shows, onBack, onChanged }) {
+function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs, shows, onAssignClass, onBack, onChanged }) {
   const approved = useMemo(() => months.filter((m) => m.status === "approved").sort((a, b) => (a.m < b.m ? 1 : -1)), [months]);
   const pending = useMemo(() => months.filter((m) => m.status === "pending").sort((a, b) => (a.m < b.m ? -1 : 1)), [months]);
   const total = useMemo(() => ojtTotals(approved).total, [approved]);
@@ -146,6 +146,29 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, shows, onBack, 
   };
   const removeMonth = async (m) => {
     await req("DELETE", "/api/admin/ojt-months", { userId: apprentice.id, m });
+    onChanged();
+  };
+
+  const removeClass = async (id) => {
+    await req("DELETE", "/api/admin/classes", { userId: apprentice.id, id });
+    onChanged();
+  };
+
+  const [newCert, setNewCert] = useState({ name: "", exp: "" });
+  const [certMsg, setCertMsg] = useState("");
+  const addCert = async () => {
+    if (!newCert.name.trim() || !newCert.exp) { setCertMsg("Needs a name and expiration date."); return; }
+    try {
+      await req("POST", "/api/admin/certs", { userId: apprentice.id, id: "cert" + Date.now().toString(36), name: newCert.name.trim(), exp: newCert.exp });
+      setNewCert({ name: "", exp: "" });
+      setCertMsg("");
+      onChanged();
+    } catch (e) {
+      setCertMsg(e.message);
+    }
+  };
+  const removeCert = async (id) => {
+    await req("DELETE", "/api/admin/certs", { userId: apprentice.id, id });
     onChanged();
   };
 
@@ -264,6 +287,63 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, shows, onBack, 
       )}
 
       <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "12px 13px", boxShadow: SHADOW, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 9 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.6, color: KLASS, fontFamily: FM }}>CLASSES</div>
+          <button className="foc" onClick={onAssignClass} style={{ marginLeft: "auto", background: "transparent", border: "none", color: KLASS, fontSize: 11.5, fontWeight: 700, padding: 0 }}>+ Assign</button>
+        </div>
+        {classes.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: C.lo }}>Nothing assigned yet.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {classes.map((c) => {
+              const dates = (c.dates || []).slice().sort();
+              return (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{c.name}</div>
+                    <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>{dates.length} day{dates.length === 1 ? "" : "s"}{dates[0] ? " · " + dates[0] : ""}{c.loc ? " · " + c.loc : ""}</div>
+                  </div>
+                  <button className="foc icon-btn" onClick={() => removeClass(c.id)} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "12px 13px", boxShadow: SHADOW, marginBottom: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.gc, fontFamily: FM, marginBottom: 9 }}>CERTIFICATIONS</div>
+        {certs.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: C.lo, marginBottom: 10 }}>Nothing on file yet.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+            {certs.map((c) => {
+              const st = certState(c.exp);
+              return (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
+                  <span style={{ width: 3, alignSelf: "stretch", borderRadius: 2, background: st.c, flexShrink: 0 }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{c.name}</div>
+                    <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>Expires {c.exp}</div>
+                  </div>
+                  <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: st.c, border: "1px solid " + st.c + "55", borderRadius: 5, padding: "2px 6px" }}>{st.t}</span>
+                  <button className="foc icon-btn" onClick={() => removeCert(c.id)} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 6 }}>
+          <input value={newCert.name} onChange={(e) => setNewCert((p) => ({ ...p, name: e.target.value }))} placeholder="e.g. OSHA 10"
+            style={{ flex: 1, minWidth: 0, background: C.sunk, border: "1px solid " + C.line, borderRadius: 7, padding: "7px 9px", color: C.hi, fontSize: 12.5 }} />
+          <input type="date" value={newCert.exp} onChange={(e) => setNewCert((p) => ({ ...p, exp: e.target.value }))}
+            style={{ width: 140, flexShrink: 0, background: C.sunk, border: "1px solid " + C.line, borderRadius: 7, padding: "7px 9px", color: C.hi, fontSize: 12.5 }} />
+          <button className="foc" onClick={addCert} style={{ flexShrink: 0, background: C.raise, color: C.hi, border: "1px solid " + C.line, borderRadius: 7, padding: "7px 12px", fontSize: 12, fontWeight: 700 }}>Add</button>
+        </div>
+        {certMsg && <div style={{ marginTop: 6, fontSize: 11.5, color: C.danger }}>{certMsg}</div>}
+      </div>
+
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "12px 13px", boxShadow: SHADOW, marginBottom: 12 }}>
         <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>PROFILE</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[
@@ -347,6 +427,110 @@ function NewApprenticeForm({ onCreated, onClose }) {
   );
 }
 
+/* ---------- assign a class to one, several, or all apprentices ---------- */
+function AssignClassForm({ apprentices, preselected, onAssigned, onClose }) {
+  const [selected, setSelected] = useState(() => new Set(preselected || []));
+  const [name, setName] = useState("");
+  const [loc, setLoc] = useState("");
+  const [note, setNote] = useState("");
+  const [start, setStart] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [state, setState] = useState("idle");
+  const [msg, setMsg] = useState("");
+
+  const toggle = (id) => setSelected((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const dateRange = (a, b) => {
+    if (!a) return [];
+    const out = [];
+    const d = new Date(a + "T00:00:00");
+    const end = new Date((b || a) + "T00:00:00");
+    while (d <= end) { out.push(d.toISOString().slice(0, 10)); d.setDate(d.getDate() + 1); }
+    return out;
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const dates = dateRange(from, to);
+    if (selected.size === 0) { setState("error"); setMsg("Pick at least one apprentice."); return; }
+    if (!name.trim()) { setState("error"); setMsg("Class needs a name."); return; }
+    if (dates.length === 0) { setState("error"); setMsg("Pick at least one date."); return; }
+    setState("saving");
+    setMsg("");
+    try {
+      const [h, m] = start ? start.split(":").map(Number) : [null, null];
+      await req("POST", "/api/admin/classes", {
+        userIds: Array.from(selected), name: name.trim(), loc: loc.trim() || undefined, note: note.trim() || undefined,
+        start: h != null ? h * 60 + m : undefined, dates,
+      });
+      setState("done");
+      onAssigned();
+      setTimeout(onClose, 900);
+    } catch (e2) {
+      setState("error");
+      setMsg(e2.message);
+    }
+  };
+
+  return (
+    <form onSubmit={submit}>
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>APPRENTICES</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, maxHeight: 160, overflowY: "auto" }}>
+        {apprentices.map((a) => (
+          <button key={a.id} type="button" onClick={() => toggle(a.id)}
+            style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: C.sunk, border: "1px solid " + (selected.has(a.id) ? C.brand + "88" : C.line), borderRadius: 8, padding: "8px 10px" }}>
+            <span style={{ width: 16, height: 16, borderRadius: 4, border: "1px solid " + C.line, background: selected.has(a.id) ? C.brand : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              {selected.has(a.id) && <Check size={11} color="#1A1206" />}
+            </span>
+            <span className="truncate" style={{ fontSize: 13, color: C.hi }}>{a.name || a.email}</span>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CLASS NAME</div>
+      <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. #39–43 Double Decker"
+        style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>FROM</div>
+          <input type="date" required value={from} onChange={(e) => setFrom(e.target.value)}
+            style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>TO (optional)</div>
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+            style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>TIME</div>
+          <input type="time" value={start} onChange={(e) => setStart(e.target.value)}
+            style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
+        </div>
+      </div>
+
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>LOCATION (optional)</div>
+      <input value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="14930 Marquardt Ave"
+        style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
+
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NOTE (optional)</div>
+      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="bring tools + book"
+        style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 14 }} />
+
+      <button type="submit" disabled={state === "saving"}
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+        {state === "saving" ? "Assigning…" : state === "done" ? "Assigned" : "Assign class to " + selected.size + " apprentice" + (selected.size === 1 ? "" : "s")}
+      </button>
+      {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
+    </form>
+  );
+}
+
 /* ---------- roster ---------- */
 function Roster({ apprentices, monthsByUser, onSelect }) {
   const roster = useMemo(() => apprentices.map((a) => {
@@ -370,8 +554,10 @@ function Roster({ apprentices, monthsByUser, onSelect }) {
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="truncate" style={{ fontSize: 14, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
             {a.name && <div className="truncate" style={{ fontSize: 10.5, color: C.lo, fontFamily: FM, marginTop: 1 }}>{a.email}</div>}
-            <div className="truncate" style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>
-              {hrsFmt(a.total)}h · {a.level.label}{a.lastMonth ? " · last " + mMed(a.lastMonth.m) : ""}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: FM, fontSize: 13, fontWeight: 800, color: C.working }}>{hrsFmt(a.total)}h</span>
+              <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 10, fontWeight: 800, color: C.brand, background: "rgba(255,176,32,0.14)", border: "1px solid rgba(255,176,32,0.4)", borderRadius: 5, padding: "1px 6px" }}>{a.level.k}</span>
+              {a.lastMonth && <span className="truncate" style={{ fontSize: 10.5, color: C.lo }}>last {mMed(a.lastMonth.m)}</span>}
             </div>
           </div>
           {a.pendingCount > 0 && (
@@ -386,10 +572,46 @@ function Roster({ apprentices, monthsByUser, onSelect }) {
   );
 }
 
+/* ---------- this week — read-only activity strip, no personal hours to show ---------- */
+function ThisWeek({ shows, onOpenDay }) {
+  const today = todayMid();
+  const week = useMemo(() => {
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - today.getDay());
+    return Array.from({ length: 7 }, (_, i) => { const d = new Date(sunday); d.setDate(sunday.getDate() + i); return d; });
+  }, [today.getTime()]);
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "11px 12px", boxShadow: SHADOW, marginBottom: 16 }}>
+      <div style={{ fontSize: 9.5, letterSpacing: 0.8, color: C.lo, fontFamily: FM, marginBottom: 8 }}>THIS WEEK</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>
+        {week.map((d, i) => {
+          const isToday = d.getTime() === today.getTime();
+          const count = showsOn(shows, d).length;
+          return (
+            <button key={i} className="foc" onClick={onOpenDay}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "7px 4px",
+                borderRadius: 9, background: count ? "rgba(127,178,255,0.1)" : C.sunk,
+                border: "1px solid " + (isToday ? C.brand : count ? "rgba(127,178,255,0.4)" : C.line),
+              }}>
+              <span style={{ fontFamily: FM, fontSize: 9, color: isToday ? C.brand : C.lo }}>{DOW[d.getDay()]}</span>
+              <span style={{ fontFamily: FM, fontSize: 13, fontWeight: isToday ? 800 : 600, color: isToday ? C.brand : C.hi }}>{d.getDate()}</span>
+              <span style={{ fontFamily: FM, fontSize: 9, fontWeight: 800, color: count ? C.gc : C.lo }}>{count || "—"}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ---------- schedule ---------- */
 function Schedule({ shows, onChanged }) {
   const [modal, setModal] = useState(null); // "add" | "edit" | "import"
   const [editing, setEditing] = useState(null);
+  const [collapsed, setCollapsed] = useState({}); // monthLabel -> bool, overrides the default
+  const [expandedId, setExpandedId] = useState(null);
 
   const genId = (prefix) => prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
@@ -409,7 +631,17 @@ function Schedule({ shows, onChanged }) {
     onChanged();
   };
 
-  const sorted = useMemo(() => shows.slice().sort((a, b) => (a.start || a.mi || "").localeCompare(b.start || b.mi || "")), [shows]);
+  // grouped by month, chronological — past months start collapsed so a
+  // season's worth of history doesn't bury what's coming up.
+  const groups = useMemo(() => {
+    const sorted = shows.slice().sort((a, b) => sortDate(a) - sortDate(b));
+    const byMonth = {};
+    sorted.forEach((s) => {
+      const label = monthLabel(s);
+      (byMonth[label] = byMonth[label] || { key: monthKey(s), label, list: [] }).list.push(s);
+    });
+    return Object.values(byMonth).sort((a, b) => a.key - b.key);
+  }, [shows]);
 
   return (
     <div>
@@ -424,17 +656,72 @@ function Schedule({ shows, onChanged }) {
         </button>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        {sorted.map((s) => (
-          <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.panel, border: "1px solid " + C.edge, borderRadius: 10, padding: "10px 12px" }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.hi }}>{s.name}</div>
-              <div className="truncate" style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{s.mi} · {s.loc} · {s.co}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {groups.map((g) => {
+          const allPast = g.list.every(isPast);
+          const isOpen = !(collapsed[g.label] ?? allPast);
+          return (
+            <div key={g.label}>
+              <button className="foc tab-btn" onClick={() => setCollapsed((p) => ({ ...p, [g.label]: !(p[g.label] ?? allPast) }))}
+                style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", padding: "6px 2px", color: allPast ? C.lo : C.hi }}>
+                <ChevronRight size={14} color={C.lo} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s", flexShrink: 0 }} />
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.6, fontFamily: FM }}>{g.label.toUpperCase()}</span>
+                <span style={{ fontSize: 10.5, color: C.lo, fontFamily: FM }}>{g.list.length}</span>
+                {allPast && <span style={{ fontSize: 9.5, fontFamily: FM, color: C.lo, marginLeft: "auto" }}>PAST</span>}
+              </button>
+              {isOpen && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+                  {g.list.map((s) => {
+                    const past = isPast(s);
+                    const region = REGION[s.region] || REGION.OTHER;
+                    const open = expandedId === s.id;
+                    return (
+                      <div key={s.id} style={{ background: C.panel, border: "1px solid " + (open ? C.brand + "66" : C.edge), borderRadius: 10, opacity: past ? 0.55 : 1, overflow: "hidden" }}>
+                        <button className="foc" onClick={() => setExpandedId(open ? null : s.id)}
+                          style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: "none", padding: "10px 12px" }}>
+                          <div style={{ flexShrink: 0, width: 38, textAlign: "center" }}>
+                            <div style={{ fontFamily: FM, fontSize: 15, fontWeight: 800, color: past ? C.lo : C.brand, lineHeight: 1.1 }}>{s.mi || s.start || "—"}</div>
+                            <div style={{ fontFamily: FM, fontSize: 7.5, color: C.lo, marginTop: 1 }}>{s.mi ? "MOVE IN" : "START"}</div>
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: past ? C.mid : C.hi }}>{s.name}</div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3, flexWrap: "wrap" }}>
+                              <span style={{ fontFamily: FM, fontSize: 9, fontWeight: 800, color: region.color, background: region.color + "1C", border: "1px solid " + region.color + "55", borderRadius: 5, padding: "1px 5px" }}>{region.label}</span>
+                              <span className="truncate" style={{ fontSize: 10.5, color: C.mid }}>{s.loc}{s.co ? " · " + s.co : ""}</span>
+                            </div>
+                          </div>
+                          <ChevronRight size={15} color={C.lo} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s", flexShrink: 0 }} />
+                        </button>
+                        {open && (
+                          <div style={{ padding: "0 12px 12px" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+                              <Stat label="MOVE IN" value={s.mi || "—"} />
+                              <Stat label="START" value={s.start || "—"} />
+                              <Stat label="END" value={s.end || "—"} />
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: C.mid, marginBottom: 12 }}>
+                              <div><span style={{ color: C.lo }}>Location</span> · {s.loc || "—"}{s.booth ? " · Booth " + s.booth : ""}</div>
+                              <div><span style={{ color: C.lo }}>General contractor</span> · {s.co || "—"}</div>
+                              <div><span style={{ color: C.lo }}>Source</span> · {s.src || "—"}</div>
+                            </div>
+                            <div style={{ display: "flex", gap: 8 }}>
+                              <button className="foc" onClick={() => { setEditing(s); setModal("edit"); }}
+                                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 8, background: C.raise, color: C.hi, border: "1px solid " + C.line, fontSize: 13, fontWeight: 700 }}>Edit</button>
+                              <button className="foc" onClick={() => removeShow(s.id)}
+                                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 14px", borderRadius: 8, background: "transparent", color: C.danger, border: "1px solid " + C.line, fontSize: 13, fontWeight: 700 }}>
+                                <Trash2 size={13} /> Delete
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <button className="foc" onClick={() => { setEditing(s); setModal("edit"); }} style={{ background: "transparent", border: "none", color: C.gc, padding: 4, fontSize: 12, fontWeight: 700 }}>Edit</button>
-            <button className="foc" onClick={() => removeShow(s.id)} style={{ background: "transparent", border: "none", color: C.danger, padding: 4 }}><Trash2 size={14} /></button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {(modal === "add" || modal === "edit") && (
@@ -459,23 +746,28 @@ export default function AdminBoard() {
   const [monthsByUser, setMonthsByUser] = useState({});
   const [bookingsByUser, setBookingsByUser] = useState({});
   const [flagsByUser, setFlagsByUser] = useState({});
+  const [classesByUser, setClassesByUser] = useState({});
+  const [certsByUser, setCertsByUser] = useState({});
   const [shows, setShows] = useState([]);
   const [tab, setTab] = useState("roster"); // roster | schedule
   const [selectedId, setSelectedId] = useState(null);
   const [newModal, setNewModal] = useState(false);
+  const [classModal, setClassModal] = useState(false); // false | array of preselected userIds
   const [signingOut, setSigningOut] = useState(false);
 
   const load = async () => {
     const supabase = createClient();
-    // bookings/show_flags need their own "admin read" RLS policy (see
-    // supabase/schema.sql) — until that's applied these two just come back
-    // empty and the "on the schedule" section quietly shows nothing.
-    const [profilesRes, monthsRes, showsRes, bookingsRes, flagsRes] = await Promise.all([
+    // bookings/show_flags/classes each need their own "admin read"/"admin
+    // write" RLS policy (see supabase/schema.sql) — until those are applied
+    // they just come back empty and the relevant section quietly shows nothing.
+    const [profilesRes, monthsRes, showsRes, bookingsRes, flagsRes, classesRes, certsRes] = await Promise.all([
       supabase.from("profiles").select("*").eq("is_admin", false),
       supabase.from("ojt_months").select("*"),
       supabase.from("shows").select("*"),
       supabase.from("bookings").select("*"),
       supabase.from("show_flags").select("*"),
+      supabase.from("classes").select("*"),
+      supabase.from("certifications").select("*"),
     ]);
     setApprentices(profilesRes.data || []);
     // normalize to the {m,a,b,c,d,status} shape lib/core.js's ojtTotals/etc.
@@ -490,6 +782,10 @@ export default function AdminBoard() {
     setMonthsByUser(groupByUser(months));
     setBookingsByUser(groupByUser(bookingsRes.data || []));
     setFlagsByUser(groupByUser((flagsRes.data || []).map((f) => ({ ...f, user_id: f.user_id }))));
+    setClassesByUser(groupByUser((classesRes.data || []).map((c) => ({
+      id: c.id, user_id: c.user_id, name: c.name, start: c.start_min, loc: c.location || "", note: c.note || "", dates: c.dates || [],
+    }))));
+    setCertsByUser(groupByUser(certsRes.data || []));
     setShows((showsRes.data || []).map((r) => ({
       id: r.id, name: r.name, mi: r.move_in || "", start: r.starts_on || "", end: r.ends_on || "",
       loc: r.location || "", booth: r.booth || "", co: r.gc || "", region: r.region || "", src: r.source || "union",
@@ -557,6 +853,8 @@ export default function AdminBoard() {
             sub="across everyone" color={C.brand} />
         </div>
 
+        <ThisWeek shows={shows} onOpenDay={() => setTab("schedule")} />
+
         <div style={{ display: "flex", gap: 6, background: C.panel, borderRadius: 12, padding: 4, border: "1px solid " + C.edge, boxShadow: SHADOW, marginBottom: 16 }}>
           <button className="foc tab-btn" data-active={tab === "roster"} onClick={() => { setTab("roster"); setSelectedId(null); }}
             style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "10px 4px", borderRadius: 9, fontSize: 13.5, fontWeight: 800, background: tab === "roster" ? C.brand : "transparent", color: tab === "roster" ? "#1A1206" : C.mid, border: "none" }}>
@@ -571,15 +869,25 @@ export default function AdminBoard() {
         {tab === "roster" ? (
           selected ? (
             <ApprenticeDetail apprentice={selected} months={monthsByUser[selected.id] || []}
-              bookings={bookingsByUser[selected.id] || []} flags={flagsByUser[selected.id] || []} shows={shows}
+              bookings={bookingsByUser[selected.id] || []} flags={flagsByUser[selected.id] || []}
+              classes={classesByUser[selected.id] || []} certs={certsByUser[selected.id] || []} shows={shows}
+              onAssignClass={() => setClassModal([selected.id])}
               onBack={() => setSelectedId(null)} onChanged={load} />
           ) : (
             <>
               <Roster apprentices={apprentices} monthsByUser={monthsByUser} onSelect={setSelectedId} />
-              <button className="foc" onClick={() => setNewModal(true)}
-                style={{ width: "100%", marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
-                <Plus size={15} /> Add apprentice
-              </button>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button className="foc" onClick={() => setNewModal(true)}
+                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
+                  <Plus size={15} /> Add apprentice
+                </button>
+                {apprentices.length > 0 && (
+                  <button className="foc" onClick={() => setClassModal([])}
+                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
+                    <GraduationCap size={15} /> Assign class
+                  </button>
+                )}
+              </div>
             </>
           )
         ) : (
@@ -590,6 +898,11 @@ export default function AdminBoard() {
       {newModal && (
         <Modal title="Add apprentice" onClose={() => setNewModal(false)}>
           <NewApprenticeForm onCreated={load} onClose={() => setNewModal(false)} />
+        </Modal>
+      )}
+      {classModal !== false && (
+        <Modal title="Assign class" onClose={() => setClassModal(false)}>
+          <AssignClassForm apprentices={apprentices} preselected={classModal} onAssigned={load} onClose={() => setClassModal(false)} />
         </Modal>
       )}
     </div>

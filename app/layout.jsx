@@ -1,13 +1,13 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Show Board — Local 831",
+  title: "L831 Tracker",
   description: "Show schedule, work calendar and OJT tracker for IUPAT Local 831 apprentices.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Show Board",
+    title: "L831 Tracker",
   },
 };
 

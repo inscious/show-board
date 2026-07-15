@@ -149,6 +149,26 @@ create table pinned_companies (
   primary key (user_id, company_name)
 );
 
+-- admin-entered, per-apprentice — CPR/OSHA-10/lift certs and their expiry.
+-- Admin writes (the training center is the record-of-truth here, same
+-- reasoning as ojt_months); apprentice only reads their own.
+create table certifications (
+  id      text primary key,
+  user_id uuid not null references auth.users on delete cascade,
+  name    text not null,
+  exp     date not null
+);
+
+-- one row per recipient per event (not a broadcast + read-join) — simplest
+-- correct thing for a handful of apprentices. Clearing = deleting your own row.
+create table notifications (
+  id         text primary key,
+  user_id    uuid not null references auth.users on delete cascade,
+  type       text not null, -- 'class' | 'schedule'
+  message    text not null,
+  created_at timestamptz default now()
+);
+
 -- ============================================================================
 -- Rate limiting. One table, one function, used by every mutating API route.
 -- Fixed-window counter — correct across Vercel's stateless serverless
@@ -280,3 +300,18 @@ create policy "admin all" on ojt_months for all using (is_admin_user()) with che
 -- flags on shows, for the admin dashboard's "on the schedule" section.
 create policy "admin read" on bookings for select using (is_admin_user());
 create policy "admin read" on show_flags for select using (is_admin_user());
+
+-- admin can assign/edit/remove classes on any apprentice's schedule.
+create policy "admin write" on classes for all using (is_admin_user()) with check (is_admin_user());
+
+-- certifications: apprentice reads their own, admin manages any.
+alter table certifications enable row level security;
+create policy "own rows" on certifications for select using (user_id = auth.uid());
+create policy "admin write" on certifications for all using (is_admin_user()) with check (is_admin_user());
+
+-- notifications: apprentice reads/deletes (clears) their own; admin creates
+-- them for anyone (assigning a class, adding/importing a show).
+alter table notifications enable row level security;
+create policy "own rows" on notifications for select using (user_id = auth.uid());
+create policy "own delete" on notifications for delete using (user_id = auth.uid());
+create policy "admin insert" on notifications for insert with check (is_admin_user());

@@ -37,7 +37,6 @@ import {
     C,
     CATS_META,
     CAT_TOTAL,
-    CERTS,
     COMPANIES,
     DEFAULT_PINS,
     DOW,
@@ -7002,6 +7001,7 @@ function OjtTab({
     onSignOut,
     profile,
     onPasswordSet,
+    certs,
 }) {
     const [signingOut, setSigningOut] = useState(false);
     const months = ojt.months || [];
@@ -8302,18 +8302,24 @@ function OjtTab({
                 </div>
             </Fold>
 
-            {/* certs */}
+            {/* certs — admin-entered, from Supabase, not a hardcoded list */}
             <Fold icon={Check} title="Certifications" color={C.gc}>
+                {certs.length === 0 && (
+                    <div style={{ fontSize: 12.5, color: C.lo }}>
+                        Nothing on file yet — your admin adds these as you
+                        complete them.
+                    </div>
+                )}
                 <div
                     style={{ display: "flex", flexDirection: "column", gap: 7 }}
                 >
-                    {CERTS.map((c) => {
+                    {certs.map((c) => {
                         const st = certState(c.exp);
                         const pp = mParse(c.exp.slice(0, 7));
                         const day = Number(c.exp.slice(8));
                         return (
                             <div
-                                key={c.n}
+                                key={c.id}
                                 style={{
                                     display: "flex",
                                     alignItems: "center",
@@ -8615,6 +8621,8 @@ function HomeTab({
     classes,
     onCallWork,
     hasPassword,
+    notifications,
+    onClearNotification,
 }) {
     const today = todayMid();
     const roll = useMemo(() => rollupEntries(entries), [entries]);
@@ -8789,7 +8797,7 @@ function HomeTab({
             <button
                 key={s.id}
                 className="foc"
-                onClick={() => onGoto("board")}
+                onClick={() => onGoto("board", s.id)}
                 style={{
                     width: "100%",
                     textAlign: "left",
@@ -8875,6 +8883,36 @@ function HomeTab({
 
     return (
         <div className="dgrid">
+            {/* notifications: new class assignments, schedule updates — cleared one at a time or all at once */}
+            {notifications.length > 0 && (
+                <div className="dspan" style={{ background: "rgba(127,178,255,0.07)", border: "1px solid rgba(127,178,255,0.3)", borderRadius: 12, padding: "11px 13px" }}>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                        <span style={{ fontSize: 9.5, letterSpacing: 0.8, color: C.gc, fontFamily: FM, fontWeight: 800 }}>NOTIFICATIONS</span>
+                        {notifications.length > 1 && (
+                            <button className="foc" onClick={() => onClearNotification("all")}
+                                style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.lo, fontSize: 11, fontWeight: 700, padding: 0 }}>
+                                Clear all
+                            </button>
+                        )}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                        {notifications.map((n) => {
+                            const Ico = n.type === "class" ? GraduationCap : CalendarDays;
+                            return (
+                                <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+                                    <Ico size={14} color={C.gc} style={{ flexShrink: 0 }} />
+                                    <div className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{n.message}</div>
+                                    <button className="foc" onClick={() => onClearNotification(n.id)} aria-label="Dismiss"
+                                        style={{ flexShrink: 0, background: "transparent", border: "none", color: C.lo, padding: 2 }}>
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* nudge: no password on file yet, still relying on the email link */}
             {!hasPassword && (
                 <button
@@ -9811,7 +9849,7 @@ function HomeTab({
                                     <button
                                         key={s.id}
                                         className="foc"
-                                        onClick={() => onGoto("board")}
+                                        onClick={() => onGoto("board", s.id)}
                                         style={{
                                             width: "100%",
                                             textAlign: "left",
@@ -10175,6 +10213,8 @@ export default function App() {
         rsiCredits: 0,
         joined: "",
     });
+    const [certs, setCerts] = useState([]);
+    const [notifications, setNotifications] = useState([]);
     const t0 = todayMid();
     const [cur, setCur] = useState({ y: t0.getFullYear(), m: t0.getMonth() });
 
@@ -10230,6 +10270,8 @@ export default function App() {
                           joined: "",
                       },
             );
+            setCerts(data && Array.isArray(data.certs) ? data.certs : []);
+            setNotifications(data && Array.isArray(data.notifications) ? data.notifications : []);
             setLoaded(true);
         });
         return () => {
@@ -10273,6 +10315,20 @@ export default function App() {
             });
             return next;
         });
+
+    /* clearing is a direct server call (not part of the diffed save() blob) —
+       optimistically drop it locally either way so the dismiss feels instant. */
+    const clearNotification = (id) => {
+        setNotifications((prev) => (id === "all" ? [] : prev.filter((n) => n.id !== id)));
+        store.clearNotification(id);
+    };
+
+    /* switch tabs and, if a show id came along for the ride (tapping a show
+       from the Home tab), land on the Board tab with that exact show already expanded. */
+    const goto = (tabName, showId) => {
+        setTab(tabName);
+        if (showId) setExpandedId(showId);
+    };
 
     const counts = useMemo(
         () => ({
@@ -10792,8 +10848,10 @@ export default function App() {
                         bookings={bookings}
                         classes={classes}
                         hasPassword={hasPassword}
+                        notifications={notifications}
+                        onClearNotification={clearNotification}
                         onOpenDay={(k) => setModal({ type: "day", key: k })}
-                        onGoto={setTab}
+                        onGoto={goto}
                         onOpenDir={() => setModal({ type: "dir" })}
                     />
                 ) : tab === "cal" ? (
@@ -10832,6 +10890,7 @@ export default function App() {
                         email={email}
                         isAdmin={isAdmin}
                         profile={profile}
+                        certs={certs}
                         onPasswordSet={() => setHasPassword(true)}
                         onSignOut={() =>
                             store.signOut().then(() => {
