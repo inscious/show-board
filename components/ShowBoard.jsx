@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useContext, createContext } from "react";
 import {
     Phone,
     Plus,
@@ -37,7 +37,6 @@ import {
     C,
     CATS_META,
     CAT_TOTAL,
-    COMPANIES,
     DEFAULT_PINS,
     DOW,
     FM,
@@ -115,6 +114,12 @@ import {
     todayMid,
 } from "@/lib/core";
 
+/* the labor/I&D directory and JATC office contacts — real third-party names
+   and phone numbers, so they live in Supabase (lib/store.js), not committed
+   here. Context instead of prop-drilling: they're needed several layers
+   deep (DaySheet -> CoPicker, OjtExport, ...) and change once per app load. */
+const DirectoryContext = createContext({ companies: [], jatcContacts: [] });
+
 /* ---------- chips ---------- */
 function Chip({ style, children }) {
     return (
@@ -182,6 +187,7 @@ function Card({
     logged,
     books,
 }) {
+    const { companies } = useContext(DirectoryContext);
     const past = isPast(show);
     const st = show.status ? STATUS[show.status] : null;
     const spine = st ? st.color : C.line;
@@ -434,7 +440,7 @@ function Card({
                     </div>
 
                     {(() => {
-                        const gc = matchCo(show.co, show.region);
+                        const gc = matchCo(show.co, show.region, companies);
                         const mine = isMine(show.co);
                         return (
                             <div style={{ marginTop: 12 }}>
@@ -796,7 +802,6 @@ function Card({
                             </div>
                         )}
                     </div>
-
                 </div>
             )}
         </div>
@@ -887,10 +892,11 @@ function Modal({ title, sub, onClose, children }) {
 
 /* ---------- companies directory ---------- */
 function DirList({ pins, onTogglePin, customCos }) {
+    const { companies } = useContext(DirectoryContext);
     const [q, setQ] = useState("");
     const all = useMemo(
         () =>
-            COMPANIES.concat(
+            (companies || []).concat(
                 (customCos || []).map((n) => ({
                     n,
                     city: "",
@@ -900,7 +906,7 @@ function DirList({ pins, onTogglePin, customCos }) {
                     custom: true,
                 })),
             ),
-        [customCos],
+        [customCos, companies],
     );
     const norm = q.trim().toLowerCase();
     const match = (c) =>
@@ -1155,10 +1161,11 @@ function DirList({ pins, onTogglePin, customCos }) {
 
 /* ---------- company picker (used when logging hours) ---------- */
 function CoPicker({ value, pins, customCos, onPick, onAddCo, onClose }) {
+    const { companies } = useContext(DirectoryContext);
     const [q, setQ] = useState("");
     const names = useMemo(
-        () => COMPANIES.map((c) => c.n).concat(customCos || []),
-        [customCos],
+        () => (companies || []).map((c) => c.n).concat(customCos || []),
+        [customCos, companies],
     );
     const norm = q.trim();
     const low = norm.toLowerCase();
@@ -1396,6 +1403,7 @@ function DaySheet({
     onDelBooking,
     onDropClassDay,
 }) {
+    const { companies } = useContext(DirectoryContext);
     const d = fromKey(dayKey);
     const list = entries[dayKey] || [];
     const rank = { working: 0, target: 1 };
@@ -1455,7 +1463,7 @@ function DaySheet({
     if (r1(clock) <= 0) missing.push("hours");
     const ok = missing.length === 0;
     const prefill = (s) => {
-        const gc = matchCo(s.co, s.region);
+        const gc = matchCo(s.co, s.region, companies);
         setCo(gc ? gc.name : s.co || "");
         setNote(s.name + (s.loc ? " · " + s.loc : ""));
     };
@@ -7003,6 +7011,7 @@ function OjtTab({
     onPasswordSet,
     certs,
 }) {
+    const { jatcContacts } = useContext(DirectoryContext);
     const [signingOut, setSigningOut] = useState(false);
     const months = ojt.months || [];
     // only admin-approved months count toward level/total — a submitted month
@@ -8460,7 +8469,7 @@ function OjtTab({
                 <div
                     style={{ display: "flex", flexDirection: "column", gap: 6 }}
                 >
-                    {JATC.contacts.map((c) => (
+                    {jatcContacts.map((c) => (
                         <div
                             key={c.n}
                             style={{
@@ -8624,6 +8633,7 @@ function HomeTab({
     notifications,
     onClearNotification,
 }) {
+    const { companies } = useContext(DirectoryContext);
     const today = todayMid();
     const roll = useMemo(() => rollupEntries(entries), [entries]);
     const mk = mKey(today.getFullYear(), today.getMonth());
@@ -8792,7 +8802,7 @@ function HomeTab({
     const ShowLine = (s, i) => {
         const st = s.status ? STATUS[s.status] : null;
         const col = st ? st.color : C.gc;
-        const gc = matchCo(s.co, s.region);
+        const gc = matchCo(s.co, s.region, companies);
         return (
             <button
                 key={s.id}
@@ -8885,25 +8895,106 @@ function HomeTab({
         <div className="dgrid">
             {/* notifications: new class assignments, schedule updates — cleared one at a time or all at once */}
             {notifications.length > 0 && (
-                <div className="dspan" style={{ background: "rgba(127,178,255,0.07)", border: "1px solid rgba(127,178,255,0.3)", borderRadius: 12, padding: "11px 13px" }}>
-                    <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-                        <span style={{ fontSize: 9.5, letterSpacing: 0.8, color: C.gc, fontFamily: FM, fontWeight: 800 }}>NOTIFICATIONS</span>
+                <div
+                    className="dspan"
+                    style={{
+                        background: "rgba(127,178,255,0.07)",
+                        border: "1px solid rgba(127,178,255,0.3)",
+                        borderRadius: 12,
+                        padding: "11px 13px",
+                    }}
+                >
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            marginBottom: 8,
+                        }}
+                    >
+                        <span
+                            style={{
+                                fontSize: 9.5,
+                                letterSpacing: 0.8,
+                                color: C.gc,
+                                fontFamily: FM,
+                                fontWeight: 800,
+                            }}
+                        >
+                            NOTIFICATIONS
+                        </span>
                         {notifications.length > 1 && (
-                            <button className="foc" onClick={() => onClearNotification("all")}
-                                style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.lo, fontSize: 11, fontWeight: 700, padding: 0 }}>
+                            <button
+                                className="foc"
+                                onClick={() => onClearNotification("all")}
+                                style={{
+                                    marginLeft: "auto",
+                                    background: "transparent",
+                                    border: "none",
+                                    color: C.lo,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    padding: 0,
+                                }}
+                            >
                                 Clear all
                             </button>
                         )}
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 6,
+                        }}
+                    >
                         {notifications.map((n) => {
-                            const Ico = n.type === "class" ? GraduationCap : CalendarDays;
+                            const Ico =
+                                n.type === "class"
+                                    ? GraduationCap
+                                    : CalendarDays;
                             return (
-                                <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
-                                    <Ico size={14} color={C.gc} style={{ flexShrink: 0 }} />
-                                    <div className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{n.message}</div>
-                                    <button className="foc" onClick={() => onClearNotification(n.id)} aria-label="Dismiss"
-                                        style={{ flexShrink: 0, background: "transparent", border: "none", color: C.lo, padding: 2 }}>
+                                <div
+                                    key={n.id}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 9,
+                                        background: C.sunk,
+                                        border: "1px solid " + C.line,
+                                        borderRadius: 9,
+                                        padding: "8px 10px",
+                                    }}
+                                >
+                                    <Ico
+                                        size={14}
+                                        color={C.gc}
+                                        style={{ flexShrink: 0 }}
+                                    />
+                                    <div
+                                        className="truncate"
+                                        style={{
+                                            flex: 1,
+                                            minWidth: 0,
+                                            fontSize: 12.5,
+                                            color: C.hi,
+                                        }}
+                                    >
+                                        {n.message}
+                                    </div>
+                                    <button
+                                        className="foc"
+                                        onClick={() =>
+                                            onClearNotification(n.id)
+                                        }
+                                        aria-label="Dismiss"
+                                        style={{
+                                            flexShrink: 0,
+                                            background: "transparent",
+                                            border: "none",
+                                            color: C.lo,
+                                            padding: 2,
+                                        }}
+                                    >
                                         <X size={14} />
                                     </button>
                                 </div>
@@ -9843,7 +9934,7 @@ function HomeTab({
                         >
                             {nextUp.map((s) => {
                                 const cd = countdown(s);
-                                const gc = matchCo(s.co, s.region);
+                                const gc = matchCo(s.co, s.region, companies);
                                 const st = s.status ? STATUS[s.status] : null;
                                 return (
                                     <button
@@ -10215,6 +10306,8 @@ export default function App() {
     });
     const [certs, setCerts] = useState([]);
     const [notifications, setNotifications] = useState([]);
+    const [companies, setCompanies] = useState([]);
+    const [jatcContacts, setJatcContacts] = useState([]);
     const t0 = todayMid();
     const [cur, setCur] = useState({ y: t0.getFullYear(), m: t0.getMonth() });
 
@@ -10271,7 +10364,13 @@ export default function App() {
                       },
             );
             setCerts(data && Array.isArray(data.certs) ? data.certs : []);
-            setNotifications(data && Array.isArray(data.notifications) ? data.notifications : []);
+            setNotifications(
+                data && Array.isArray(data.notifications)
+                    ? data.notifications
+                    : [],
+            );
+            setCompanies(data && Array.isArray(data.companies) ? data.companies : []);
+            setJatcContacts(data && Array.isArray(data.jatcContacts) ? data.jatcContacts : []);
             setLoaded(true);
         });
         return () => {
@@ -10319,7 +10418,9 @@ export default function App() {
     /* clearing is a direct server call (not part of the diffed save() blob) —
        optimistically drop it locally either way so the dismiss feels instant. */
     const clearNotification = (id) => {
-        setNotifications((prev) => (id === "all" ? [] : prev.filter((n) => n.id !== id)));
+        setNotifications((prev) =>
+            id === "all" ? [] : prev.filter((n) => n.id !== id),
+        );
         store.clearNotification(id);
     };
 
@@ -10412,7 +10513,7 @@ export default function App() {
         );
     const addCo = (name) =>
         setCustomCos((prev) =>
-            prev.includes(name) || COMPANIES.some((c) => c.n === name)
+            prev.includes(name) || companies.some((c) => c.n === name)
                 ? prev
                 : [...prev, name],
         );
@@ -10548,6 +10649,7 @@ export default function App() {
     }[view];
 
     return (
+        <DirectoryContext.Provider value={{ companies, jatcContacts }}>
         <div
             className="sb"
             style={{
@@ -11619,5 +11721,6 @@ export default function App() {
                 </Modal>
             )}
         </div>
+        </DirectoryContext.Provider>
     );
 }

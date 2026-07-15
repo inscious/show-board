@@ -135,16 +135,16 @@ straight through Supabase client calls, writes go through the `/api/admin/*` rou
 
 ## Personal data
 
-Nothing in this repo hardcodes any individual apprentice's data anymore — name, member ID,
-last-4 SSN, hours, rates, bookings, and classes all live in Supabase, scoped per-user by RLS
+Nothing in this repo hardcodes any individual's data — apprentice or third-party. Name, member
+ID, last-4 SSN, hours, rates, bookings, and classes all live in Supabase, scoped per-user by RLS
 (`user_id = auth.uid()`), never in source. `lib/personal-data.js` (gitignored) only exists for
 `scripts/seed.mjs`, a one-off local script to backfill your own historical hours.
 
-**Still worth knowing before making this repo public:** `lib/core.js`'s `COMPANIES` and `JATC`
-constants are real shared directory data — foreman names and labor-line phone numbers, plus
-two named JATC office staff with a direct line and a personal SMS number. That's committed,
-versioned, third-party contact information, not the apprentice's own — it's a separate call
-from whether apprentice data is safe to expose.
+The labor/I&D company directory (foreman names, labor-line numbers) and JATC office staff
+contacts used to be hardcoded constants in `lib/core.js` — that's real third-party contact
+info, not the apprentice's own, so it's been moved to Supabase (`companies`, `jatc_contacts`
+tables) and is fetched per-session instead. Both are shared, read-only-for-apprentices,
+admin-writable via RLS — see `supabase/schema.sql`.
 
 ---
 

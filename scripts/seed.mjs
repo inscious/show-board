@@ -1,6 +1,9 @@
 /* One-off, local-only script — never deployed, never imported by the app.
 
-   1. Pushes the shared SEED shows + COMPANIES directory from lib/core.js.
+   1. Pushes the shared SEED shows from lib/core.js. (The companies and
+      jatc_contacts directories are seeded directly in Supabase now, not
+      from source — see supabase/schema.sql. They're real third-party
+      contact info and don't belong in the committed bundle.)
    2. Backfills YOUR historical data (lib/personal-data.js — gitignored, real
       values) into your own Supabase account: profile fields, OJT hours
       already on file, your rate override, bookings, classes.
@@ -23,7 +26,7 @@ if (!globalThis.WebSocket) {
 }
 
 import { createClient } from "@supabase/supabase-js";
-import { SEED, COMPANIES } from "../lib/core.js";
+import { SEED } from "../lib/core.js";
 import { APPRENTICE, CO_RATE_SEED, OJT_SEED, BOOKING_SEED, CLASS_SEED } from "../lib/personal-data.js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -46,13 +49,6 @@ async function seedShared() {
   const { error: showsError } = await supabase.from("shows").upsert(shows);
   if (showsError) throw showsError;
   console.log(`Seeded ${shows.length} shows.`);
-
-  const companies = COMPANIES.map((c) => ({
-    name: c.n, city: c.city || null, state: c.st || null, labor_line: c.tel || null, foreman: c.fm || null,
-  }));
-  const { error: coError } = await supabase.from("companies").upsert(companies, { onConflict: "name" });
-  if (coError) throw coError;
-  console.log(`Seeded ${companies.length} companies.`);
 }
 
 async function seedPersonal() {

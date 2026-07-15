@@ -21,6 +21,18 @@ create table companies (
   foreman    text
 );
 
+-- JATC office staff — same "shared, everyone reads, only admin writes" shape
+-- as companies. Kept out of lib/core.js on purpose: real names and a
+-- personal cell number have no business being in a public git repo.
+create table jatc_contacts (
+  id    text primary key,
+  name  text not null,
+  tel   text,
+  ext   text,
+  email text,
+  sms   text
+);
+
 -- ids are assigned client-side (e.g. "u"+timestamp / "i"+timestamp+idx) so the
 -- app can create a row optimistically with no bars and no round trip.
 -- move_in/starts_on/ends_on are "M/D" strings straight off the union sheet,
@@ -210,7 +222,9 @@ $$;
 
 -- ============================================================================
 -- New-user provisioning. Creates the matching profile row the moment someone
--- signs in for the first time, and flags the one admin account.
+-- signs in for the first time. Everyone starts as a non-admin apprentice;
+-- promote an account by hand afterward with:
+--   update public.profiles set is_admin = true where email = '...';
 -- ============================================================================
 create or replace function handle_new_user()
 returns trigger
@@ -220,7 +234,7 @@ set search_path = public
 as $$
 begin
   insert into public.profiles (id, email, is_admin)
-  values (new.id, new.email, new.email = 'scortes2910@gmail.com');
+  values (new.id, new.email, false);
   return new;
 end;
 $$;
@@ -272,6 +286,16 @@ create policy "admin update" on companies for update to authenticated
   using (exists (select 1 from profiles where id = auth.uid() and is_admin))
   with check (exists (select 1 from profiles where id = auth.uid() and is_admin));
 create policy "admin delete" on companies for delete to authenticated
+  using (exists (select 1 from profiles where id = auth.uid() and is_admin));
+
+alter table jatc_contacts enable row level security;
+create policy "read" on jatc_contacts for select to authenticated using (true);
+create policy "admin write" on jatc_contacts for insert to authenticated
+  with check (exists (select 1 from profiles where id = auth.uid() and is_admin));
+create policy "admin update" on jatc_contacts for update to authenticated
+  using (exists (select 1 from profiles where id = auth.uid() and is_admin))
+  with check (exists (select 1 from profiles where id = auth.uid() and is_admin));
+create policy "admin delete" on jatc_contacts for delete to authenticated
   using (exists (select 1 from profiles where id = auth.uid() and is_admin));
 
 -- ============================================================================
