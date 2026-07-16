@@ -109,6 +109,7 @@ import {
     sameDay,
     showSpan,
     showsOn,
+    showYear,
     sortDate,
     splitHours,
     statusOn,
@@ -8135,6 +8136,11 @@ function OjtTab({
                                     .map((d) => {
                                         const missed =
                                             (classInfo.missedDates || []).indexOf(d) !== -1;
+                                        const label = missed
+                                            ? "MISSED"
+                                            : d < todayKey
+                                              ? "ATTENDED"
+                                              : "SCHEDULED";
                                         return (
                                             <div
                                                 key={d}
@@ -8184,7 +8190,7 @@ function OjtTab({
                                                         padding: "2px 6px",
                                                     }}
                                                 >
-                                                    {missed ? "MISSED" : "SCHEDULED"}
+                                                    {label}
                                                 </span>
                                             </div>
                                         );
@@ -8641,7 +8647,7 @@ function HomeTab({
         () =>
             shows
                 .filter((s) => {
-                    const mi = mkDate(s.mi, YEAR) || mkDate(s.start, YEAR);
+                    const mi = mkDate(s.mi, showYear(s)) || mkDate(s.start, showYear(s));
                     return mi && mi > today;
                 })
                 .sort((a, b) => sortDate(a) - sortDate(b))

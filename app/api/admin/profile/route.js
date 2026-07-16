@@ -13,6 +13,7 @@ export async function POST(request) {
       local: data.local || null,
       joined_on: data.joined || null,
       rsi_credits: data.rsiCredits ?? null,
+      city: data.city || null,
     }).eq("id", data.userId);
     if (error) return Response.json({ error: "Could not save" }, { status: 400 });
     return Response.json({ ok: true });

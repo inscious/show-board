@@ -5,9 +5,14 @@
    the admin dashboard (app/admin) uses it now; the apprentice board is read-only. */
 import React, { useState } from "react";
 import { Check } from "lucide-react";
-import { C, FM, FS, REGION_KEYS, detectRegion } from "@/lib/core";
+import { C, FM, FS, REGION_KEYS, detectRegion, todayMid } from "@/lib/core";
 
-export const EMPTY = { name: "", mi: "", start: "", end: "", loc: "", booth: "", co: "", region: "AUTO", status: null };
+const curMonthStr = () => {
+  const t = todayMid();
+  return t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0");
+};
+
+export const EMPTY = { name: "", mi: "", start: "", end: "", loc: "", booth: "", co: "", region: "AUTO", status: null, sheetMonth: curMonthStr() };
 
 function Field({ label, value, onChange, ph, w }) {
   return (
@@ -33,6 +38,7 @@ export function ShowForm({ initial, onSave, onClose }) {
         <Field label="MOVE IN" value={f.mi} onChange={(v) => set("mi", v)} ph="7/8" />
         <Field label="START" value={f.start} onChange={(v) => set("start", v)} ph="7/13" />
         <Field label="END" value={f.end} onChange={(v) => set("end", v)} ph="7/17" />
+        <Field label="SHEET YEAR-MO" value={f.sheetMonth} onChange={(v) => set("sheetMonth", v)} ph="2026-07" />
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
         <Field label="LOCATION" value={f.loc} onChange={(v) => set("loc", v)} ph="SDCC" w={2} />
@@ -76,14 +82,23 @@ export function parseImport(text) {
 
 export function ImportForm({ onAdd, onClose }) {
   const [text, setText] = useState("");
+  const [sheetMonth, setSheetMonth] = useState(curMonthStr());
   const [rows, setRows] = useState(null);
   const [skip, setSkip] = useState({});
   const parse = () => { const r = parseImport(text); setRows(r); setSkip({}); };
-  const add = () => { onAdd(rows.filter((_, i) => !skip[i])); onClose(); };
+  const add = () => { onAdd(rows.filter((_, i) => !skip[i]).map((r) => ({ ...r, sheetMonth }))); onClose(); };
   return (
     <div>
       <div style={{ color: C.mid, fontSize: 12.5, marginBottom: 10, lineHeight: 1.5 }}>
         Paste rows straight from the schedule PDF (one show per line). It reads <span style={{ fontFamily: FM, color: C.hi }}>move-in · start · end · name · location · booth · company</span>. Review below, then add.
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>WHICH SHEET IS THIS (YEAR-MONTH)</div>
+        <input className="foc" value={sheetMonth} onChange={(e) => setSheetMonth(e.target.value)} placeholder="2026-07"
+          style={{ width: 140, background: C.sunk, color: C.hi, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 10px", fontSize: 14, fontFamily: FM }} />
+        <div style={{ fontSize: 10.5, color: C.lo, marginTop: 4, lineHeight: 1.4 }}>
+          The printed dates on the sheet have no year — this is the only place it comes from, so a January sheet still lands in January once the calendar rolls to next year.
+        </div>
       </div>
       <textarea className="foc" value={text} onChange={(e) => setText(e.target.value)} rows={5}
         placeholder={"7/8  7/14  7/16  ESRI  SDCC  300  FREEMAN"}

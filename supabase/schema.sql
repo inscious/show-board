@@ -66,7 +66,9 @@ create table profiles (
   local             text default 'IUPAT 831',
   joined_on         date,
   rsi_credits       numeric default 0,
-  custom_companies  text[] not null default '{}'   -- ad-hoc company names typed in, not in `companies`
+  city              text,  -- home city — admin-only info, not shown to the apprentice themselves
+  custom_companies  text[] not null default '{}',  -- ad-hoc company names typed in, not in `companies`
+  archived_at       timestamptz  -- set = off the active roster, kept for record; null = active. Permanent delete requires this set first.
 );
 
 -- one row per (user, show): "my status/note on this show" — never touches the
@@ -319,9 +321,10 @@ $$;
 -- Column-level guards. RLS's `with check` only sees whether id/user_id
 -- matches the caller — it can't say "this column, but not that one" — so
 -- "own profile" / "own rows" above are wide enough that an apprentice could
--- otherwise UPDATE their own is_admin or ojt_months.status directly (bypassing
--- the app entirely, e.g. from the browser console) and grant themselves admin
--- or self-approve hours. These triggers close that: any writer who isn't
+-- otherwise UPDATE their own is_admin, archived_at, or ojt_months.status
+-- directly (bypassing the app entirely, e.g. from the browser console) and
+-- grant themselves admin, un-archive themselves, or self-approve hours.
+-- These triggers close that: any writer who isn't
 -- already admin gets the privileged column silently reset to what it was
 -- (or forced to 'pending'), same as the app-layer logic already does.
 -- auth.uid() is null for service-role calls (scripts/seed.mjs's trusted
@@ -336,6 +339,7 @@ as $$
 begin
   if auth.uid() is not null and not is_admin_user() then
     new.is_admin := old.is_admin;
+    new.archived_at := old.archived_at;
   end if;
   return new;
 end;

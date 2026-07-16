@@ -10,9 +10,40 @@ import {
   Check, X, Trash2, Eye, EyeOff, Lock, Mail, GraduationCap,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { C, SHADOW, FM, FS, hrsFmt, mMed, levelIndex, ojtTotals, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown } from "@/lib/core";
+import { C, SHADOW, FM, FS, hrsFmt, mMed, levelIndex, ojtTotals, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth } from "@/lib/core";
 import { ShowForm, ImportForm, EMPTY } from "@/components/ShowEditor";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+
+/* ---------- avatar placeholder — initials on a deterministic color, standing
+   in for the ID-badge photo until real upload/storage exists ---------- */
+const AVATAR_COLORS = ["#F2B441", "#4FC1A6", "#7FB2FF", "#F2789B", "#B49BF0", "#43BFB2", "#E8927C"];
+function initials(name, email) {
+  const src = (name || email || "?").trim();
+  const parts = src.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return src.slice(0, 2).toUpperCase();
+}
+function avatarColor(key) {
+  let h = 0;
+  const s = key || "?";
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+}
+function Avatar({ name, email, size = 38 }) {
+  const color = avatarColor(email || name);
+  return (
+    <div
+      style={{
+        width: size, height: size, borderRadius: size >= 48 ? 12 : 9, flexShrink: 0,
+        background: color + "22", border: "1px solid " + color + "55", color,
+        fontFamily: FM, fontWeight: 800, fontSize: Math.round(size * 0.36),
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}
+    >
+      {initials(name, email)}
+    </div>
+  );
+}
 
 /* ---------- small shared bits (duplicated from ShowBoard.jsx on purpose —
    this file is a separate surface, not worth wiring a shared-imports refactor for) ---------- */
@@ -54,6 +85,35 @@ function Modal({ title, onClose, children }) {
   );
 }
 
+function ConfirmModal({ title, message, confirmLabel = "Confirm", danger = true, onConfirm, onClose }) {
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    setBusy(true);
+    try { await onConfirm(); } finally { setBusy(false); }
+  };
+  return (
+    <Modal title={title} onClose={onClose}>
+      <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.5, marginBottom: 16 }}>{message}</div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button className="foc" onClick={onClose} disabled={busy}
+          style={{ flex: 1, padding: "10px", borderRadius: 9, background: "transparent", color: C.mid, border: "1px solid " + C.line, fontWeight: 700, fontSize: 13 }}>
+          Cancel
+        </button>
+        <button className="foc" onClick={go} disabled={busy}
+          style={{ flex: 1, padding: "10px", borderRadius: 9, background: danger ? C.danger : C.brand, color: danger ? "#2A0E0A" : "#1A1206", border: "none", fontWeight: 800, fontSize: 13, opacity: busy ? 0.7 : 1 }}>
+          {busy ? "Working…" : confirmLabel}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+// "2026-07-27" -> "Jul 27" — compact date for the class chip grid, presentation-only
+function shortDate(d) {
+  const [, mo, day] = String(d).split("-").map(Number);
+  return (MONTHS[mo - 1] || "").charAt(0) + MONTHS[mo - 1].slice(1).toLowerCase() + " " + day;
+}
+
 async function req(method, path, body) {
   const res = await fetch(path, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const json = await res.json().catch(() => ({}));
@@ -70,6 +130,27 @@ function monthHours(m) { return Number(m.a || 0) + Number(m.b || 0) + Number(m.c
 
 /* ---------- apprentice detail ---------- */
 function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs, shows, onAssignClass, onBack, onChanged }) {
+  const archived = !!apprentice.archived_at;
+  const [archiveState, setArchiveState] = useState("idle");
+  const [archiveMsg, setArchiveMsg] = useState("");
+  const [confirmArchive, setConfirmArchive] = useState(false); // "archive" | "restore" | "delete" | false
+  const runArchiveAction = async (action) => {
+    setArchiveState("saving");
+    setArchiveMsg("");
+    try {
+      if (action === "delete") {
+        await req("DELETE", "/api/admin/apprentices", { userId: apprentice.id });
+      } else {
+        await req("PATCH", "/api/admin/apprentices", { userId: apprentice.id, archived: action === "archive" });
+      }
+      setConfirmArchive(false);
+      onChanged();
+      onBack();
+    } catch (e) {
+      setArchiveState("error");
+      setArchiveMsg(e.message);
+    }
+  };
   const approved = useMemo(() => months.filter((m) => m.status === "approved").sort((a, b) => (a.m < b.m ? 1 : -1)), [months]);
   const pending = useMemo(() => months.filter((m) => m.status === "pending").sort((a, b) => (a.m < b.m ? -1 : 1)), [months]);
   const total = useMemo(() => ojtTotals(approved).total, [approved]);
@@ -85,6 +166,7 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
   const [profile, setProfile] = useState({
     name: apprentice.name || "", memberId: apprentice.member_id || "", last4: apprentice.ssn_last4 || "",
     local: apprentice.local || "IUPAT Local 831", joined: apprentice.joined_on || "", rsiCredits: apprentice.rsi_credits || 0,
+    city: apprentice.city || "",
   });
   const [profileState, setProfileState] = useState("idle");
   const [profileMsg, setProfileMsg] = useState("");
@@ -154,6 +236,7 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
     await req("DELETE", "/api/admin/classes", { userId: apprentice.id, id });
     onChanged();
   };
+  const [confirmRemoveClass, setConfirmRemoveClass] = useState(null); // class row, or null
   const [expandedClassId, setExpandedClassId] = useState(null);
   const toggleMissed = async (c, date) => {
     const missed = new Set(c.missedDates || []);
@@ -178,11 +261,16 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
       </button>
 
       <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Avatar name={apprentice.name} email={apprentice.email} size={52} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="truncate" style={{ fontSize: 15, fontWeight: 800, color: C.hi }}>{apprentice.name || apprentice.email}</div>
             <div className="truncate" style={{ fontSize: 11, color: C.lo, fontFamily: FM, marginTop: 2 }}>{apprentice.email}</div>
+            {apprentice.city && <div className="truncate" style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{apprentice.city}</div>}
           </div>
+          {archived && (
+            <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 10.5, fontWeight: 800, color: C.mid, background: C.raise, border: "1px solid " + C.line, borderRadius: 6, padding: "4px 8px" }}>ARCHIVED</span>
+          )}
           <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 12, fontWeight: 800, color: C.brand, background: "rgba(255,176,32,0.14)", border: "1px solid rgba(255,176,32,0.4)", borderRadius: 6, padding: "4px 8px" }}>{lv.k}</span>
         </div>
       </div>
@@ -207,6 +295,9 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
         <Stat label="TOTAL OJT" value={hrsFmt(total)} sub={lv.label} color={C.working} />
         <Stat label="PENDING REVIEW" value={String(pending.length)} sub={pending.length ? "needs a decision" : "all caught up"} color={pending.length ? C.brand : C.lo} />
       </div>
+
+      <LevelAndCategoryProgress approved={approved} />
+      <ApprenticeMonthlyChart months={months} />
 
       {pending.length > 0 && (
         <div style={{ background: "rgba(255,176,32,0.07)", border: "1px solid rgba(255,176,32,0.3)", borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
@@ -238,9 +329,11 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
         </div>
       )}
 
-      {(bookings.length > 0 || flaggedShows.length > 0) && (
-        <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
-          <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>ON THE SCHEDULE</div>
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>ON THE SCHEDULE</div>
+        {bookings.length === 0 && flaggedShows.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on the books yet.</div>
+        ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {flaggedShows.map(({ flag, show }) => {
               const st = STATUS[flag.status];
@@ -267,8 +360,9 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
+
       </>
       )}
 
@@ -338,7 +432,8 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
                   </button>
                   {open && (
                     <div style={{ padding: "0 10px 10px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 9 }}>
+                      <div style={{ fontSize: 9.5, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>TAP A DATE TO TOGGLE MISSED</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(68px, 1fr))", gap: 5, marginBottom: 10 }}>
                         {dates.map((d) => {
                           const missed = (c.missedDates || []).indexOf(d) !== -1;
                           return (
@@ -346,21 +441,22 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
                               key={d}
                               className="foc"
                               onClick={() => toggleMissed(c, d)}
+                              title={missed ? "Marked missed — tap to revert" : "Attended — tap to mark missed"}
                               style={{
-                                display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
-                                background: C.panel, border: "1px solid " + (missed ? C.danger + "55" : C.line),
-                                borderRadius: 7, padding: "7px 9px", fontFamily: FM, fontSize: 11.5,
+                                display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+                                background: missed ? C.danger + "14" : C.panel, border: "1px solid " + (missed ? C.danger + "66" : C.line),
+                                borderRadius: 8, padding: "6px 4px", fontFamily: FM,
                               }}
                             >
-                              <span style={{ color: C.hi }}>{d}</span>
-                              <span style={{ fontWeight: 800, color: missed ? C.danger : C.working }}>
-                                {missed ? "MISSED — tap to revert" : "attended · tap to mark missed"}
+                              <span style={{ fontSize: 11, fontWeight: 800, color: missed ? C.danger : C.hi }}>{shortDate(d)}</span>
+                              <span style={{ fontSize: 8, fontWeight: 800, letterSpacing: 0.3, color: missed ? C.danger : C.working }}>
+                                {missed ? "MISSED" : "OK"}
                               </span>
                             </button>
                           );
                         })}
                       </div>
-                      <button className="foc" onClick={() => removeClass(c.id)}
+                      <button className="foc" onClick={() => setConfirmRemoveClass(c)}
                         style={{ display: "flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: C.danger, fontSize: 11.5, fontWeight: 700, padding: 0 }}>
                         <Trash2 size={13} /> Remove class
                       </button>
@@ -405,6 +501,15 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
           <AddCertForm userId={apprentice.id} onAdded={onChanged} onClose={() => setCertModal(false)} />
         </Modal>
       )}
+      {confirmRemoveClass && (
+        <ConfirmModal
+          title="Remove class?"
+          message={<>This removes <strong style={{ color: C.hi }}>{confirmRemoveClass.name}</strong> and its attendance record from {apprentice.name || apprentice.email}. If they just missed a day or two, mark those dates missed instead — that keeps the class on file.</>}
+          confirmLabel="Remove class"
+          onClose={() => setConfirmRemoveClass(null)}
+          onConfirm={async () => { await removeClass(confirmRemoveClass.id); setConfirmRemoveClass(null); }}
+        />
+      )}
       </>
       )}
 
@@ -414,7 +519,7 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
         <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>PROFILE</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[
-            ["name", "Name"], ["memberId", "Member ID"], ["last4", "Last 4 SSN"], ["local", "Local"], ["joined", "Joined (YYYY-MM-DD)"], ["rsiCredits", "RSI credits"],
+            ["name", "Name"], ["memberId", "Member ID"], ["last4", "Last 4 SSN"], ["local", "Local"], ["joined", "Joined (YYYY-MM-DD)"], ["rsiCredits", "RSI credits"], ["city", "Home city"],
           ].map(([k, label]) => (
             <div key={k} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ width: 110, flexShrink: 0, fontSize: 11.5, color: C.mid }}>{label}</span>
@@ -445,7 +550,68 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
           They'll get an email confirming the change. Use this for a forgotten password or their initial temp password.
         </div>
       </div>
+
+      <div style={{ background: C.panel, border: "1px solid " + C.danger + "44", borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginTop: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.danger, fontFamily: FM, marginBottom: 9 }}>DANGER ZONE</div>
+        {archived ? (
+          <>
+            <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 10 }}>
+              Archived — hidden from the active roster. All their hours, classes, and history are still on file.
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="foc" onClick={() => setConfirmArchive("restore")}
+                style={{ flex: 1, padding: "9px 14px", borderRadius: 8, background: C.raise, color: C.hi, border: "1px solid " + C.line, fontSize: 12.5, fontWeight: 700 }}>
+                Restore to roster
+              </button>
+              <button className="foc" onClick={() => setConfirmArchive("delete")}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 14px", borderRadius: 8, background: "transparent", color: C.danger, border: "1px solid " + C.danger + "66", fontSize: 12.5, fontWeight: 700 }}>
+                <Trash2 size={13} /> Delete permanently
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 10 }}>
+              Archiving moves them off the active roster but keeps every record on file — restore anytime. Permanent deletion is only available once they're archived.
+            </div>
+            <button className="foc" onClick={() => setConfirmArchive("archive")}
+              style={{ width: "100%", padding: "9px 14px", borderRadius: 8, background: "transparent", color: C.danger, border: "1px solid " + C.danger + "66", fontSize: 12.5, fontWeight: 700 }}>
+              Archive apprentice
+            </button>
+          </>
+        )}
+        {archiveMsg && <div style={{ marginTop: 8, fontSize: 11.5, color: C.danger }}>{archiveMsg}</div>}
+      </div>
       </>
+      )}
+
+      {confirmArchive === "archive" && (
+        <ConfirmModal
+          title="Archive apprentice?"
+          message={<>{apprentice.name || apprentice.email} will drop off the active roster and out of class/booking assignment lists. Everything on file — hours, classes, certs — stays put, and you can restore them anytime from the archive.</>}
+          confirmLabel="Archive"
+          onClose={() => setConfirmArchive(false)}
+          onConfirm={() => runArchiveAction("archive")}
+        />
+      )}
+      {confirmArchive === "restore" && (
+        <ConfirmModal
+          title="Restore to roster?"
+          message={<>{apprentice.name || apprentice.email} will show up in the active roster again, same as before they were archived.</>}
+          confirmLabel="Restore"
+          danger={false}
+          onClose={() => setConfirmArchive(false)}
+          onConfirm={() => runArchiveAction("restore")}
+        />
+      )}
+      {confirmArchive === "delete" && (
+        <ConfirmModal
+          title="Delete permanently?"
+          message={<>This permanently deletes {apprentice.name || apprentice.email}'s account and every record — hours, classes, certs, bookings. <strong style={{ color: C.danger }}>This can't be undone.</strong></>}
+          confirmLabel="Delete permanently"
+          onClose={() => setConfirmArchive(false)}
+          onConfirm={() => runArchiveAction("delete")}
+        />
       )}
     </div>
   );
@@ -660,13 +826,15 @@ function Roster({ apprentices, monthsByUser, onSelect }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {roster.map((a) => (
         <button key={a.id} className="foc roster-row" onClick={() => onSelect(a.id)}
-          style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW }}>
+          style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW }}>
+          <Avatar name={a.name} email={a.email} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="truncate" style={{ fontSize: 14, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
             {a.name && <div className="truncate" style={{ fontSize: 10.5, color: C.lo, fontFamily: FM, marginTop: 1 }}>{a.email}</div>}
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
               <span style={{ fontFamily: FM, fontSize: 13, fontWeight: 800, color: C.working }}>{hrsFmt(a.total)}h</span>
               <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 10, fontWeight: 800, color: C.brand, background: "rgba(255,176,32,0.14)", border: "1px solid rgba(255,176,32,0.4)", borderRadius: 5, padding: "1px 6px" }}>{a.level.k}</span>
+              {a.city && <span className="truncate" style={{ fontSize: 10.5, color: C.mid }}>{a.city}</span>}
               {a.lastMonth && <span className="truncate" style={{ fontSize: 10.5, color: C.lo }}>last {mMed(a.lastMonth.m)}</span>}
             </div>
           </div>
@@ -682,6 +850,32 @@ function Roster({ apprentices, monthsByUser, onSelect }) {
   );
 }
 
+/* ---------- archived apprentices — off the active roster, kept for record.
+   Deliberately lighter-weight than Roster (no OJT stats up front, this is a
+   rarely-visited list) — archived date is the useful thing to see here. ---------- */
+function ArchivedRoster({ apprentices, onSelect }) {
+  const rows = useMemo(() => apprentices.slice()
+    .sort((x, y) => (y.archived_at || "").localeCompare(x.archived_at || "")), [apprentices]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+      {rows.map((a) => (
+        <button key={a.id} className="foc roster-row" onClick={() => onSelect(a.id)}
+          style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: C.sunk, border: "1px solid " + C.line, borderRadius: 12, padding: "13px 15px", opacity: 0.8 }}>
+          <Avatar name={a.name} email={a.email} size={34} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.mid }}>{a.name || a.email}</div>
+            <div className="truncate" style={{ fontSize: 10.5, color: C.lo, marginTop: 1 }}>
+              archived {a.archived_at ? a.archived_at.slice(0, 10) : "—"}
+            </div>
+          </div>
+          <ChevronRight size={16} color={C.lo} style={{ flexShrink: 0 }} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* ---------- roster hours by category — lifetime composition per apprentice,
    from months already loaded in state (no extra fetch) ---------- */
 function RosterCatTooltip({ active, payload, label }) {
@@ -689,7 +883,13 @@ function RosterCatTooltip({ active, payload, label }) {
   const row = payload[0].payload;
   return (
     <div style={{ background: C.raise, border: "1px solid " + C.line, borderRadius: 8, padding: "8px 10px", boxShadow: SHADOW }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: C.hi, marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 800, color: C.hi, marginBottom: row.level || row.joined ? 0 : 4 }}>{row.fullName || label}</div>
+      {(row.level || row.joined) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, fontFamily: FM, color: C.mid, marginBottom: 5, marginTop: 1 }}>
+          {row.level && <span style={{ color: C.brand, fontWeight: 800 }}>{row.level}</span>}
+          {row.joined && <span>joined {row.joined}</span>}
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {["a", "b", "c", "d"].filter((k) => row[k] > 0).map((k) => (
           <div key={k} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, fontFamily: FM }}>
@@ -703,11 +903,32 @@ function RosterCatTooltip({ active, payload, label }) {
   );
 }
 
+// "Gerardo Cortes" -> "Gerardo C." — compact enough for the Y axis while
+// still disambiguating apprentices who share a first name (full name +
+// level + joined date live in the tooltip on hover)
+function axisName(name, email) {
+  const parts = (name || email || "?").trim().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return parts[0] || "?";
+  return parts[0] + " " + parts[parts.length - 1][0] + ".";
+}
+
+// "2024-08-15" -> "Aug 2024" — for the roster chart tooltip
+function joinedLabel(dateStr) {
+  if (!dateStr) return null;
+  const mo = Number(String(dateStr).slice(5, 7));
+  if (!mo) return null;
+  return (MONTHS[mo - 1].charAt(0) + MONTHS[mo - 1].slice(1).toLowerCase()) + " " + dateStr.slice(0, 4);
+}
+
 function RosterCategoryChart({ apprentices, monthsByUser }) {
   const data = useMemo(() => apprentices.map((a) => {
     const approved = (monthsByUser[a.id] || []).filter((m) => m.status === "approved");
     const t = ojtTotals(approved);
-    return { name: (a.name || a.email).split(" ")[0], a: t.a, b: t.b, c: t.c, d: t.d, total: t.total };
+    return {
+      name: axisName(a.name, a.email), fullName: a.name || a.email,
+      level: LEVELS[levelIndex(t.total)].k, joined: joinedLabel(a.joined_on),
+      a: t.a, b: t.b, c: t.c, d: t.d, total: t.total,
+    };
   }).filter((d) => d.total > 0), [apprentices, monthsByUser]);
 
   if (data.length === 0) return null;
@@ -729,11 +950,136 @@ function RosterCategoryChart({ apprentices, monthsByUser }) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} layout="vertical" margin={{ top: 4, right: 12, bottom: 4, left: 4 }} barCategoryGap="30%">
             <XAxis type="number" hide />
-            <YAxis type="category" dataKey="name" width={72} tick={{ fill: C.mid, fontSize: 11, fontFamily: FS }} axisLine={{ stroke: C.line }} tickLine={false} />
+            <YAxis type="category" dataKey="name" width={88} tick={{ fill: C.mid, fontSize: 11, fontFamily: FS }} axisLine={{ stroke: C.line }} tickLine={false} />
             <Tooltip content={<RosterCatTooltip />} cursor={{ fill: C.line, fillOpacity: 0.35 }} />
             {["a", "b", "c", "d"].map((k, i) => (
               <Bar key={k} dataKey={k} stackId="hrs" fill={CATS_META[k.toUpperCase()].color} stroke={C.panel} strokeWidth={1}
                 radius={i === 3 ? [0, 3, 3, 0] : 0} isAnimationActive={false} />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- one apprentice's own monthly hours, current year, by category —
+   same shape as the chart on their own dashboard, so admin sees exactly
+   what they see ---------- */
+/* ---------- level + category progress — same numbers the apprentice sees
+   on their own OJT tab, condensed for the admin's one-glance view ---------- */
+function LevelAndCategoryProgress({ approved }) {
+  const t = useMemo(() => ojtTotals(approved), [approved]);
+  const idx = levelIndex(t.total);
+  const lv = LEVELS[idx];
+  const nxt = LEVELS[idx + 1];
+  const avg = approved.length ? t.total / approved.length : 0;
+  const lastMonth = approved[0]?.m || null;
+  const toNext = nxt ? nxt.hrs - t.total : 0;
+  const projNext = nxt ? projectMonth(toNext, avg, lastMonth) : null;
+  const pct = nxt ? Math.max(2, Math.min(100, ((t.total - lv.hrs) / (nxt.hrs - lv.hrs)) * 100)) : 100;
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 11 }}>
+        <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 12, fontWeight: 800, color: C.brand, background: "rgba(255,176,32,0.14)", border: "1px solid rgba(255,176,32,0.4)", borderRadius: 6, padding: "3px 8px" }}>{lv.k}</span>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.hi }}>{lv.label}</div>
+        <div style={{ marginLeft: "auto", fontFamily: FM, fontSize: 11, color: C.mid }}>
+          {hrsFmt(t.total)}{nxt ? " / ~" + nxt.hrs.toLocaleString() : ""}
+        </div>
+      </div>
+      {nxt && (
+        <>
+          <div style={{ height: 7, borderRadius: 4, background: C.raise, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: pct + "%", background: C.brand, borderRadius: 4 }} />
+          </div>
+          <div style={{ display: "flex", fontSize: 11, color: C.lo, marginTop: 6 }}>
+            <span>{hrsFmt(toNext)} hrs to {nxt.k}</span>
+            <span style={{ marginLeft: "auto" }}>{avg ? hrsFmt(avg) + " avg/mo" : "no pace yet"}{projNext ? " · ~" + mMed(projNext) : ""}</span>
+          </div>
+        </>
+      )}
+
+      <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid " + C.line }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>CATEGORY HOURS</div>
+          <div style={{ marginLeft: "auto", fontFamily: FM, fontSize: 10, color: C.lo }}>{hrsFmt(t.total)} / {CAT_TOTAL.toLocaleString()}</div>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {["A", "B", "C", "D"].map((k) => {
+            const meta = CATS_META[k];
+            const v = t[k.toLowerCase()];
+            const p = Math.min(100, (v / meta.target) * 100);
+            return (
+              <div key={k}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ flexShrink: 0, width: 16, height: 16, borderRadius: 5, background: meta.color + "22", border: "1px solid " + meta.color + "66", color: meta.color, fontFamily: FM, fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{k}</span>
+                  <span className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12, color: C.mid }}>{meta.name}</span>
+                  <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 11, color: v ? C.hi : C.lo, fontWeight: 700 }}>{hrsFmt(v)}</span>
+                  <span style={{ flexShrink: 0, width: 34, textAlign: "right", fontFamily: FM, fontSize: 10.5, fontWeight: 800, color: v ? meta.color : C.lo }}>{p.toFixed(0)}%</span>
+                </div>
+                <div style={{ height: 5, borderRadius: 3, background: C.raise, overflow: "hidden", marginTop: 5 }}>
+                  <div style={{ height: "100%", width: Math.max(v ? 2 : 0, p) + "%", background: meta.color, borderRadius: 3 }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ApprenticeMonthlyChart({ months }) {
+  const data = useMemo(() => {
+    const approved = (months || []).filter((m) => m.status === "approved");
+    const byMonth = {};
+    approved.forEach((m) => { byMonth[m.m] = m; });
+    const today = todayMid();
+    const janKey = mKey(today.getFullYear(), 0);
+    const out = [];
+    for (let i = 0; i < 12; i++) {
+      const k = (() => { const d = mParse(janKey); const nd = new Date(d.y, d.m + i, 1); return mKey(nd.getFullYear(), nd.getMonth()); })();
+      const row = byMonth[k];
+      const a = num(row?.a), b = num(row?.b), c = num(row?.c), d = num(row?.d);
+      out.push({ k, label: MONTHS[mParse(k).m], a, b, c, d, total: a + b + c + d });
+    }
+    return out;
+  }, [months]);
+
+  const hasAny = data.some((d) => d.total > 0);
+  if (!hasAny) {
+    return (
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 6 }}>MONTHLY HOURS · {todayMid().getFullYear()}</div>
+        <div style={{ fontSize: 12.5, color: C.lo }}>Nothing approved this year yet.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px 4px", boxShadow: SHADOW, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>MONTHLY HOURS · {todayMid().getFullYear()}</div>
+        <div style={{ display: "flex", gap: 9, marginLeft: "auto" }}>
+          {["A", "B", "C", "D"].map((k) => (
+            <div key={k} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ width: 7, height: 7, borderRadius: 2, background: CATS_META[k].color }} />
+              <span style={{ fontSize: 9.5, fontFamily: FM, color: C.lo }}>{k}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ width: "100%", height: 160 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 4 }} barCategoryGap="28%">
+            <XAxis dataKey="label" axisLine={{ stroke: C.line }} tickLine={false}
+              tick={{ fill: C.lo, fontSize: 9, fontFamily: FM }} dy={6} interval={0} />
+            <YAxis hide domain={[0, "dataMax + 10"]} />
+            <Tooltip content={<RosterCatTooltip />} cursor={{ fill: C.line, fillOpacity: 0.35 }} />
+            {["a", "b", "c", "d"].map((k, i) => (
+              <Bar key={k} dataKey={k} stackId="hrs" fill={CATS_META[k.toUpperCase()].color} stroke={C.panel} strokeWidth={1}
+                radius={i === 3 ? [3, 3, 0, 0] : 0} isAnimationActive={false} />
             ))}
           </BarChart>
         </ResponsiveContainer>
@@ -817,6 +1163,7 @@ function Schedule({ shows, onChanged }) {
   const [editing, setEditing] = useState(null);
   const [collapsed, setCollapsed] = useState({}); // monthLabel -> bool, overrides the default
   const [expandedId, setExpandedId] = useState(null);
+  const [showPast, setShowPast] = useState(false);
 
   const genId = (prefix) => prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
@@ -848,6 +1195,87 @@ function Schedule({ shows, onChanged }) {
     return Object.values(byMonth).sort((a, b) => a.key - b.key);
   }, [shows]);
 
+  // one toggle for the whole block of past months instead of a wall of
+  // individually-collapsed rows — each stays independently expandable once revealed
+  const { pastGroups, currentGroups } = useMemo(() => {
+    const past = [], current = [];
+    groups.forEach((g) => (g.list.every(isPast) ? past : current).push(g));
+    return { pastGroups: past, currentGroups: current };
+  }, [groups]);
+  const pastShowCount = useMemo(() => pastGroups.reduce((s, g) => s + g.list.length, 0), [pastGroups]);
+
+  const renderGroup = (g) => {
+    const allPast = g.list.every(isPast);
+    const isOpen = !(collapsed[g.label] ?? allPast);
+    return (
+      <div key={g.label}>
+        <button className="foc tab-btn" onClick={() => setCollapsed((p) => ({ ...p, [g.label]: !(p[g.label] ?? allPast) }))}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", padding: "6px 2px", color: allPast ? C.lo : C.hi }}>
+          <ChevronRight size={14} color={C.lo} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s", flexShrink: 0 }} />
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.6, fontFamily: FM }}>{g.label.toUpperCase()}</span>
+          <span style={{ fontSize: 10.5, color: C.lo, fontFamily: FM }}>{g.list.length}</span>
+          {allPast && <span style={{ fontSize: 9.5, fontFamily: FM, color: C.lo, marginLeft: "auto" }}>PAST</span>}
+        </button>
+        {isOpen && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+            {g.list.map((s) => {
+              const past = isPast(s);
+              const region = REGION[s.region] || REGION.OTHER;
+              const open = expandedId === s.id;
+              const cd = !past ? countdown(s) : null;
+              return (
+                <div key={s.id} style={{ background: C.panel, border: "1px solid " + (open ? C.brand + "66" : C.edge), borderRadius: 10, opacity: past ? 0.55 : 1, overflow: "hidden" }}>
+                  <button className="foc" onClick={() => setExpandedId(open ? null : s.id)}
+                    style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: "none", padding: "10px 12px" }}>
+                    <div style={{ flexShrink: 0, width: 38, textAlign: "center" }}>
+                      <div style={{ fontFamily: FM, fontSize: 15, fontWeight: 800, color: past ? C.mid : C.brand, lineHeight: 1.1 }}>{s.mi || s.start || "—"}</div>
+                      <div style={{ fontFamily: FM, fontSize: 7.5, color: C.mid, marginTop: 1 }}>{s.mi ? "MOVE IN" : "START"}</div>
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: past ? C.mid : C.hi }}>{s.name}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3, flexWrap: "wrap" }}>
+                        <span style={{ fontFamily: FM, fontSize: 9, fontWeight: 800, color: region.color, background: region.color + "1C", border: "1px solid " + region.color + "55", borderRadius: 5, padding: "1px 5px" }}>{region.label}</span>
+                        <span className="truncate" style={{ fontSize: 10.5, color: C.mid }}>{s.loc}{s.co ? " · " + s.co : ""}</span>
+                      </div>
+                    </div>
+                    {cd && (
+                      <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: cd.c, border: "1px solid " + cd.c + "55", borderRadius: 5, padding: "2px 6px" }}>
+                        {cd.t}
+                      </span>
+                    )}
+                    <ChevronRight size={15} color={C.mid} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s", flexShrink: 0 }} />
+                  </button>
+                  {open && (
+                    <div style={{ padding: "0 12px 12px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+                        <Stat label="MOVE IN" value={s.mi || "—"} />
+                        <Stat label="START" value={s.start || "—"} />
+                        <Stat label="END" value={s.end || "—"} />
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: C.mid, marginBottom: 12 }}>
+                        <div><span style={{ color: C.lo }}>Location</span> · {s.loc || "—"}{s.booth ? " · Booth " + s.booth : ""}</div>
+                        <div><span style={{ color: C.lo }}>General contractor</span> · {s.co || "—"}</div>
+                        <div><span style={{ color: C.lo }}>Source</span> · {s.src || "—"}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button className="foc" onClick={() => { setEditing(s); setModal("edit"); }}
+                          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 8, background: C.raise, color: C.hi, border: "1px solid " + C.line, fontSize: 13, fontWeight: 700 }}>Edit</button>
+                        <button className="foc" onClick={() => removeShow(s.id)}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 14px", borderRadius: 8, background: "transparent", color: C.danger, border: "1px solid " + C.line, fontSize: 13, fontWeight: 700 }}>
+                          <Trash2 size={13} /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
@@ -862,77 +1290,18 @@ function Schedule({ shows, onChanged }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {groups.map((g) => {
-          const allPast = g.list.every(isPast);
-          const isOpen = !(collapsed[g.label] ?? allPast);
-          return (
-            <div key={g.label}>
-              <button className="foc tab-btn" onClick={() => setCollapsed((p) => ({ ...p, [g.label]: !(p[g.label] ?? allPast) }))}
-                style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", padding: "6px 2px", color: allPast ? C.lo : C.hi }}>
-                <ChevronRight size={14} color={C.lo} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s", flexShrink: 0 }} />
-                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.6, fontFamily: FM }}>{g.label.toUpperCase()}</span>
-                <span style={{ fontSize: 10.5, color: C.lo, fontFamily: FM }}>{g.list.length}</span>
-                {allPast && <span style={{ fontSize: 9.5, fontFamily: FM, color: C.lo, marginLeft: "auto" }}>PAST</span>}
-              </button>
-              {isOpen && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
-                  {g.list.map((s) => {
-                    const past = isPast(s);
-                    const region = REGION[s.region] || REGION.OTHER;
-                    const open = expandedId === s.id;
-                    const cd = !past ? countdown(s) : null;
-                    return (
-                      <div key={s.id} style={{ background: C.panel, border: "1px solid " + (open ? C.brand + "66" : C.edge), borderRadius: 10, opacity: past ? 0.55 : 1, overflow: "hidden" }}>
-                        <button className="foc" onClick={() => setExpandedId(open ? null : s.id)}
-                          style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: "none", padding: "10px 12px" }}>
-                          <div style={{ flexShrink: 0, width: 38, textAlign: "center" }}>
-                            <div style={{ fontFamily: FM, fontSize: 15, fontWeight: 800, color: past ? C.mid : C.brand, lineHeight: 1.1 }}>{s.mi || s.start || "—"}</div>
-                            <div style={{ fontFamily: FM, fontSize: 7.5, color: C.mid, marginTop: 1 }}>{s.mi ? "MOVE IN" : "START"}</div>
-                          </div>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: past ? C.mid : C.hi }}>{s.name}</div>
-                            <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3, flexWrap: "wrap" }}>
-                              <span style={{ fontFamily: FM, fontSize: 9, fontWeight: 800, color: region.color, background: region.color + "1C", border: "1px solid " + region.color + "55", borderRadius: 5, padding: "1px 5px" }}>{region.label}</span>
-                              <span className="truncate" style={{ fontSize: 10.5, color: C.mid }}>{s.loc}{s.co ? " · " + s.co : ""}</span>
-                            </div>
-                          </div>
-                          {cd && (
-                            <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: cd.c, border: "1px solid " + cd.c + "55", borderRadius: 5, padding: "2px 6px" }}>
-                              {cd.t}
-                            </span>
-                          )}
-                          <ChevronRight size={15} color={C.mid} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s", flexShrink: 0 }} />
-                        </button>
-                        {open && (
-                          <div style={{ padding: "0 12px 12px" }}>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
-                              <Stat label="MOVE IN" value={s.mi || "—"} />
-                              <Stat label="START" value={s.start || "—"} />
-                              <Stat label="END" value={s.end || "—"} />
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 5, fontSize: 12, color: C.mid, marginBottom: 12 }}>
-                              <div><span style={{ color: C.lo }}>Location</span> · {s.loc || "—"}{s.booth ? " · Booth " + s.booth : ""}</div>
-                              <div><span style={{ color: C.lo }}>General contractor</span> · {s.co || "—"}</div>
-                              <div><span style={{ color: C.lo }}>Source</span> · {s.src || "—"}</div>
-                            </div>
-                            <div style={{ display: "flex", gap: 8 }}>
-                              <button className="foc" onClick={() => { setEditing(s); setModal("edit"); }}
-                                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 8, background: C.raise, color: C.hi, border: "1px solid " + C.line, fontSize: 13, fontWeight: 700 }}>Edit</button>
-                              <button className="foc" onClick={() => removeShow(s.id)}
-                                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 14px", borderRadius: 8, background: "transparent", color: C.danger, border: "1px solid " + C.line, fontSize: 13, fontWeight: 700 }}>
-                                <Trash2 size={13} /> Delete
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {currentGroups.map(renderGroup)}
+
+        {pastGroups.length > 0 && (
+          <button className="foc" onClick={() => setShowPast((v) => !v)}
+            style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: C.panel, border: "1px solid " + C.edge, borderRadius: 10, padding: "11px 13px", color: C.mid, fontSize: 12.5, fontWeight: 700 }}>
+            <ChevronRight size={14} color={C.lo} style={{ transform: showPast ? "rotate(90deg)" : "none", transition: "transform .15s", flexShrink: 0 }} />
+            {showPast ? "Hide" : "Show"} {pastGroups.length} past month{pastGroups.length === 1 ? "" : "s"}
+            <span style={{ marginLeft: "auto", fontFamily: FM, fontSize: 11, color: C.lo }}>{pastShowCount} shows</span>
+          </button>
+        )}
+
+        {showPast && pastGroups.map(renderGroup)}
       </div>
 
       {(modal === "add" || modal === "edit") && (
@@ -963,6 +1332,7 @@ export default function AdminBoard() {
   const [tab, setTab] = useState("roster"); // roster | schedule
   const [selectedId, setSelectedId] = useState(null);
   const [newModal, setNewModal] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [classModal, setClassModal] = useState(false); // false | array of preselected userIds
   const [signingOut, setSigningOut] = useState(false);
 
@@ -1001,6 +1371,7 @@ export default function AdminBoard() {
     setShows((showsRes.data || []).map((r) => ({
       id: r.id, name: r.name, mi: r.move_in || "", start: r.starts_on || "", end: r.ends_on || "",
       loc: r.location || "", booth: r.booth || "", co: r.gc || "", region: r.region || "", src: r.source || "union",
+      sheetMonth: r.sheet_month || "",
     })));
   };
 
@@ -1030,6 +1401,8 @@ export default function AdminBoard() {
   };
 
   const selected = selectedId ? apprentices.find((a) => a.id === selectedId) : null;
+  const activeApprentices = useMemo(() => apprentices.filter((a) => !a.archived_at), [apprentices]);
+  const archivedApprentices = useMemo(() => apprentices.filter((a) => a.archived_at), [apprentices]);
 
   if (state === "loading") {
     return (
@@ -1081,7 +1454,7 @@ export default function AdminBoard() {
         <div className="truncate" style={{ fontSize: 11.5, color: C.lo, fontFamily: FM, marginBottom: 14 }}>{email}</div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-          <Stat label="APPRENTICES" value={String(apprentices.length)} color={C.gc} />
+          <Stat label="APPRENTICES" value={String(activeApprentices.length)} color={C.gc} />
           <Stat label="PENDING APPROVALS" value={String(Object.values(monthsByUser).flat().filter((m) => m.status === "pending").length)}
             sub="across everyone" color={C.brand} />
         </div>
@@ -1108,21 +1481,30 @@ export default function AdminBoard() {
               onBack={() => setSelectedId(null)} onChanged={load} />
           ) : (
             <>
-              <RosterCategoryChart apprentices={apprentices} monthsByUser={monthsByUser} />
-              <ExpiringCerts apprentices={apprentices} certsByUser={certsByUser} />
-              <Roster apprentices={apprentices} monthsByUser={monthsByUser} onSelect={setSelectedId} />
+              <RosterCategoryChart apprentices={activeApprentices} monthsByUser={monthsByUser} />
+              <ExpiringCerts apprentices={activeApprentices} certsByUser={certsByUser} />
+              <Roster apprentices={activeApprentices} monthsByUser={monthsByUser} onSelect={setSelectedId} />
               <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                 <button className="foc" onClick={() => setNewModal(true)}
                   style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
                   <Plus size={15} /> Add apprentice
                 </button>
-                {apprentices.length > 0 && (
+                {activeApprentices.length > 0 && (
                   <button className="foc" onClick={() => setClassModal([])}
                     style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
                     <GraduationCap size={15} /> Assign class
                   </button>
                 )}
               </div>
+
+              {archivedApprentices.length > 0 && (
+                <button className="foc" onClick={() => setShowArchived((v) => !v)}
+                  style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", background: C.panel, border: "1px solid " + C.edge, borderRadius: 10, padding: "11px 13px", color: C.mid, fontSize: 12.5, fontWeight: 700, marginTop: 12 }}>
+                  <ChevronRight size={14} color={C.lo} style={{ transform: showArchived ? "rotate(90deg)" : "none", transition: "transform .15s", flexShrink: 0 }} />
+                  {showArchived ? "Hide" : "Show"} {archivedApprentices.length} archived apprentice{archivedApprentices.length === 1 ? "" : "s"}
+                </button>
+              )}
+              {showArchived && <ArchivedRoster apprentices={archivedApprentices} onSelect={setSelectedId} />}
             </>
           )
         ) : (
@@ -1137,7 +1519,7 @@ export default function AdminBoard() {
       )}
       {classModal !== false && (
         <Modal title="Assign class" onClose={() => setClassModal(false)}>
-          <AssignClassForm apprentices={apprentices} preselected={classModal} onAssigned={load} onClose={() => setClassModal(false)} />
+          <AssignClassForm apprentices={activeApprentices} preselected={classModal} onAssigned={load} onClose={() => setClassModal(false)} />
         </Modal>
       )}
     </div>

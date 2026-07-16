@@ -20,6 +20,7 @@ export async function POST(request) {
         gc: s.co || null,
         region: s.region || null,
         source: s.src || "union",
+        sheet_month: s.sheetMonth || null,
         created_by: user.id,
       }));
       const { error } = await supabase.from("shows").upsert(rows);

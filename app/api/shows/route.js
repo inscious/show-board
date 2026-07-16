@@ -18,6 +18,7 @@ export async function POST(request) {
       gc: data.co || null,
       region: data.region || null,
       source: data.src || "user",
+      sheet_month: data.sheetMonth || null,
       created_by: user.id,
     });
     if (error) return Response.json({ error: "Could not save" }, { status: 400 });
