@@ -7650,10 +7650,10 @@ function OjtTab({
                     style={{ display: "flex", flexDirection: "column", gap: 6 }}
                 >
                     {[
-                        ["Before 8:00a", "DT", PAY_COLOR.dt, "×2"],
-                        ["8:00a – 4:30p", "ST", PAY_COLOR.st, "×1"],
-                        ["4:30p – 8:30p", "OT", PAY_COLOR.ot, "×1.5"],
-                        ["After 8:30p", "DT", PAY_COLOR.dt, "×2"],
+                        ["Before 8:00am", "DT", PAY_COLOR.dt, "×2"],
+                        ["8:00am – 4:30pm", "ST", PAY_COLOR.st, "×1"],
+                        ["4:30pm – 8:30pm", "OT", PAY_COLOR.ot, "×1.5"],
+                        ["After 8:30pm", "DT", PAY_COLOR.dt, "×2"],
                         ["Saturday & Sunday", "DT", PAY_COLOR.dt, "×2"],
                         ["Federal holiday", "OT", PAY_COLOR.ot, "8h min"],
                     ].map(([when, k, c, mult]) => (
@@ -8555,6 +8555,7 @@ function HomeTab({
     hasPassword,
     notifications,
     onClearNotification,
+    doNotHire,
 }) {
     const { companies } = useContext(DirectoryContext);
     const today = todayMid();
@@ -8848,6 +8849,35 @@ function HomeTab({
 
     return (
         <div className="dgrid">
+            {doNotHire && doNotHire.on && (
+                <div
+                    className="dspan"
+                    style={{
+                        background: "rgba(232,146,124,0.1)",
+                        border: "1px solid " + C.danger + "77",
+                        borderRadius: 12,
+                        padding: "13px 15px",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 10,
+                    }}
+                >
+                    <Ban size={17} color={C.danger} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: C.danger }}>
+                            You're on the do-not-hire list
+                        </div>
+                        {doNotHire.reason && (
+                            <div style={{ fontSize: 12, color: C.mid, marginTop: 3, lineHeight: 1.5 }}>{doNotHire.reason}</div>
+                        )}
+                        {doNotHire.since && (
+                            <div style={{ fontSize: 10.5, color: C.lo, marginTop: 4, fontFamily: FM }}>
+                                since {doNotHire.since.slice(0, 10)} · contact the JATC office to resolve
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
             {/* notifications: new class assignments, schedule updates — cleared one at a time or all at once */}
             {notifications.length > 0 && (
                 <div
@@ -8906,7 +8936,10 @@ function HomeTab({
                             const Ico =
                                 n.type === "class"
                                     ? GraduationCap
-                                    : CalendarDays;
+                                    : n.type === "dnh"
+                                      ? Ban
+                                      : CalendarDays;
+                            const ntColor = n.type === "dnh" ? C.danger : C.gc;
                             return (
                                 <div
                                     key={n.id}
@@ -8915,14 +8948,14 @@ function HomeTab({
                                         alignItems: "center",
                                         gap: 9,
                                         background: C.sunk,
-                                        border: "1px solid " + C.line,
+                                        border: "1px solid " + (n.type === "dnh" ? C.danger + "55" : C.line),
                                         borderRadius: 9,
                                         padding: "8px 10px",
                                     }}
                                 >
                                     <Ico
                                         size={14}
-                                        color={C.gc}
+                                        color={ntColor}
                                         style={{ flexShrink: 0 }}
                                     />
                                     <div
@@ -8931,7 +8964,8 @@ function HomeTab({
                                             flex: 1,
                                             minWidth: 0,
                                             fontSize: 12.5,
-                                            color: C.hi,
+                                            color: n.type === "dnh" ? C.danger : C.hi,
+                                            fontWeight: n.type === "dnh" ? 700 : 400,
                                         }}
                                     >
                                         {n.message}
@@ -10263,6 +10297,7 @@ export default function App() {
         rsiCredits: 0,
         joined: "",
     });
+    const [doNotHire, setDoNotHire] = useState({ on: false, reason: "", since: null });
     const [certs, setCerts] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [companies, setCompanies] = useState([]);
@@ -10321,6 +10356,11 @@ export default function App() {
                           rsiCredits: 0,
                           joined: "",
                       },
+            );
+            setDoNotHire(
+                data && data.doNotHire
+                    ? data.doNotHire
+                    : { on: false, reason: "", since: null },
             );
             setCerts(data && Array.isArray(data.certs) ? data.certs : []);
             setNotifications(
@@ -10895,6 +10935,7 @@ export default function App() {
                         classes={classes}
                         hasPassword={hasPassword}
                         notifications={notifications}
+                        doNotHire={doNotHire}
                         onClearNotification={clearNotification}
                         onOpenDay={(k) => setModal({ type: "day", key: k })}
                         onGoto={goto}

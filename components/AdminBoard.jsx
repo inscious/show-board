@@ -7,10 +7,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
   HardHat, Users, CalendarDays, Plus, Upload, ChevronRight, ChevronLeft, ChevronDown,
-  Check, X, Trash2, Eye, EyeOff, Lock, Mail, GraduationCap,
+  Check, X, Trash2, Eye, EyeOff, Lock, Mail, GraduationCap, LayoutDashboard, Settings as SettingsIcon, ShieldCheck,
+  Search, AlertTriangle, Ban,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { C, SHADOW, FM, FS, hrsFmt, mMed, levelIndex, ojtTotals, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth } from "@/lib/core";
+import { C, SHADOW, FM, FS, hrsFmt, mMed, levelIndex, ojtTotals, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth, keyOf, fromKey, fmtClock } from "@/lib/core";
 import { ShowForm, ImportForm, EMPTY } from "@/components/ShowEditor";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 
@@ -131,6 +132,7 @@ function monthHours(m) { return Number(m.a || 0) + Number(m.b || 0) + Number(m.c
 /* ---------- apprentice detail ---------- */
 function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs, shows, onAssignClass, onBack, onChanged }) {
   const archived = !!apprentice.archived_at;
+  const expiredCerts = useMemo(() => (certs || []).filter((c) => certState(c.exp).t === "EXPIRED"), [certs]);
   const [archiveState, setArchiveState] = useState("idle");
   const [archiveMsg, setArchiveMsg] = useState("");
   const [confirmArchive, setConfirmArchive] = useState(false); // "archive" | "restore" | "delete" | false
@@ -151,6 +153,27 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
       setArchiveMsg(e.message);
     }
   };
+
+  const onDnhList = !!apprentice.do_not_hire_at;
+  const [dnhReason, setDnhReason] = useState("");
+  const [dnhState, setDnhState] = useState("idle");
+  const [dnhMsg, setDnhMsg] = useState("");
+  const [confirmDnhRemove, setConfirmDnhRemove] = useState(false);
+  const setDnh = async (onList, reason) => {
+    setDnhState("saving");
+    setDnhMsg("");
+    try {
+      await req("POST", "/api/admin/do-not-hire", { userId: apprentice.id, onList, reason });
+      setDnhReason("");
+      setConfirmDnhRemove(false);
+      setDnhState("idle");
+      onChanged();
+    } catch (e) {
+      setDnhState("error");
+      setDnhMsg(e.message);
+    }
+  };
+
   const approved = useMemo(() => months.filter((m) => m.status === "approved").sort((a, b) => (a.m < b.m ? 1 : -1)), [months]);
   const pending = useMemo(() => months.filter((m) => m.status === "pending").sort((a, b) => (a.m < b.m ? -1 : 1)), [months]);
   const total = useMemo(() => ojtTotals(approved).total, [approved]);
@@ -271,6 +294,9 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
           {archived && (
             <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 10.5, fontWeight: 800, color: C.mid, background: C.raise, border: "1px solid " + C.line, borderRadius: 6, padding: "4px 8px" }}>ARCHIVED</span>
           )}
+          {onDnhList && (
+            <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 10.5, fontWeight: 800, color: C.danger, background: "rgba(232,146,124,0.14)", border: "1px solid " + C.danger + "66", borderRadius: 6, padding: "4px 8px" }}>DO NOT HIRE</span>
+          )}
           <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 12, fontWeight: 800, color: C.brand, background: "rgba(255,176,32,0.14)", border: "1px solid rgba(255,176,32,0.4)", borderRadius: 6, padding: "4px 8px" }}>{lv.k}</span>
         </div>
       </div>
@@ -291,6 +317,56 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
 
       {detailTab === "overview" && (
       <>
+      {expiredCerts.length > 0 && (
+        <button className="foc" onClick={() => setDetailTab("classes")}
+          style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, background: "rgba(232,146,124,0.08)", border: "1px solid " + C.danger + "55", borderRadius: 12, padding: "13px 15px", boxShadow: SHADOW, marginBottom: 12 }}>
+          <AlertTriangle size={16} color={C.danger} style={{ flexShrink: 0 }} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: C.danger }}>
+              {expiredCerts.length} certification{expiredCerts.length === 1 ? "" : "s"} expired
+            </div>
+            <div className="truncate" style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>
+              {expiredCerts.map((c) => c.name + " · expired " + c.exp).join(" · ")}
+            </div>
+          </div>
+          <ChevronRight size={15} color={C.danger} style={{ flexShrink: 0 }} />
+        </button>
+      )}
+      {onDnhList && (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(232,146,124,0.08)", border: "1px solid " + C.danger + "55", borderRadius: 12, padding: "13px 15px", boxShadow: SHADOW, marginBottom: 12 }}>
+          <Ban size={16} color={C.danger} style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: C.danger }}>On the do-not-hire list</div>
+            {apprentice.do_not_hire_reason && <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{apprentice.do_not_hire_reason}</div>}
+            <div style={{ fontSize: 10.5, color: C.lo, marginTop: 3, fontFamily: FM }}>since {apprentice.do_not_hire_at.slice(0, 10)}</div>
+          </div>
+          <button className="foc" onClick={() => setConfirmDnhRemove(true)}
+            style={{ flexShrink: 0, background: "transparent", border: "1px solid " + C.line, color: C.mid, borderRadius: 7, padding: "6px 10px", fontSize: 11.5, fontWeight: 700 }}>
+            Remove
+          </button>
+        </div>
+      )}
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 10 }}>APPRENTICE INFO</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {[
+            ["Member ID", apprentice.member_id],
+            ["Last 4 SSN", apprentice.ssn_last4],
+            ["Local", apprentice.local],
+            ["Joined", apprentice.joined_on],
+            ["RSI credits", apprentice.rsi_credits != null ? String(apprentice.rsi_credits) : null],
+            ["Email", apprentice.email],
+          ].map(([label, value]) => (
+            <div key={label} style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 9.5, letterSpacing: 0.4, color: C.lo, fontFamily: FM, marginBottom: 2 }}>{label.toUpperCase()}</div>
+              <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: value ? C.hi : C.lo, fontFamily: label === "Last 4 SSN" || label === "Member ID" ? FM : undefined }}>
+                {value || "—"}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="m4" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
         <Stat label="TOTAL OJT" value={hrsFmt(total)} sub={lv.label} color={C.working} />
         <Stat label="PENDING REVIEW" value={String(pending.length)} sub={pending.length ? "needs a decision" : "all caught up"} color={pending.length ? C.brand : C.lo} />
@@ -582,6 +658,34 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
         )}
         {archiveMsg && <div style={{ marginTop: 8, fontSize: 11.5, color: C.danger }}>{archiveMsg}</div>}
       </div>
+
+      <div style={{ background: C.panel, border: "1px solid " + C.danger + "44", borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginTop: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.danger, fontFamily: FM, marginBottom: 9 }}>DO NOT HIRE LIST</div>
+        {onDnhList ? (
+          <>
+            <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 10 }}>
+              On the list since {apprentice.do_not_hire_at.slice(0, 10)}{apprentice.do_not_hire_reason ? " — " + apprentice.do_not_hire_reason : ""}.
+            </div>
+            <button className="foc" onClick={() => setConfirmDnhRemove(true)} disabled={dnhState === "saving"}
+              style={{ width: "100%", padding: "9px 14px", borderRadius: 8, background: C.raise, color: C.hi, border: "1px solid " + C.line, fontSize: 12.5, fontWeight: 700 }}>
+              Remove from do-not-hire list
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 10 }}>
+              Late OJT paperwork, a missed mandatory class, or a Rules & Regs violation — puts them on the union's do-not-hire list. They'll see it on their own account and get a notification.
+            </div>
+            <textarea value={dnhReason} onChange={(e) => setDnhReason(e.target.value)} placeholder="Reason (required)" rows={2}
+              style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 10px", color: C.hi, fontSize: 12.5, fontFamily: FS, resize: "vertical", marginBottom: 8 }} />
+            <button className="foc" onClick={() => setDnh(true, dnhReason.trim())} disabled={dnhState === "saving" || !dnhReason.trim()}
+              style={{ width: "100%", padding: "9px 14px", borderRadius: 8, background: "transparent", color: C.danger, border: "1px solid " + C.danger + "66", fontSize: 12.5, fontWeight: 700, opacity: dnhReason.trim() ? 1 : 0.6 }}>
+              Put on do-not-hire list
+            </button>
+          </>
+        )}
+        {dnhMsg && <div style={{ marginTop: 8, fontSize: 11.5, color: C.danger }}>{dnhMsg}</div>}
+      </div>
       </>
       )}
 
@@ -611,6 +715,16 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
           confirmLabel="Delete permanently"
           onClose={() => setConfirmArchive(false)}
           onConfirm={() => runArchiveAction("delete")}
+        />
+      )}
+      {confirmDnhRemove && (
+        <ConfirmModal
+          title="Remove from do-not-hire list?"
+          message={<>{apprentice.name || apprentice.email} will be cleared from the do-not-hire list and notified.</>}
+          confirmLabel="Remove"
+          danger={false}
+          onClose={() => setConfirmDnhRemove(false)}
+          onConfirm={() => setDnh(false, null)}
         />
       )}
     </div>
@@ -766,6 +880,71 @@ function AssignClassForm({ apprentices, preselected, onAssigned, onClose }) {
   );
 }
 
+/* ---------- put several apprentices on the do-not-hire list at once —
+   loops the same POST /api/admin/do-not-hire the single-apprentice Danger
+   Zone flow uses, one call per selected apprentice, same shared reason ---------- */
+function BulkDnhForm({ apprentices, onDone, onClose }) {
+  const [selected, setSelected] = useState(() => new Set());
+  const [reason, setReason] = useState("");
+  const [state, setState] = useState("idle");
+  const [msg, setMsg] = useState("");
+
+  const toggle = (id) => setSelected((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (selected.size === 0) { setState("error"); setMsg("Pick at least one apprentice."); return; }
+    if (!reason.trim()) { setState("error"); setMsg("Reason is required."); return; }
+    setState("saving");
+    setMsg("");
+    try {
+      await Promise.all(Array.from(selected).map((userId) =>
+        req("POST", "/api/admin/do-not-hire", { userId, onList: true, reason: reason.trim() })));
+      setState("done");
+      onDone();
+      setTimeout(onClose, 900);
+    } catch (e2) {
+      setState("error");
+      setMsg(e2.message);
+    }
+  };
+
+  return (
+    <form onSubmit={submit}>
+      {apprentices.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: C.lo }}>Everyone active is already on the list.</div>
+      ) : (
+        <>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>APPRENTICES</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, maxHeight: 220, overflowY: "auto" }}>
+            {apprentices.map((a) => (
+              <button key={a.id} type="button" onClick={() => toggle(a.id)}
+                style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: C.sunk, border: "1px solid " + (selected.has(a.id) ? C.danger + "88" : C.line), borderRadius: 8, padding: "8px 10px" }}>
+                <span style={{ width: 16, height: 16, borderRadius: 4, border: "1px solid " + C.line, background: selected.has(a.id) ? C.danger : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {selected.has(a.id) && <Check size={11} color="#2A0E0A" />}
+                </span>
+                <span className="truncate" style={{ fontSize: 13, color: C.hi }}>{a.name || a.email}</span>
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>REASON (required, applies to everyone selected)</div>
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. OJT turned in late for June" rows={2}
+            style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, fontFamily: FS, resize: "vertical", marginBottom: 14 }} />
+          <button type="submit" disabled={state === "saving"}
+            style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.danger, color: "#2A0E0A", border: "none", fontWeight: 800, fontSize: 14 }}>
+            {state === "saving" ? "Adding…" : state === "done" ? "Added" : "Add " + selected.size + " to do-not-hire list"}
+          </button>
+        </>
+      )}
+      {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
+    </form>
+  );
+}
+
 function AddCertForm({ userId, onAdded, onClose }) {
   const [name, setName] = useState("");
   const [exp, setExp] = useState("");
@@ -818,13 +997,73 @@ function Roster({ apprentices, monthsByUser, onSelect }) {
     return { ...a, total, level: LEVELS[levelIndex(total)], pendingCount, lastMonth };
   }).sort((x, y) => (x.name || x.email).localeCompare(y.name || y.email)), [apprentices, monthsByUser]);
 
+  const [q, setQ] = useState("");
+  const [cityFilter, setCityFilter] = useState("");
+  const [levelFilter, setLevelFilter] = useState("");
+  const [pendingOnly, setPendingOnly] = useState(false);
+  const [dnhOnly, setDnhOnly] = useState(false);
+
+  const cities = useMemo(() => Array.from(new Set(roster.map((a) => a.city).filter(Boolean))).sort(), [roster]);
+  const levelsPresent = useMemo(() => LEVELS.filter((lv) => roster.some((a) => a.level.k === lv.k)), [roster]);
+
+  const filtered = useMemo(() => roster.filter((a) => {
+    if (cityFilter && a.city !== cityFilter) return false;
+    if (levelFilter && a.level.k !== levelFilter) return false;
+    if (pendingOnly && a.pendingCount === 0) return false;
+    if (dnhOnly && !a.do_not_hire_at) return false;
+    if (q.trim()) {
+      const hay = ((a.name || "") + " " + a.email).toLowerCase();
+      if (!hay.includes(q.trim().toLowerCase())) return false;
+    }
+    return true;
+  }), [roster, cityFilter, levelFilter, pendingOnly, dnhOnly, q]);
+
+  const anyFilterActive = cityFilter || levelFilter || pendingOnly || dnhOnly || q.trim();
+  const inputStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px", color: C.hi, fontSize: 12.5, fontFamily: FS };
+
   if (roster.length === 0) {
     return <div style={{ color: C.mid, fontSize: 13, padding: "20px 0", textAlign: "center" }}>No apprentices yet. Add one below.</div>;
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      {roster.map((a) => (
+    <div>
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "12px 13px", boxShadow: SHADOW, marginBottom: 10 }}>
+        <div style={{ position: "relative", marginBottom: 8 }}>
+          <Search size={14} color={C.lo} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email…"
+            style={{ ...inputStyle, width: "100%", padding: "8px 10px 8px 30px" }} />
+        </div>
+        <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+          <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} style={{ ...inputStyle, flex: "1 1 120px" }}>
+            <option value="">All cities</option>
+            {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={levelFilter} onChange={(e) => setLevelFilter(e.target.value)} style={{ ...inputStyle, flex: "1 1 100px" }}>
+            <option value="">All levels</option>
+            {levelsPresent.map((lv) => <option key={lv.k} value={lv.k}>{lv.k} — {lv.label}</option>)}
+          </select>
+          <button className="foc" onClick={() => setPendingOnly((v) => !v)}
+            style={{ flexShrink: 0, fontFamily: FM, fontSize: 11.5, fontWeight: 800, padding: "8px 12px", borderRadius: 9, background: pendingOnly ? C.brand : "transparent", color: pendingOnly ? "#1A1206" : C.mid, border: "1px solid " + (pendingOnly ? C.brand : C.line) }}>
+            Pending only
+          </button>
+          <button className="foc" onClick={() => setDnhOnly((v) => !v)}
+            style={{ flexShrink: 0, fontFamily: FM, fontSize: 11.5, fontWeight: 800, padding: "8px 12px", borderRadius: 9, background: dnhOnly ? C.danger : "transparent", color: dnhOnly ? "#2A0E0A" : C.mid, border: "1px solid " + (dnhOnly ? C.danger : C.line) }}>
+            Do not hire
+          </button>
+          {anyFilterActive && (
+            <button className="foc" onClick={() => { setQ(""); setCityFilter(""); setLevelFilter(""); setPendingOnly(false); setDnhOnly(false); }}
+              style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 700, padding: "8px 12px", borderRadius: 9, background: "transparent", color: C.lo, border: "1px solid " + C.line }}>
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div style={{ color: C.mid, fontSize: 13, padding: "20px 0", textAlign: "center" }}>No apprentices match these filters.</div>
+      ) : (
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      {filtered.map((a) => (
         <button key={a.id} className="foc roster-row" onClick={() => onSelect(a.id)}
           style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW }}>
           <Avatar name={a.name} email={a.email} />
@@ -834,6 +1073,7 @@ function Roster({ apprentices, monthsByUser, onSelect }) {
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
               <span style={{ fontFamily: FM, fontSize: 13, fontWeight: 800, color: C.working }}>{hrsFmt(a.total)}h</span>
               <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 10, fontWeight: 800, color: C.brand, background: "rgba(255,176,32,0.14)", border: "1px solid rgba(255,176,32,0.4)", borderRadius: 5, padding: "1px 6px" }}>{a.level.k}</span>
+              {a.do_not_hire_at && <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 10, fontWeight: 800, color: C.danger, background: "rgba(232,146,124,0.14)", border: "1px solid " + C.danger + "66", borderRadius: 5, padding: "1px 6px" }}>DNH</span>}
               {a.city && <span className="truncate" style={{ fontSize: 10.5, color: C.mid }}>{a.city}</span>}
               {a.lastMonth && <span className="truncate" style={{ fontSize: 10.5, color: C.lo }}>last {mMed(a.lastMonth.m)}</span>}
             </div>
@@ -846,6 +1086,8 @@ function Roster({ apprentices, monthsByUser, onSelect }) {
           <ChevronRight size={16} color={C.lo} style={{ flexShrink: 0 }} />
         </button>
       ))}
+      </div>
+      )}
     </div>
   );
 }
@@ -1088,8 +1330,192 @@ function ApprenticeMonthlyChart({ months }) {
   );
 }
 
+/* ---------- upcoming classes across the whole roster — classes is one row
+   PER APPRENTICE (no shared "session" id), so regroup by name+dates to
+   reconstruct "who's in this class" from classesByUser, already loaded. ---------- */
+function classSessionKey(c) { return c.name + "|" + (c.dates || []).slice().sort().join(","); }
+
+/* ---------- add more apprentices to an already-assigned class session —
+   same POST /api/admin/classes the initial assignment uses, just with the
+   session's name/start/loc/note/dates carried over untouched and the
+   apprentice picker narrowed to whoever isn't already in it ---------- */
+function AddToClassForm({ session, candidates, onAdded, onClose }) {
+  const [selected, setSelected] = useState(() => new Set());
+  const [state, setState] = useState("idle");
+  const [msg, setMsg] = useState("");
+
+  const toggle = (id) => setSelected((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (selected.size === 0) { setState("error"); setMsg("Pick at least one apprentice."); return; }
+    setState("saving");
+    setMsg("");
+    try {
+      await req("POST", "/api/admin/classes", {
+        userIds: Array.from(selected), name: session.name, loc: session.loc || undefined, note: session.note || undefined,
+        start: session.start ?? undefined, dates: session.dates,
+      });
+      setState("done");
+      onAdded();
+      setTimeout(onClose, 900);
+    } catch (e2) {
+      setState("error");
+      setMsg(e2.message);
+    }
+  };
+
+  return (
+    <form onSubmit={submit}>
+      {candidates.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: C.lo }}>Everyone on the active roster is already in this class.</div>
+      ) : (
+        <>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>APPRENTICES NOT YET IN THIS CLASS</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, maxHeight: 260, overflowY: "auto" }}>
+            {candidates.map((a) => (
+              <button key={a.id} type="button" onClick={() => toggle(a.id)}
+                style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: C.sunk, border: "1px solid " + (selected.has(a.id) ? C.brand + "88" : C.line), borderRadius: 8, padding: "8px 10px" }}>
+                <span style={{ width: 16, height: 16, borderRadius: 4, border: "1px solid " + C.line, background: selected.has(a.id) ? C.brand : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {selected.has(a.id) && <Check size={11} color="#1A1206" />}
+                </span>
+                <span className="truncate" style={{ fontSize: 13, color: C.hi }}>{a.name || a.email}</span>
+              </button>
+            ))}
+          </div>
+          <button type="submit" disabled={state === "saving"}
+            style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+            {state === "saving" ? "Adding…" : state === "done" ? "Added" : "Add " + selected.size + " apprentice" + (selected.size === 1 ? "" : "s")}
+          </button>
+        </>
+      )}
+      {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
+    </form>
+  );
+}
+
+function UpcomingClasses({ apprentices, classesByUser, onOpenApprentice, onChanged }) {
+  const sessions = useMemo(() => {
+    const map = {};
+    apprentices.forEach((a) => {
+      (classesByUser[a.id] || []).forEach((c) => {
+        const key = classSessionKey(c);
+        if (!map[key]) map[key] = { name: c.name, start: c.start, loc: c.loc, note: c.note, dates: (c.dates || []).slice().sort(), people: [] };
+        map[key].people.push({ apprentice: a, missedCount: (c.missedDates || []).length });
+      });
+    });
+    const todayKey = keyOf(todayMid());
+    return Object.values(map)
+      .filter((s) => s.dates.length && s.dates[s.dates.length - 1] >= todayKey)
+      .sort((x, y) => x.dates[0].localeCompare(y.dates[0]));
+  }, [apprentices, classesByUser]);
+
+  const [openKey, setOpenKey] = useState(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const open = useMemo(() => openKey ? sessions.find((s) => classSessionKey(s) === openKey) || null : null, [openKey, sessions]);
+  const candidates = useMemo(() => open ? apprentices.filter((a) => !open.people.some((p) => p.apprentice.id === a.id)) : [], [open, apprentices]);
+  if (sessions.length === 0) return null;
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+      <div style={{ fontSize: 10, letterSpacing: 0.6, color: KLASS, fontFamily: FM, marginBottom: 9 }}>UPCOMING CLASSES</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {sessions.map((s, i) => {
+          const days = Math.round((fromKey(s.dates[0]) - todayMid()) / 86400000);
+          const soon = days <= 3;
+          return (
+            <button key={i} className="foc" onClick={() => setOpenKey(classSessionKey(s))}
+              style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{s.name}</div>
+                <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>
+                  {s.dates.length} day{s.dates.length === 1 ? "" : "s"} · {s.dates[0]}{s.loc ? " · " + s.loc : ""} · {s.people.length} apprentice{s.people.length === 1 ? "" : "s"}
+                </div>
+              </div>
+              <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: soon ? C.brand : C.lo, border: "1px solid " + (soon ? "rgba(255,176,32,0.5)" : C.line), borderRadius: 5, padding: "2px 6px" }}>
+                {days <= 0 ? "TODAY" : days === 1 ? "TOMORROW" : "IN " + days + "D"}
+              </span>
+              <ChevronRight size={14} color={C.lo} style={{ flexShrink: 0 }} />
+            </button>
+          );
+        })}
+      </div>
+
+      {open && (
+        <Modal title={open.name} onClose={() => setOpenKey(null)}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+            <Stat label="DATES" value={open.dates.length + "d"} sub={open.dates[0] + (open.dates.length > 1 ? " – " + open.dates[open.dates.length - 1] : "")} />
+            <Stat label="STARTS" value={open.start != null ? fmtClock(open.start) : "—"} sub={open.loc || "no location on file"} />
+          </div>
+          {open.note && (
+            <div style={{ fontSize: 12.5, color: C.mid, lineHeight: 1.5, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 11px", marginBottom: 14 }}>{open.note}</div>
+          )}
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM }}>{open.people.length} APPRENTICE{open.people.length === 1 ? "" : "S"} SCHEDULED</div>
+            <button className="foc" onClick={() => setAddOpen(true)} style={{ marginLeft: "auto", background: "transparent", border: "none", color: KLASS, fontSize: 11.5, fontWeight: 700, padding: 0 }}>+ Add apprentices</button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {open.people.map(({ apprentice: a, missedCount }) => (
+              <button key={a.id} className="foc" onClick={() => onOpenApprentice(a.id)}
+                style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+                <Avatar name={a.name} email={a.email} size={30} />
+                <div className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
+                {missedCount > 0 && (
+                  <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: C.danger, border: "1px solid " + C.danger + "55", borderRadius: 5, padding: "2px 6px" }}>{missedCount} MISSED</span>
+                )}
+                <ChevronRight size={13} color={C.lo} style={{ flexShrink: 0 }} />
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
+      {addOpen && open && (
+        <Modal title={"Add apprentices — " + open.name} onClose={() => setAddOpen(false)}>
+          <AddToClassForm session={open} candidates={candidates} onAdded={onChanged} onClose={() => setAddOpen(false)} />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 /* ---------- certs expiring across the whole roster — filters certsByUser
    that's already loaded, no extra fetch either ---------- */
+/* ---------- everyone currently on the do-not-hire list, across the whole
+   roster — filters apprentices already loaded, no extra fetch ---------- */
+function DoNotHirePanel({ apprentices, onOpenApprentice }) {
+  const rows = useMemo(() => apprentices.filter((a) => a.do_not_hire_at)
+    .sort((x, y) => (y.do_not_hire_at || "").localeCompare(x.do_not_hire_at || "")), [apprentices]);
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.danger + "44", borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+      <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.danger, fontFamily: FM, marginBottom: 9 }}>DO NOT HIRE — {rows.length}</div>
+      {rows.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: C.lo }}>Nobody on the list right now.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {rows.map((a) => (
+            <button key={a.id} className="foc" onClick={() => onOpenApprentice(a.id)}
+              style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
+              <Avatar name={a.name} email={a.email} size={30} />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
+                <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>
+                  since {a.do_not_hire_at.slice(0, 10)}{a.do_not_hire_reason ? " · " + a.do_not_hire_reason : ""}
+                </div>
+              </div>
+              <ChevronRight size={14} color={C.lo} style={{ flexShrink: 0 }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ExpiringCerts({ apprentices, certsByUser }) {
   const rows = useMemo(() => {
     const out = [];
@@ -1119,6 +1545,61 @@ function ExpiringCerts({ apprentices, certsByUser }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ---------- settings: create a brand-new admin account. Admins are always
+   their own accounts — never an apprentice promoted in place — so this
+   mirrors NewApprenticeForm but hits create-admin, which sets is_admin from
+   the moment the account exists. It never touches (or appears on) the
+   roster, since load() only ever pulls is_admin = false profiles. ---------- */
+function NewAdminForm({ onCreated }) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [pw, setPw] = useState("");
+  const [state, setState] = useState("idle");
+  const [msg, setMsg] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (pw.length < 8) { setState("error"); setMsg("Password needs 8+ characters."); return; }
+    setState("saving");
+    setMsg("");
+    try {
+      await req("POST", "/api/admin/create-admin", { email: email.trim().toLowerCase(), password: pw, name: name.trim() || undefined });
+      setState("done");
+      setEmail(""); setName(""); setPw("");
+      onCreated();
+    } catch (e2) {
+      setState("error");
+      setMsg(e2.message);
+    }
+  };
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+      <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CREATE ADMIN ACCOUNT</div>
+      <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 12 }}>
+        Admins are always their own separate account, never an apprentice promoted in place — this one won't appear on the roster or have OJT hours of its own.
+      </div>
+      <form onSubmit={submit}>
+        <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EMAIL</div>
+        <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@example.com"
+          style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
+        <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NAME (optional)</div>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Admin"
+          style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
+        <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>TEMP PASSWORD</div>
+        <div style={{ marginBottom: 14 }}>
+          <PwField value={pw} onChange={(e) => setPw(e.target.value)} placeholder="8+ characters — tell them this directly" />
+        </div>
+        <button type="submit" disabled={state === "saving" || !email.trim() || !pw}
+          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+          <ShieldCheck size={15} /> {state === "saving" ? "Creating…" : state === "done" ? "Admin account created" : "Create admin account"}
+        </button>
+        {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
+      </form>
     </div>
   );
 }
@@ -1329,11 +1810,12 @@ export default function AdminBoard() {
   const [classesByUser, setClassesByUser] = useState({});
   const [certsByUser, setCertsByUser] = useState({});
   const [shows, setShows] = useState([]);
-  const [tab, setTab] = useState("roster"); // roster | schedule
+  const [tab, setTab] = useState("dashboard"); // dashboard | roster | schedule | settings
   const [selectedId, setSelectedId] = useState(null);
   const [newModal, setNewModal] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [classModal, setClassModal] = useState(false); // false | array of preselected userIds
+  const [dnhModal, setDnhModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   const load = async () => {
@@ -1401,6 +1883,7 @@ export default function AdminBoard() {
   };
 
   const selected = selectedId ? apprentices.find((a) => a.id === selectedId) : null;
+  const goToApprentice = (id) => { setTab("roster"); setSelectedId(id); };
   const activeApprentices = useMemo(() => apprentices.filter((a) => !a.archived_at), [apprentices]);
   const archivedApprentices = useMemo(() => apprentices.filter((a) => a.archived_at), [apprentices]);
 
@@ -1453,26 +1936,37 @@ export default function AdminBoard() {
         </div>
         <div className="truncate" style={{ fontSize: 11.5, color: C.lo, fontFamily: FM, marginBottom: 14 }}>{email}</div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-          <Stat label="APPRENTICES" value={String(activeApprentices.length)} color={C.gc} />
-          <Stat label="PENDING APPROVALS" value={String(Object.values(monthsByUser).flat().filter((m) => m.status === "pending").length)}
-            sub="across everyone" color={C.brand} />
+        <div style={{ display: "flex", gap: 6, background: C.panel, borderRadius: 12, padding: 4, border: "1px solid " + C.edge, boxShadow: SHADOW, marginBottom: 16, overflowX: "auto" }}>
+          {[
+            ["dashboard", "Dashboard", LayoutDashboard],
+            ["roster", "Roster", Users],
+            ["schedule", "Schedule", CalendarDays],
+            ["settings", "Settings", SettingsIcon],
+          ].map(([k, label, Icon]) => (
+            <button key={k} className="foc tab-btn" data-active={tab === k}
+              onClick={() => { setTab(k); if (k !== "roster") setSelectedId(null); }}
+              style={{ flex: 1, whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", borderRadius: 9, fontSize: 13, fontWeight: 800, background: tab === k ? C.brand : "transparent", color: tab === k ? "#1A1206" : C.mid, border: "none" }}>
+              <Icon size={15} /> {label}
+            </button>
+          ))}
         </div>
 
-        <ThisWeek shows={shows} onOpenDay={() => setTab("schedule")} />
+        {tab === "dashboard" && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+              <Stat label="APPRENTICES" value={String(activeApprentices.length)} color={C.gc} />
+              <Stat label="PENDING APPROVALS" value={String(Object.values(monthsByUser).flat().filter((m) => m.status === "pending").length)}
+                sub="across everyone" color={C.brand} />
+            </div>
+            <ThisWeek shows={shows} onOpenDay={() => setTab("schedule")} />
+            <RosterCategoryChart apprentices={activeApprentices} monthsByUser={monthsByUser} />
+            <DoNotHirePanel apprentices={activeApprentices} onOpenApprentice={goToApprentice} />
+            <UpcomingClasses apprentices={activeApprentices} classesByUser={classesByUser} onOpenApprentice={goToApprentice} onChanged={load} />
+            <ExpiringCerts apprentices={activeApprentices} certsByUser={certsByUser} />
+          </>
+        )}
 
-        <div style={{ display: "flex", gap: 6, background: C.panel, borderRadius: 12, padding: 4, border: "1px solid " + C.edge, boxShadow: SHADOW, marginBottom: 16 }}>
-          <button className="foc tab-btn" data-active={tab === "roster"} onClick={() => { setTab("roster"); setSelectedId(null); }}
-            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "10px 4px", borderRadius: 9, fontSize: 13.5, fontWeight: 800, background: tab === "roster" ? C.brand : "transparent", color: tab === "roster" ? "#1A1206" : C.mid, border: "none" }}>
-            <Users size={15} /> Roster
-          </button>
-          <button className="foc tab-btn" data-active={tab === "schedule"} onClick={() => setTab("schedule")}
-            style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "10px 4px", borderRadius: 9, fontSize: 13.5, fontWeight: 800, background: tab === "schedule" ? C.brand : "transparent", color: tab === "schedule" ? "#1A1206" : C.mid, border: "none" }}>
-            <CalendarDays size={15} /> Schedule
-          </button>
-        </div>
-
-        {tab === "roster" ? (
+        {tab === "roster" && (
           selected ? (
             <ApprenticeDetail apprentice={selected} months={monthsByUser[selected.id] || []}
               bookings={bookingsByUser[selected.id] || []} flags={flagsByUser[selected.id] || []}
@@ -1481,19 +1975,23 @@ export default function AdminBoard() {
               onBack={() => setSelectedId(null)} onChanged={load} />
           ) : (
             <>
-              <RosterCategoryChart apprentices={activeApprentices} monthsByUser={monthsByUser} />
-              <ExpiringCerts apprentices={activeApprentices} certsByUser={certsByUser} />
               <Roster apprentices={activeApprentices} monthsByUser={monthsByUser} onSelect={setSelectedId} />
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                 <button className="foc" onClick={() => setNewModal(true)}
-                  style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
+                  style={{ flex: "1 1 150px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
                   <Plus size={15} /> Add apprentice
                 </button>
                 {activeApprentices.length > 0 && (
-                  <button className="foc" onClick={() => setClassModal([])}
-                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
-                    <GraduationCap size={15} /> Assign class
-                  </button>
+                  <>
+                    <button className="foc" onClick={() => setClassModal([])}
+                      style={{ flex: "1 1 150px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
+                      <GraduationCap size={15} /> Assign class
+                    </button>
+                    <button className="foc" onClick={() => setDnhModal(true)}
+                      style={{ flex: "1 1 150px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.danger, border: "1px dashed " + C.danger + "66", fontWeight: 700, fontSize: 13.5 }}>
+                      <Ban size={15} /> Do not hire
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -1507,8 +2005,12 @@ export default function AdminBoard() {
               {showArchived && <ArchivedRoster apprentices={archivedApprentices} onSelect={setSelectedId} />}
             </>
           )
-        ) : (
-          <Schedule shows={shows} onChanged={load} />
+        )}
+
+        {tab === "schedule" && <Schedule shows={shows} onChanged={load} />}
+
+        {tab === "settings" && (
+          <NewAdminForm onCreated={load} />
         )}
       </div>
 
@@ -1520,6 +2022,11 @@ export default function AdminBoard() {
       {classModal !== false && (
         <Modal title="Assign class" onClose={() => setClassModal(false)}>
           <AssignClassForm apprentices={activeApprentices} preselected={classModal} onAssigned={load} onClose={() => setClassModal(false)} />
+        </Modal>
+      )}
+      {dnhModal && (
+        <Modal title="Add to do-not-hire list" onClose={() => setDnhModal(false)}>
+          <BulkDnhForm apprentices={activeApprentices.filter((a) => !a.do_not_hire_at)} onDone={load} onClose={() => setDnhModal(false)} />
         </Modal>
       )}
     </div>

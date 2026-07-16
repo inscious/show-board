@@ -68,7 +68,9 @@ create table profiles (
   rsi_credits       numeric default 0,
   city              text,  -- home city — admin-only info, not shown to the apprentice themselves
   custom_companies  text[] not null default '{}',  -- ad-hoc company names typed in, not in `companies`
-  archived_at       timestamptz  -- set = off the active roster, kept for record; null = active. Permanent delete requires this set first.
+  archived_at       timestamptz,  -- set = off the active roster, kept for record; null = active. Permanent delete requires this set first.
+  do_not_hire_at    timestamptz,  -- set = on the union's do-not-hire list (late OJT, missed mandatory class, etc); null = clear
+  do_not_hire_reason text
 );
 
 -- one row per (user, show): "my status/note on this show" — never touches the
@@ -321,9 +323,10 @@ $$;
 -- Column-level guards. RLS's `with check` only sees whether id/user_id
 -- matches the caller — it can't say "this column, but not that one" — so
 -- "own profile" / "own rows" above are wide enough that an apprentice could
--- otherwise UPDATE their own is_admin, archived_at, or ojt_months.status
--- directly (bypassing the app entirely, e.g. from the browser console) and
--- grant themselves admin, un-archive themselves, or self-approve hours.
+-- otherwise UPDATE their own is_admin, archived_at, do_not_hire_at, or
+-- ojt_months.status directly (bypassing the app entirely, e.g. from the
+-- browser console) and grant themselves admin, un-archive themselves, clear
+-- their own do-not-hire status, or self-approve hours.
 -- These triggers close that: any writer who isn't
 -- already admin gets the privileged column silently reset to what it was
 -- (or forced to 'pending'), same as the app-layer logic already does.
@@ -340,6 +343,8 @@ begin
   if auth.uid() is not null and not is_admin_user() then
     new.is_admin := old.is_admin;
     new.archived_at := old.archived_at;
+    new.do_not_hire_at := old.do_not_hire_at;
+    new.do_not_hire_reason := old.do_not_hire_reason;
   end if;
   return new;
 end;
