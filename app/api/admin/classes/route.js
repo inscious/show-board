@@ -1,5 +1,5 @@
 import { guardedRoute } from "@/lib/apiGuard";
-import { adminClassAssignSchema, adminClassDeleteSchema, adminClassAttendanceSchema } from "@/lib/schemas";
+import { adminClassAssignSchema, adminClassDeleteSchema, adminClassAttendanceSchema, adminClassEditSchema } from "@/lib/schemas";
 
 /* one class, assigned to one or many apprentices at once — each gets its
    own row (classes has no shared "template" id, just per-user rows), same
@@ -26,6 +26,29 @@ export async function POST(request) {
     })));
 
     return Response.json({ ok: true, count: rows.length });
+  });
+}
+
+/* editing a session means editing every apprentice's row in it — same "no
+   shared template id" reality as POST above, so this takes the full list of
+   {id, userId} pairs the client already has (from grouping classesByUser by
+   name+dates) and updates each one to the new shared name/start/loc/note/
+   dates. missed_dates is left untouched — a missed date that's no longer in
+   the new date range just stops rendering, nothing to migrate. */
+export async function PUT(request) {
+  return guardedRoute(request, "admin:classes:put", { schema: adminClassEditSchema, requireAdmin: true }, async ({ supabase, data }) => {
+    const results = await Promise.all(data.items.map(({ id, userId }) =>
+      supabase.from("classes").update({
+        name: data.name, start_min: data.start ?? null, location: data.loc || null, note: data.note || null, dates: data.dates,
+      }).eq("id", id).eq("user_id", userId)));
+    if (results.some((r) => r.error)) return Response.json({ error: "Could not update the class" }, { status: 400 });
+
+    await supabase.from("notifications").insert(data.items.map(({ userId }, i) => ({
+      id: "nce" + Date.now().toString(36) + i, user_id: userId, type: "class",
+      message: `Class updated: ${data.name}`,
+    })));
+
+    return Response.json({ ok: true, count: data.items.length });
   });
 }
 

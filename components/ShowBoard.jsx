@@ -886,6 +886,32 @@ function Modal({ title, sub, onClose, children }) {
     );
 }
 
+function ConfirmModal({ title, message, confirmLabel = "Delete", onConfirm, onClose }) {
+    return (
+        <Modal title={title} onClose={onClose}>
+            <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.5, marginBottom: 18 }}>
+                {message}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+                <button
+                    className="foc"
+                    onClick={onClose}
+                    style={{ flex: 1, padding: "13px", borderRadius: 10, background: C.raise, color: C.hi, border: "1px solid " + C.line, fontWeight: 700, fontSize: 14 }}
+                >
+                    Cancel
+                </button>
+                <button
+                    className="foc"
+                    onClick={onConfirm}
+                    style={{ flex: 1, padding: "13px", borderRadius: 10, background: C.danger, color: "#2A0E0A", border: "none", fontWeight: 800, fontSize: 14 }}
+                >
+                    {confirmLabel}
+                </button>
+            </div>
+        </Modal>
+    );
+}
+
 /* ---------- companies directory ---------- */
 function DirList({ pins, onTogglePin, customCos }) {
     const { companies } = useContext(DirectoryContext);
@@ -5335,6 +5361,7 @@ function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }) {
     const app = roll[key];
     const total = num(f.a) + num(f.b) + num(f.c) + num(f.d);
     const dupe = !initial && existing.some((x) => x.m === key);
+    const [confirmDelete, setConfirmDelete] = useState(false);
     const set = (k, v) =>
         setF((p) => ({ ...p, [k]: v.replace(/[^0-9.]/g, "") }));
     const fill = () =>
@@ -5613,7 +5640,7 @@ function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }) {
                 {initial ? (
                     <button
                         className="foc"
-                        onClick={onDelete}
+                        onClick={() => setConfirmDelete(true)}
                         style={{
                             flexShrink: 0,
                             display: "flex",
@@ -5674,6 +5701,23 @@ function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }) {
                     {initial ? "Save month" : "Add " + mMed(key)}
                 </button>
             </div>
+            {confirmDelete && (
+                <ConfirmModal
+                    title="Delete this month?"
+                    message={
+                        <>
+                            This removes {mMed(key)} — {hrsFmt(total)} hrs — from
+                            what's submitted to the union.{" "}
+                            <strong style={{ color: C.hi }}>
+                                This can't be undone.
+                            </strong>
+                        </>
+                    }
+                    confirmLabel="Delete month"
+                    onClose={() => setConfirmDelete(false)}
+                    onConfirm={onDelete}
+                />
+            )}
         </div>
     );
 }

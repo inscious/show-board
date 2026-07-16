@@ -8,10 +8,10 @@ import React, { useState, useEffect, useMemo } from "react";
 import {
   HardHat, Users, CalendarDays, Plus, Upload, ChevronRight, ChevronLeft, ChevronDown,
   Check, X, Trash2, Eye, EyeOff, Lock, Mail, GraduationCap, LayoutDashboard, Settings as SettingsIcon, ShieldCheck,
-  Search, AlertTriangle, Ban,
+  Search, AlertTriangle, Ban, Archive as ArchiveIcon, TrendingDown, Bell, Pencil, Building2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { C, SHADOW, FM, FS, hrsFmt, mMed, levelIndex, ojtTotals, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth, keyOf, fromKey, fmtClock } from "@/lib/core";
+import { C, SHADOW, FM, FS, hrsFmt, mMed, mShort, levelIndex, ojtTotals, ojtRows, rollupEntries, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth, keyOf, fromKey, fmtClock, mAdd, monthGrid, sameDay, bookingOn, classOn, BOOKED } from "@/lib/core";
 import { ShowForm, ImportForm, EMPTY } from "@/components/ShowEditor";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 
@@ -129,10 +129,187 @@ function groupByUser(rows) {
 }
 function monthHours(m) { return Number(m.a || 0) + Number(m.b || 0) + Number(m.c || 0) + Number(m.d || 0); }
 
+/* ---------- read-only calendar for one apprentice — same fill logic and
+   color language as the apprentice's own CalTab (ShowBoard.jsx), just
+   view-only and self-fetching (work_entries isn't part of the roster-wide
+   load(), only needed once someone actually opens this tab). ---------- */
+function AdminApprenticeCalendar({ entries, bookings, classes }) {
+  const t0 = todayMid();
+  const [cur, setCur] = useState({ y: t0.getFullYear(), m: t0.getMonth() });
+  const [selectedKey, setSelectedKey] = useState(null);
+
+  const cells = useMemo(() => monthGrid(cur.y, cur.m), [cur]);
+  const step = (n) => { setSelectedKey(null); setCur((p) => { const d = new Date(p.y, p.m + n, 1); return { y: d.getFullYear(), m: d.getMonth() }; }); };
+  const isNow = cur.y === t0.getFullYear() && cur.m === t0.getMonth();
+
+  const monthStats = useMemo(() => {
+    if (!entries) return { hrs: 0, days: 0 };
+    const prefix = cur.y + "-" + String(cur.m + 1).padStart(2, "0");
+    let hrs = 0, days = 0;
+    Object.keys(entries).forEach((k) => {
+      if (k.indexOf(prefix) !== 0) return;
+      const list = entries[k];
+      if (!list.length) return;
+      days++;
+      list.forEach((e) => { hrs += e.hrs; });
+    });
+    return { hrs, days };
+  }, [entries, cur]);
+
+  if (entries === null) {
+    return (
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW }}>
+        <div className="skeleton" style={{ height: 280 }} />
+      </div>
+    );
+  }
+
+  const selectedList = selectedKey ? (entries[selectedKey] || []) : [];
+  const selectedBookings = selectedKey ? bookingOn(bookings, selectedKey) : [];
+  const selectedClasses = selectedKey ? classOn(classes, selectedKey) : [];
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+        <button className="foc icon-btn" onClick={() => step(-1)} aria-label="Previous month"
+          style={{ width: 32, height: 32, borderRadius: 8, background: C.sunk, border: "1px solid " + C.line, color: C.hi, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <ChevronLeft size={15} />
+        </button>
+        <div style={{ flex: 1, textAlign: "center" }}>
+          <div style={{ fontFamily: FM, fontSize: 13, fontWeight: 800, letterSpacing: 1, color: C.hi }}>{MONTHS[cur.m]} {cur.y}</div>
+          {!isNow && (
+            <button className="foc" onClick={() => { setSelectedKey(null); setCur({ y: t0.getFullYear(), m: t0.getMonth() }); }}
+              style={{ background: "transparent", border: "none", color: C.brand, fontSize: 10.5, fontWeight: 700, padding: 0 }}>
+              jump to today
+            </button>
+          )}
+        </div>
+        <button className="foc icon-btn" onClick={() => step(1)} aria-label="Next month"
+          style={{ width: 32, height: 32, borderRadius: 8, background: C.sunk, border: "1px solid " + C.line, color: C.hi, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <ChevronRight size={15} />
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <Stat label="HOURS" value={hrsFmt(monthStats.hrs)} color={monthStats.hrs ? C.working : C.lo} />
+        <Stat label="DAYS WORKED" value={String(monthStats.days)} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 5 }}>
+        {DOW.map((d, i) => (
+          <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontFamily: FM, fontWeight: 700, color: i === 0 || i === 6 ? C.lo : C.mid }}>{d}</div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+        {cells.map((d, i) => {
+          const inMonth = d.getMonth() === cur.m;
+          const k = keyOf(d);
+          const list = entries[k] || [];
+          const hrs = list.reduce((a, e) => a + e.hrs, 0);
+          const isToday = sameDay(d, t0);
+          const classesToday = classOn(classes, k);
+          const hasClass = classesToday.length > 0;
+          const missedClass = classesToday.some((c) => (c.missedDates || []).indexOf(k) !== -1);
+          const bookingsToday = bookingOn(bookings, k);
+          const hasBook = bookingsToday.length > 0;
+          const fill = hrs ? C.working : hasBook ? BOOKED : hasClass ? (missedClass ? C.danger : KLASS) : null;
+          const isSelected = selectedKey === k;
+          const label = hrs > 0 ? hrsFmt(hrs)
+            : hasBook ? bookingsToday[0].co
+              : hasClass ? (missedClass ? "MISSED" : "CLASS")
+                : null;
+          return (
+            <button key={i} type="button" disabled={!inMonth}
+              onClick={() => setSelectedKey(k === selectedKey ? null : k)}
+              style={{
+                aspectRatio: "1", borderRadius: 7, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
+                background: isSelected ? (fill || C.line) + "33" : fill ? fill + "22" : inMonth ? C.sunk : "transparent",
+                border: "1px solid " + (isSelected ? (fill || C.brand) : isToday ? C.brand : fill ? fill + "55" : inMonth ? C.line : "transparent"),
+                cursor: inMonth ? "pointer" : "default", padding: "2px 2px 3px", overflow: "hidden",
+              }}>
+              <span style={{ fontSize: 10.5, fontFamily: FM, fontWeight: isToday ? 800 : 600, color: inMonth ? (fill ? C.hi : C.mid) : C.line }}>{d.getDate()}</span>
+              {label && (
+                <span className="truncate" style={{ maxWidth: "100%", fontSize: 7.5, fontFamily: FM, fontWeight: 800, color: hrs > 0 ? C.working : fill, lineHeight: 1.1, padding: "0 1px" }}>
+                  {label}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
+        {[["Worked", C.working], ["Scheduled", BOOKED], ["Class", KLASS]].map(([label, color]) => (
+          <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
+            <span style={{ fontSize: 10.5, color: C.mid }}>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {selectedKey && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid " + C.line }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 8 }}>{selectedKey}</div>
+          {selectedList.length === 0 && selectedBookings.length === 0 && selectedClasses.length === 0 ? (
+            <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file this day.</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {selectedList.map((e, i) => (
+                <div key={"e" + i} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+                  {e.cat && <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: 5, background: CATS_META[e.cat].color + "22", border: "1px solid " + CATS_META[e.cat].color + "66", color: CATS_META[e.cat].color, fontFamily: FM, fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{e.cat}</span>}
+                  <span className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{e.co}</span>
+                  <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 12, fontWeight: 800, color: C.working }}>{hrsFmt(e.hrs)}h</span>
+                </div>
+              ))}
+              {selectedBookings.map((b, i) => (
+                <div key={"b" + i} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+                  <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: BOOKED, border: "1px solid " + BOOKED + "66", borderRadius: 5, padding: "2px 6px" }}>SCHED</span>
+                  <span className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{b.co}{b.show ? " — " + b.show : ""}</span>
+                </div>
+              ))}
+              {selectedClasses.map((c, i) => {
+                const missed = (c.missedDates || []).indexOf(selectedKey) !== -1;
+                return (
+                  <div key={"c" + i} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+                    <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: missed ? C.danger : KLASS, border: "1px solid " + (missed ? C.danger : KLASS) + "66", borderRadius: 5, padding: "2px 6px" }}>{missed ? "MISSED" : "CLASS"}</span>
+                    <span className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{c.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------- apprentice detail ---------- */
 function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs, shows, onAssignClass, onBack, onChanged }) {
   const archived = !!apprentice.archived_at;
   const expiredCerts = useMemo(() => (certs || []).filter((c) => certState(c.exp).t === "EXPIRED"), [certs]);
+
+  // this apprentice's own day-to-day log (work_entries) — not part of the
+  // roster-wide load(), only needed once someone opens History or Calendar
+  // for this one person. Shared by both tabs so switching between them
+  // doesn't re-fetch.
+  const [entries, setEntries] = useState(null); // null = loading
+  useEffect(() => {
+    let live = true;
+    setEntries(null);
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("work_entries").select("*").eq("user_id", apprentice.id).order("worked_on");
+      if (!live) return;
+      const map = {};
+      (data || []).forEach((row) => {
+        (map[row.worked_on] = map[row.worked_on] || []).push({ co: row.company, cat: row.category, hrs: Number(row.hours) });
+      });
+      setEntries(map);
+    })();
+    return () => { live = false; };
+  }, [apprentice.id]);
+  const entriesRoll = useMemo(() => rollupEntries(entries || {}), [entries]);
   const [archiveState, setArchiveState] = useState("idle");
   const [archiveMsg, setArchiveMsg] = useState("");
   const [confirmArchive, setConfirmArchive] = useState(false); // "archive" | "restore" | "delete" | false
@@ -175,6 +352,9 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
   };
 
   const approved = useMemo(() => months.filter((m) => m.status === "approved").sort((a, b) => (a.m < b.m ? 1 : -1)), [months]);
+  // ojtRows wants ascending (it's computing a running total as it goes) —
+  // reverse back to newest-first for display, same as `approved` above
+  const historyRows = useMemo(() => ojtRows(approved).slice().reverse(), [approved]);
   const pending = useMemo(() => months.filter((m) => m.status === "pending").sort((a, b) => (a.m < b.m ? -1 : 1)), [months]);
   const total = useMemo(() => ojtTotals(approved).total, [approved]);
   const idx = levelIndex(total);
@@ -305,6 +485,7 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
         {[
           ["overview", "Overview"],
           ["history", "History"],
+          ["calendar", "Calendar"],
           ["classes", "Classes & Certs"],
           ["settings", "Settings"],
         ].map(([k, label]) => (
@@ -444,19 +625,42 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
 
       {detailTab === "history" && (
       <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
-        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>APPROVED HISTORY — {approved.length} MONTHS</div>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 9 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>APPROVED HISTORY — {approved.length} MONTHS</div>
+          <div style={{ fontSize: 9.5, color: C.lo, fontFamily: FM, marginLeft: "auto" }}>UNION vs APP-LOGGED</div>
+        </div>
         {approved.length === 0 ? (
           <div style={{ fontSize: 12.5, color: C.lo }}>Nothing approved yet.</div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-            {approved.map((m) => (
-              <div key={m.m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
-                <span style={{ fontFamily: FM, color: C.hi, width: 74, flexShrink: 0 }}>{mMed(m.m)}</span>
-                <span style={{ fontFamily: FM, color: C.mid, flex: 1 }}>A{hrsFmt(m.a)} B{hrsFmt(m.b)} C{hrsFmt(m.c)} D{hrsFmt(m.d)}</span>
-                <span style={{ fontFamily: FM, color: C.working, fontWeight: 800 }}>{hrsFmt(monthHours(m))}h</span>
-                <button className="foc icon-btn" onClick={() => removeMonth(m.m)} style={{ background: "transparent", border: "none", color: C.lo, padding: 2, borderRadius: 5 }}><Trash2 size={13} /></button>
-              </div>
-            ))}
+            {historyRows.map((r) => {
+              const app = entriesRoll[r.m];
+              const delta = app ? Math.round((app.total - r.total) * 10) / 10 : 0;
+              return (
+                <div key={r.m} style={{ paddingBottom: 6, borderBottom: "1px solid " + C.line }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
+                    <span style={{ fontFamily: FM, color: C.hi, width: 74, flexShrink: 0 }}>{mMed(r.m)}</span>
+                    <span style={{ fontFamily: FM, color: C.mid, flex: 1 }}>A{hrsFmt(r.a)} B{hrsFmt(r.b)} C{hrsFmt(r.c)} D{hrsFmt(r.d)}</span>
+                    <span style={{ fontFamily: FM, color: C.working, fontWeight: 800 }}>{hrsFmt(r.total)}h</span>
+                    <button className="foc icon-btn" onClick={() => removeMonth(r.m)} style={{ background: "transparent", border: "none", color: C.lo, padding: 2, borderRadius: 5 }}><Trash2 size={13} /></button>
+                  </div>
+                  {(r.crossed.length > 0 || (app && delta !== 0)) && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
+                      {r.crossed.map((lv) => (
+                        <span key={lv.k} style={{ fontFamily: FM, fontSize: 9, fontWeight: 800, letterSpacing: 0.4, color: C.brand, background: "rgba(255,176,32,0.13)", border: "1px solid rgba(255,176,32,0.4)", borderRadius: 5, padding: "2px 5px" }}>
+                          CROSSED {lv.hrs.toLocaleString()} — {lv.k}
+                        </span>
+                      ))}
+                      {app && delta !== 0 && (
+                        <span style={{ fontFamily: FM, fontSize: 9, fontWeight: 800, color: C.gc, background: "rgba(127,178,255,0.11)", border: "1px solid rgba(127,178,255,0.32)", borderRadius: 5, padding: "2px 5px" }}>
+                          APP LOGGED {hrsFmt(app.total)} ({delta > 0 ? "+" : ""}{hrsFmt(delta)})
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
         <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid " + C.line }}>
@@ -473,6 +677,10 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
           {monthMsg && <div style={{ marginTop: 6, fontSize: 11.5, color: C.danger }}>{monthMsg}</div>}
         </div>
       </div>
+      )}
+
+      {detailTab === "calendar" && (
+        <AdminApprenticeCalendar entries={entries} bookings={bookings} classes={classes} />
       )}
 
       {detailTab === "classes" && (
@@ -945,6 +1153,68 @@ function BulkDnhForm({ apprentices, onDone, onClose }) {
   );
 }
 
+/* ---------- archive several apprentices at once — loops the same PATCH
+   /api/admin/apprentices the single-apprentice Danger Zone flow uses ---------- */
+function BulkArchiveForm({ apprentices, onDone, onClose }) {
+  const [selected, setSelected] = useState(() => new Set());
+  const [state, setState] = useState("idle");
+  const [msg, setMsg] = useState("");
+
+  const toggle = (id) => setSelected((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (selected.size === 0) { setState("error"); setMsg("Pick at least one apprentice."); return; }
+    setState("saving");
+    setMsg("");
+    try {
+      await Promise.all(Array.from(selected).map((userId) =>
+        req("PATCH", "/api/admin/apprentices", { userId, archived: true })));
+      setState("done");
+      onDone();
+      setTimeout(onClose, 900);
+    } catch (e2) {
+      setState("error");
+      setMsg(e2.message);
+    }
+  };
+
+  return (
+    <form onSubmit={submit}>
+      {apprentices.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: C.lo }}>No active apprentices to archive.</div>
+      ) : (
+        <>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>APPRENTICES</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, maxHeight: 260, overflowY: "auto" }}>
+            {apprentices.map((a) => (
+              <button key={a.id} type="button" onClick={() => toggle(a.id)}
+                style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: C.sunk, border: "1px solid " + (selected.has(a.id) ? C.brand + "88" : C.line), borderRadius: 8, padding: "8px 10px" }}>
+                <span style={{ width: 16, height: 16, borderRadius: 4, border: "1px solid " + C.line, background: selected.has(a.id) ? C.brand : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {selected.has(a.id) && <Check size={11} color="#1A1206" />}
+                </span>
+                <span className="truncate" style={{ fontSize: 13, color: C.hi }}>{a.name || a.email}</span>
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 14 }}>
+            Everyone selected drops off the active roster — everything on file stays put, and each can be restored anytime from the archive.
+          </div>
+          <button type="submit" disabled={state === "saving"}
+            style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+            {state === "saving" ? "Archiving…" : state === "done" ? "Archived" : "Archive " + selected.size + " apprentice" + (selected.size === 1 ? "" : "s")}
+          </button>
+        </>
+      )}
+      {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
+    </form>
+  );
+}
+
 function AddCertForm({ userId, onAdded, onClose }) {
   const [name, setName] = useState("");
   const [exp, setExp] = useState("");
@@ -987,7 +1257,7 @@ function AddCertForm({ userId, onAdded, onClose }) {
 }
 
 /* ---------- roster ---------- */
-function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssignClass, onDoNotHire }) {
+function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssignClass, onDoNotHire, onBulkArchive }) {
   const roster = useMemo(() => apprentices.map((a) => {
     const months = monthsByUser[a.id] || [];
     const approved = months.filter((m) => m.status === "approved");
@@ -1081,6 +1351,10 @@ function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssign
             <button className="foc" onClick={onDoNotHire}
               style={{ flex: "1 1 150px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.danger, border: "1px dashed " + C.danger + "66", fontWeight: 700, fontSize: 13.5 }}>
               <Ban size={15} /> Do not hire
+            </button>
+            <button className="foc" onClick={onBulkArchive}
+              style={{ flex: "1 1 150px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.mid, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
+              <ArchiveIcon size={15} /> Archive
             </button>
           </>
         )}
@@ -1425,6 +1699,102 @@ function AddToClassForm({ session, candidates, onAdded, onClose }) {
   );
 }
 
+// "480" -> "08:00", for pre-filling the <input type="time">
+function minToHHMM(m) {
+  if (m == null) return "";
+  return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+}
+
+/* ---------- edit the date/time/location/note for every apprentice already
+   in a session — one PUT hitting every row by its own {id, userId} pair,
+   since classes has no shared session id to update against directly ---------- */
+function EditClassForm({ session, onSaved, onClose }) {
+  const [name, setName] = useState(session.name);
+  const [loc, setLoc] = useState(session.loc || "");
+  const [note, setNote] = useState(session.note || "");
+  const [start, setStart] = useState(minToHHMM(session.start));
+  const [from, setFrom] = useState(session.dates[0] || "");
+  const [to, setTo] = useState(session.dates[session.dates.length - 1] || "");
+  const [state, setState] = useState("idle");
+  const [msg, setMsg] = useState("");
+
+  const dateRange = (a, b) => {
+    if (!a) return [];
+    const out = [];
+    const d = new Date(a + "T00:00:00");
+    const end = new Date((b || a) + "T00:00:00");
+    while (d <= end) { out.push(d.toISOString().slice(0, 10)); d.setDate(d.getDate() + 1); }
+    return out;
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const dates = dateRange(from, to);
+    if (!name.trim()) { setState("error"); setMsg("Class needs a name."); return; }
+    if (dates.length === 0) { setState("error"); setMsg("Pick at least one date."); return; }
+    setState("saving");
+    setMsg("");
+    try {
+      const [h, m] = start ? start.split(":").map(Number) : [null, null];
+      await req("PUT", "/api/admin/classes", {
+        items: session.people.map((p) => ({ id: p.classId, userId: p.apprentice.id })),
+        name: name.trim(), loc: loc.trim() || undefined, note: note.trim() || undefined,
+        start: h != null ? h * 60 + m : undefined, dates,
+      });
+      setState("done");
+      onSaved();
+      setTimeout(onClose, 900);
+    } catch (e2) {
+      setState("error");
+      setMsg(e2.message);
+    }
+  };
+
+  return (
+    <form onSubmit={submit}>
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CLASS NAME</div>
+      <input required value={name} onChange={(e) => setName(e.target.value)}
+        style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>FROM</div>
+          <input type="date" required value={from} onChange={(e) => setFrom(e.target.value)}
+            style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>TO</div>
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+            style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>TIME</div>
+          <input type="time" value={start} onChange={(e) => setStart(e.target.value)}
+            style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
+        </div>
+      </div>
+
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>LOCATION</div>
+      <input value={loc} onChange={(e) => setLoc(e.target.value)}
+        style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
+
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NOTE</div>
+      <input value={note} onChange={(e) => setNote(e.target.value)}
+        style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 14 }} />
+
+      <div style={{ fontSize: 11, color: C.mid, lineHeight: 1.5, marginBottom: 14 }}>
+        Updates all {session.people.length} apprentice{session.people.length === 1 ? "" : "s"} in this class — everyone gets a notification.
+      </div>
+
+      <button type="submit" disabled={state === "saving"}
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+        {state === "saving" ? "Saving…" : state === "done" ? "Saved" : "Save changes"}
+      </button>
+      {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
+    </form>
+  );
+}
+
 function UpcomingClasses({ apprentices, classesByUser, onOpenApprentice, onChanged }) {
   const sessions = useMemo(() => {
     const map = {};
@@ -1432,7 +1802,7 @@ function UpcomingClasses({ apprentices, classesByUser, onOpenApprentice, onChang
       (classesByUser[a.id] || []).forEach((c) => {
         const key = classSessionKey(c);
         if (!map[key]) map[key] = { name: c.name, start: c.start, loc: c.loc, note: c.note, dates: (c.dates || []).slice().sort(), people: [] };
-        map[key].people.push({ apprentice: a, missedCount: (c.missedDates || []).length });
+        map[key].people.push({ apprentice: a, classId: c.id, missedCount: (c.missedDates || []).length });
       });
     });
     const todayKey = keyOf(todayMid());
@@ -1443,6 +1813,7 @@ function UpcomingClasses({ apprentices, classesByUser, onOpenApprentice, onChang
 
   const [openKey, setOpenKey] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const open = useMemo(() => openKey ? sessions.find((s) => classSessionKey(s) === openKey) || null : null, [openKey, sessions]);
   const candidates = useMemo(() => open ? apprentices.filter((a) => !open.people.some((p) => p.apprentice.id === a.id)) : [], [open, apprentices]);
   if (sessions.length === 0) return null;
@@ -1474,10 +1845,14 @@ function UpcomingClasses({ apprentices, classesByUser, onOpenApprentice, onChang
 
       {open && (
         <Modal title={open.name} onClose={() => setOpenKey(null)}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
             <Stat label="DATES" value={open.dates.length + "d"} sub={open.dates[0] + (open.dates.length > 1 ? " – " + open.dates[open.dates.length - 1] : "")} />
             <Stat label="STARTS" value={open.start != null ? fmtClock(open.start) : "—"} sub={open.loc || "no location on file"} />
           </div>
+          <button className="foc" onClick={() => setEditOpen(true)}
+            style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "8px", borderRadius: 8, background: "transparent", border: "1px dashed " + C.line, color: C.mid, fontSize: 11.5, fontWeight: 700, marginBottom: 14 }}>
+            <Pencil size={12} /> Edit date, time & location
+          </button>
           {open.note && (
             <div style={{ fontSize: 12.5, color: C.mid, lineHeight: 1.5, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 11px", marginBottom: 14 }}>{open.note}</div>
           )}
@@ -1505,6 +1880,70 @@ function UpcomingClasses({ apprentices, classesByUser, onOpenApprentice, onChang
           <AddToClassForm session={open} candidates={candidates} onAdded={onChanged} onClose={() => setAddOpen(false)} />
         </Modal>
       )}
+      {editOpen && open && (
+        <Modal title={"Edit — " + open.name} onClose={() => setEditOpen(false)}>
+          <EditClassForm session={open} onSaved={() => { onChanged(); setOpenKey(null); }} onClose={() => setEditOpen(false)} />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ---------- who's falling behind — no OJT submitted in 2+ months, or the
+   last two months' pace has dropped hard against their own history. Pure
+   client-side read of monthsByUser that's already loaded, no extra fetch. ---------- */
+function fallingBehindInfo(months) {
+  const approved = (months || []).filter((m) => m.status === "approved").sort((a, b) => (a.m < b.m ? -1 : 1));
+  if (approved.length === 0) return null;
+
+  const lastKey = approved[approved.length - 1].m;
+  const nowKey = mKey(todayMid().getFullYear(), todayMid().getMonth());
+  const expectedKey = mAdd(nowKey, -1); // most recent month that should be on file by now
+  const gapMonths = (mParse(expectedKey).y * 12 + mParse(expectedKey).m) - (mParse(lastKey).y * 12 + mParse(lastKey).m);
+
+  if (gapMonths >= 2) {
+    return { lastKey, kind: "gap", detail: "Nothing submitted since " + mMed(lastKey) };
+  }
+
+  if (approved.length >= 4) {
+    const totals = approved.map((m) => num(m.a) + num(m.b) + num(m.c) + num(m.d));
+    const recent = totals.slice(-2);
+    const prior = totals.slice(0, -2);
+    const recentAvg = recent.reduce((s, x) => s + x, 0) / recent.length;
+    const priorAvg = prior.reduce((s, x) => s + x, 0) / prior.length;
+    if (priorAvg >= 20 && recentAvg < priorAvg * 0.5) {
+      const pct = Math.round((1 - recentAvg / priorAvg) * 100);
+      return { lastKey, kind: "pace", detail: "Pace down " + pct + "% — " + hrsFmt(recentAvg) + " avg/mo last 2mo vs " + hrsFmt(priorAvg) + " before" };
+    }
+  }
+  return null;
+}
+
+function FallingBehindPanel({ apprentices, monthsByUser, onOpenApprentice }) {
+  const rows = useMemo(() => apprentices
+    .map((a) => ({ apprentice: a, info: fallingBehindInfo(monthsByUser[a.id]) }))
+    .filter((r) => r.info)
+    .sort((x, y) => (x.info.kind === y.info.kind ? 0 : x.info.kind === "gap" ? -1 : 1)),
+    [apprentices, monthsByUser]);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+      <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.brand, fontFamily: FM, marginBottom: 9 }}>FALLING BEHIND — {rows.length}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {rows.map(({ apprentice: a, info }) => (
+          <button key={a.id} className="foc" onClick={() => onOpenApprentice(a.id)}
+            style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
+            <TrendingDown size={15} color={info.kind === "gap" ? C.danger : C.brand} style={{ flexShrink: 0 }} />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
+              <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>{info.detail}</div>
+            </div>
+            <ChevronRight size={14} color={C.lo} style={{ flexShrink: 0 }} />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1549,17 +1988,36 @@ function ExpiringCerts({ apprentices, certsByUser }) {
     apprentices.forEach((a) => {
       (certsByUser[a.id] || []).forEach((c) => {
         const st = certState(c.exp);
-        if (st.days <= 60) out.push({ apprentice: a.name || a.email, cert: c.name, exp: c.exp, ...st });
+        if (st.days <= 60) out.push({ userId: a.id, apprentice: a.name || a.email, cert: c.name, exp: c.exp, ...st });
       });
     });
     return out.sort((x, y) => x.days - y.days);
   }, [apprentices, certsByUser]);
 
+  const [sendState, setSendState] = useState("idle");
+  const sendReminders = async () => {
+    setSendState("saving");
+    try {
+      await req("POST", "/api/admin/cert-reminder", {
+        reminders: rows.map((r) => ({ userId: r.userId, certName: r.cert, exp: r.exp })),
+      });
+      setSendState("done");
+    } catch {
+      setSendState("error");
+    }
+  };
+
   if (rows.length === 0) return null;
 
   return (
     <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
-      <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>CERTIFICATIONS EXPIRING SOON</div>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 9 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>CERTIFICATIONS EXPIRING SOON</div>
+        <button className="foc" onClick={sendReminders} disabled={sendState === "saving" || sendState === "done"}
+          style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "none", color: sendState === "done" ? C.working : C.gc, fontSize: 11.5, fontWeight: 700, padding: 0 }}>
+          <Bell size={12} /> {sendState === "saving" ? "Sending…" : sendState === "done" ? "Sent" : "Send reminders"}
+        </button>
+      </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {rows.map((r, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
@@ -1631,6 +2089,270 @@ function NewAdminForm({ onCreated }) {
   );
 }
 
+/* ---------- audit log — archive/restore, permanent delete, do-not-hire,
+   and new admin accounts. append-only on the DB side (see schema.sql);
+   fetches its own data since it's the one thing on this page nobody looks
+   at every load, no reason to make every load() call carry it. ---------- */
+const AUDIT_ACTION_META = {
+  archive: { label: "Archived", color: C.mid },
+  restore: { label: "Restored", color: C.working },
+  delete: { label: "Deleted", color: C.danger },
+  dnh_add: { label: "Do-not-hire", color: C.danger },
+  dnh_remove: { label: "DNH cleared", color: C.working },
+  admin_create: { label: "New admin", color: C.brand },
+};
+function AuditLogPanel() {
+  const [rows, setRows] = useState(null); // null = loading
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("admin_audit_log").select("*").order("created_at", { ascending: false }).limit(50);
+      if (live) setRows(data || []);
+    })();
+    return () => { live = false; };
+  }, []);
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW }}>
+      <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>AUDIT LOG — LAST 50</div>
+      {rows === null ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div className="skeleton" style={{ height: 40 }} />
+          <div className="skeleton" style={{ height: 40 }} />
+          <div className="skeleton" style={{ height: 40 }} />
+        </div>
+      ) : rows.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: C.lo }}>Nothing logged yet — archive, delete, do-not-hire, and new admin accounts show up here.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 360, overflowY: "auto" }}>
+          {rows.map((r) => {
+            const meta = AUDIT_ACTION_META[r.action] || { label: r.action, color: C.mid };
+            return (
+              <div key={r.id} style={{ background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: meta.color, border: "1px solid " + meta.color + "55", borderRadius: 5, padding: "2px 6px" }}>{meta.label.toUpperCase()}</span>
+                  <span style={{ fontFamily: FM, fontSize: 10, color: C.lo, marginLeft: "auto", flexShrink: 0 }}>{r.created_at.slice(0, 16).replace("T", " ")}</span>
+                </div>
+                <div className="truncate" style={{ fontSize: 12.5, color: C.hi, marginTop: 5 }}>{r.message}</div>
+                {r.actor_email && <div className="truncate" style={{ fontSize: 10.5, color: C.lo, marginTop: 2 }}>by {r.actor_email}</div>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- company directory — shared I&D labor-shop list. Fetches its
+   own data, same reasoning as AuditLogPanel: Settings-only content nobody
+   needs on every load(). name is the natural key, so "add" is an upsert
+   (typing an existing name in and saving just edits it). ---------- */
+function CompanyForm({ onSaved, onClose }) {
+  const [form, setForm] = useState({ name: "", city: "", state: "", laborLine: "", foreman: "" });
+  const [state, setState] = useState("idle");
+  const [msg, setMsg] = useState("");
+  const fieldStyle = { flex: "1 1 120px", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14 };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) { setState("error"); setMsg("Company needs a name."); return; }
+    setState("saving");
+    setMsg("");
+    try {
+      await req("POST", "/api/admin/companies", form);
+      setState("done");
+      onSaved();
+      setTimeout(onClose, 900);
+    } catch (e2) {
+      setState("error");
+      setMsg(e2.message);
+    }
+  };
+
+  return (
+    <form onSubmit={submit}>
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>COMPANY NAME</div>
+      <input required autoFocus value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+        style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CITY</div>
+          <input value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} style={{ ...fieldStyle, width: "100%" }} />
+        </div>
+        <div style={{ flex: "0 1 80px" }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>STATE</div>
+          <input value={form.state} onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))} style={{ ...fieldStyle, width: "100%" }} />
+        </div>
+      </div>
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>LABOR LINE</div>
+      <input value={form.laborLine} onChange={(e) => setForm((f) => ({ ...f, laborLine: e.target.value }))}
+        style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>FOREMAN</div>
+      <input value={form.foreman} onChange={(e) => setForm((f) => ({ ...f, foreman: e.target.value }))}
+        style={{ ...fieldStyle, width: "100%", marginBottom: 14 }} />
+      <button type="submit" disabled={state === "saving"}
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+        {state === "saving" ? "Saving…" : state === "done" ? "Saved" : "Save company"}
+      </button>
+      {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
+    </form>
+  );
+}
+
+function CompanyDirectoryPanel() {
+  const [rows, setRows] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+
+  const load = async () => {
+    const supabase = createClient();
+    const { data } = await supabase.from("companies").select("*").order("name");
+    setRows(data || []);
+  };
+  useEffect(() => { load(); }, []);
+
+  const remove = async (name) => {
+    await req("DELETE", "/api/admin/companies", { name });
+    load();
+  };
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 9 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>COMPANY DIRECTORY{rows ? " — " + rows.length : ""}</div>
+        <button className="foc" onClick={() => setFormOpen(true)} style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.gc, fontSize: 11.5, fontWeight: 700, padding: 0 }}>+ Add</button>
+      </div>
+      {rows === null ? (
+        <div className="skeleton" style={{ height: 60 }} />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto" }}>
+          {rows.map((c) => (
+            <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{c.name}</div>
+                <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>
+                  {[c.city && c.state ? c.city + ", " + c.state : c.city || c.state, c.labor_line, c.foreman].filter(Boolean).join(" · ") || "no details on file"}
+                </div>
+              </div>
+              <button className="foc icon-btn" onClick={() => remove(c.name)} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+            </div>
+          ))}
+          {rows.length === 0 && <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file yet.</div>}
+        </div>
+      )}
+      {formOpen && (
+        <Modal title="Add company" onClose={() => setFormOpen(false)}>
+          <CompanyForm onSaved={load} onClose={() => setFormOpen(false)} />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ---------- JATC office contacts — same shared/admin-write shape as the
+   company directory ---------- */
+function JatcContactForm({ onSaved, onClose }) {
+  const [form, setForm] = useState({ name: "", tel: "", ext: "", email: "", sms: "" });
+  const [state, setState] = useState("idle");
+  const [msg, setMsg] = useState("");
+  const fieldStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14 };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) { setState("error"); setMsg("Contact needs a name."); return; }
+    setState("saving");
+    setMsg("");
+    try {
+      await req("POST", "/api/admin/jatc-contacts", { ...form, id: "jc" + Date.now().toString(36) });
+      setState("done");
+      onSaved();
+      setTimeout(onClose, 900);
+    } catch (e2) {
+      setState("error");
+      setMsg(e2.message);
+    }
+  };
+
+  return (
+    <form onSubmit={submit}>
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NAME</div>
+      <input required autoFocus value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+        style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
+      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>PHONE</div>
+          <input value={form.tel} onChange={(e) => setForm((f) => ({ ...f, tel: e.target.value }))} style={{ ...fieldStyle, width: "100%" }} />
+        </div>
+        <div style={{ flex: "0 1 80px" }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EXT</div>
+          <input value={form.ext} onChange={(e) => setForm((f) => ({ ...f, ext: e.target.value }))} style={{ ...fieldStyle, width: "100%" }} />
+        </div>
+      </div>
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EMAIL</div>
+      <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+        style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>SMS NUMBER</div>
+      <input value={form.sms} onChange={(e) => setForm((f) => ({ ...f, sms: e.target.value }))}
+        style={{ ...fieldStyle, width: "100%", marginBottom: 14 }} />
+      <button type="submit" disabled={state === "saving"}
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+        {state === "saving" ? "Saving…" : state === "done" ? "Saved" : "Save contact"}
+      </button>
+      {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
+    </form>
+  );
+}
+
+function JatcContactsPanel() {
+  const [rows, setRows] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+
+  const load = async () => {
+    const supabase = createClient();
+    const { data } = await supabase.from("jatc_contacts").select("*").order("name");
+    setRows(data || []);
+  };
+  useEffect(() => { load(); }, []);
+
+  const remove = async (id) => {
+    await req("DELETE", "/api/admin/jatc-contacts", { id });
+    load();
+  };
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", marginBottom: 9 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>JATC OFFICE CONTACTS{rows ? " — " + rows.length : ""}</div>
+        <button className="foc" onClick={() => setFormOpen(true)} style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.gc, fontSize: 11.5, fontWeight: 700, padding: 0 }}>+ Add</button>
+      </div>
+      {rows === null ? (
+        <div className="skeleton" style={{ height: 60 }} />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {rows.map((c) => (
+            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{c.name}</div>
+                <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>
+                  {[c.tel && c.ext ? c.tel + " ext " + c.ext : c.tel, c.email, c.sms ? "sms " + c.sms : null].filter(Boolean).join(" · ") || "no details on file"}
+                </div>
+              </div>
+              <button className="foc icon-btn" onClick={() => remove(c.id)} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+            </div>
+          ))}
+          {rows.length === 0 && <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file yet.</div>}
+        </div>
+      )}
+      {formOpen && (
+        <Modal title="Add JATC contact" onClose={() => setFormOpen(false)}>
+          <JatcContactForm onSaved={load} onClose={() => setFormOpen(false)} />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
 /* ---------- this week — read-only activity strip, no personal hours to show ---------- */
 function ThisWeek({ shows, onOpenDay }) {
   const today = todayMid();
@@ -1672,6 +2394,20 @@ function Schedule({ shows, onChanged }) {
   const [collapsed, setCollapsed] = useState({}); // monthLabel -> bool, overrides the default
   const [expandedId, setExpandedId] = useState(null);
   const [showPast, setShowPast] = useState(false);
+  const [q, setQ] = useState("");
+  const [regionFilter, setRegionFilter] = useState("");
+
+  const regionsPresent = useMemo(() => Array.from(new Set(shows.map((s) => s.region).filter(Boolean))), [shows]);
+  const filteredShows = useMemo(() => shows.filter((s) => {
+    if (regionFilter && s.region !== regionFilter) return false;
+    if (q.trim()) {
+      const hay = (s.name + " " + (s.loc || "") + " " + (s.co || "")).toLowerCase();
+      if (!hay.includes(q.trim().toLowerCase())) return false;
+    }
+    return true;
+  }), [shows, regionFilter, q]);
+  const anyFilterActive = regionFilter || q.trim();
+  const inputStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px", color: C.hi, fontSize: 12.5, fontFamily: FS };
 
   const genId = (prefix) => prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
@@ -1694,14 +2430,14 @@ function Schedule({ shows, onChanged }) {
   // grouped by month, chronological — past months start collapsed so a
   // season's worth of history doesn't bury what's coming up.
   const groups = useMemo(() => {
-    const sorted = shows.slice().sort((a, b) => sortDate(a) - sortDate(b));
+    const sorted = filteredShows.slice().sort((a, b) => sortDate(a) - sortDate(b));
     const byMonth = {};
     sorted.forEach((s) => {
       const label = monthLabel(s);
       (byMonth[label] = byMonth[label] || { key: monthKey(s), label, list: [] }).list.push(s);
     });
     return Object.values(byMonth).sort((a, b) => a.key - b.key);
-  }, [shows]);
+  }, [filteredShows]);
 
   // one toggle for the whole block of past months instead of a wall of
   // individually-collapsed rows — each stays independently expandable once revealed
@@ -1797,7 +2533,32 @@ function Schedule({ shows, onChanged }) {
         </button>
       </div>
 
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "12px 13px", boxShadow: SHADOW, marginBottom: 12 }}>
+        <div style={{ position: "relative", marginBottom: regionsPresent.length > 0 ? 8 : 0 }}>
+          <Search size={14} color={C.lo} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search show, location, or company…"
+            style={{ ...inputStyle, width: "100%", padding: "8px 10px 8px 30px" }} />
+        </div>
+        {regionsPresent.length > 0 && (
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+            <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)} style={{ ...inputStyle, flex: "1 1 120px" }}>
+              <option value="">All regions</option>
+              {regionsPresent.map((r) => <option key={r} value={r}>{(REGION[r] || REGION.OTHER).label}</option>)}
+            </select>
+            {anyFilterActive && (
+              <button className="foc" onClick={() => { setQ(""); setRegionFilter(""); }}
+                style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 700, padding: "8px 12px", borderRadius: 9, background: "transparent", color: C.lo, border: "1px solid " + C.line }}>
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {currentGroups.length === 0 && pastGroups.length === 0 && (
+          <div style={{ color: C.mid, fontSize: 13, padding: "20px 0", textAlign: "center" }}>No shows match these filters.</div>
+        )}
         {currentGroups.map(renderGroup)}
 
         {pastGroups.length > 0 && (
@@ -1843,6 +2604,7 @@ export default function AdminBoard() {
   const [showArchived, setShowArchived] = useState(false);
   const [classModal, setClassModal] = useState(false); // false | array of preselected userIds
   const [dnhModal, setDnhModal] = useState(false);
+  const [bulkArchiveModal, setBulkArchiveModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   const load = async () => {
@@ -1987,6 +2749,7 @@ export default function AdminBoard() {
             </div>
             <ThisWeek shows={shows} onOpenDay={() => setTab("schedule")} />
             <RosterCategoryChart apprentices={activeApprentices} monthsByUser={monthsByUser} />
+            <FallingBehindPanel apprentices={activeApprentices} monthsByUser={monthsByUser} onOpenApprentice={goToApprentice} />
             <DoNotHirePanel apprentices={activeApprentices} onOpenApprentice={goToApprentice} />
             <UpcomingClasses apprentices={activeApprentices} classesByUser={classesByUser} onOpenApprentice={goToApprentice} onChanged={load} />
             <ExpiringCerts apprentices={activeApprentices} certsByUser={certsByUser} />
@@ -2003,7 +2766,8 @@ export default function AdminBoard() {
           ) : (
             <>
               <Roster apprentices={activeApprentices} monthsByUser={monthsByUser} onSelect={setSelectedId}
-                onAddApprentice={() => setNewModal(true)} onAssignClass={() => setClassModal([])} onDoNotHire={() => setDnhModal(true)} />
+                onAddApprentice={() => setNewModal(true)} onAssignClass={() => setClassModal([])} onDoNotHire={() => setDnhModal(true)}
+                onBulkArchive={() => setBulkArchiveModal(true)} />
 
               {archivedApprentices.length > 0 && (
                 <button className="foc" onClick={() => setShowArchived((v) => !v)}
@@ -2020,7 +2784,12 @@ export default function AdminBoard() {
         {tab === "schedule" && <Schedule shows={shows} onChanged={load} />}
 
         {tab === "settings" && (
-          <NewAdminForm onCreated={load} />
+          <>
+            <NewAdminForm onCreated={load} />
+            <CompanyDirectoryPanel />
+            <JatcContactsPanel />
+            <AuditLogPanel />
+          </>
         )}
       </div>
 
@@ -2037,6 +2806,11 @@ export default function AdminBoard() {
       {dnhModal && (
         <Modal title="Add to do-not-hire list" onClose={() => setDnhModal(false)}>
           <BulkDnhForm apprentices={activeApprentices.filter((a) => !a.do_not_hire_at)} onDone={load} onClose={() => setDnhModal(false)} />
+        </Modal>
+      )}
+      {bulkArchiveModal && (
+        <Modal title="Archive apprentices" onClose={() => setBulkArchiveModal(false)}>
+          <BulkArchiveForm apprentices={activeApprentices} onDone={load} onClose={() => setBulkArchiveModal(false)} />
         </Modal>
       )}
     </div>

@@ -1,6 +1,7 @@
 import { guardedRoute } from "@/lib/apiGuard";
 import { createApprenticeSchema, adminArchiveApprenticeSchema, adminDeleteApprenticeSchema } from "@/lib/schemas";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logAudit } from "@/lib/auditLog";
 
 /* creating an account is an Admin API operation (auth.admin.createUser) —
    there's no self-serve signup in this app, admin hands out the first
@@ -28,11 +29,19 @@ export async function POST(request) {
    plain profiles column, so it goes through the normal RLS-scoped client
    (the "admin update all" policy already covers it) — no Admin API needed. */
 export async function PATCH(request) {
-  return guardedRoute(request, "admin:apprentices:patch", { schema: adminArchiveApprenticeSchema, requireAdmin: true }, async ({ supabase, data }) => {
+  return guardedRoute(request, "admin:apprentices:patch", { schema: adminArchiveApprenticeSchema, requireAdmin: true }, async ({ supabase, user, data }) => {
+    const { data: target } = await supabase.from("profiles").select("email").eq("id", data.userId).single();
     const { error } = await supabase.from("profiles")
       .update({ archived_at: data.archived ? new Date().toISOString() : null })
       .eq("id", data.userId);
     if (error) return Response.json({ error: "Could not update" }, { status: 400 });
+
+    await logAudit(supabase, {
+      actorEmail: user.email, targetEmail: target?.email,
+      action: data.archived ? "archive" : "restore",
+      message: (data.archived ? "Archived " : "Restored ") + (target?.email || data.userId),
+    });
+
     return Response.json({ ok: true });
   });
 }
@@ -43,13 +52,19 @@ export async function PATCH(request) {
    allowed once already archived, so it's never a one-click accident off the
    live roster — archive first, delete later, matches the two-step UI. */
 export async function DELETE(request) {
-  return guardedRoute(request, "admin:apprentices:delete", { schema: adminDeleteApprenticeSchema, requireAdmin: true }, async ({ data }) => {
+  return guardedRoute(request, "admin:apprentices:delete", { schema: adminDeleteApprenticeSchema, requireAdmin: true }, async ({ user, data }) => {
     const admin = createAdminClient();
-    const { data: profile } = await admin.from("profiles").select("archived_at").eq("id", data.userId).single();
+    const { data: profile } = await admin.from("profiles").select("archived_at, email").eq("id", data.userId).single();
     if (!profile?.archived_at) return Response.json({ error: "Archive the apprentice before deleting them." }, { status: 400 });
 
     const { error } = await admin.auth.admin.deleteUser(data.userId);
     if (error) return Response.json({ error: "Could not delete" }, { status: 400 });
+
+    await logAudit(admin, {
+      actorEmail: user.email, targetEmail: profile.email,
+      action: "delete", message: "Permanently deleted " + (profile.email || data.userId),
+    });
+
     return Response.json({ ok: true });
   });
 }

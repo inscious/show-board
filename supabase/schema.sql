@@ -319,6 +319,25 @@ as $$
   select coalesce((select is_admin from profiles where id = auth.uid()), false);
 $$;
 
+-- append-only trail for the handful of admin actions that are destructive or
+-- privilege-related (archive, permanent delete, do-not-hire, new admin
+-- accounts). actor/target are stored as plain email text, not foreign keys —
+-- the account on either side can later be deleted (see work_entries.pay_rate
+-- for the same "snapshot, don't join" reasoning), and the log should still
+-- read fine after that happens.
+create table admin_audit_log (
+  id           bigint generated always as identity primary key,
+  actor_email  text,
+  target_email text,
+  action       text not null,  -- 'archive' | 'restore' | 'delete' | 'dnh_add' | 'dnh_remove' | 'admin_create'
+  message      text not null,
+  created_at   timestamptz not null default now()
+);
+alter table admin_audit_log enable row level security;
+create policy "admin read" on admin_audit_log for select to authenticated using (is_admin_user());
+create policy "admin insert" on admin_audit_log for insert to authenticated with check (is_admin_user());
+-- no update/delete policy at all — the log is append-only by design.
+
 -- ============================================================================
 -- Column-level guards. RLS's `with check` only sees whether id/user_id
 -- matches the caller — it can't say "this column, but not that one" — so
@@ -379,17 +398,19 @@ before insert or update on ojt_months
 for each row execute function protect_ojt_months_status();
 
 -- admin can see and correct every apprentice's profile + OJT-months-on-file.
--- work_entries (the apprentice's own day-to-day log) stays apprentice-only —
--- deliberately not extended here, same "never auto-reconcile" reasoning as
--- the submitted-vs-logged split elsewhere in this schema.
 create policy "admin read all" on profiles for select using (is_admin_user());
 create policy "admin update all" on profiles for update using (is_admin_user()) with check (is_admin_user());
 create policy "admin all" on ojt_months for all using (is_admin_user()) with check (is_admin_user());
 
--- admin can VIEW (not edit) an apprentice's bookings and working/target
--- flags on shows, for the admin dashboard's "on the schedule" section.
+-- admin can VIEW (not edit) an apprentice's bookings, working/target flags
+-- on shows, and day-to-day logged hours — for the admin dashboard's "on the
+-- schedule" section and the per-apprentice Calendar tab. Read-only on
+-- purpose: work_entries stays apprentice-edited only, same "never
+-- auto-reconcile" reasoning as the submitted-vs-logged split elsewhere in
+-- this schema — admin can look, not touch.
 create policy "admin read" on bookings for select using (is_admin_user());
 create policy "admin read" on show_flags for select using (is_admin_user());
+create policy "admin read" on work_entries for select using (is_admin_user());
 
 -- admin can assign/edit/remove classes on any apprentice's schedule.
 create policy "admin write" on classes for all using (is_admin_user()) with check (is_admin_user());
