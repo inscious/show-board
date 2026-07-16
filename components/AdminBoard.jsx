@@ -987,7 +987,7 @@ function AddCertForm({ userId, onAdded, onClose }) {
 }
 
 /* ---------- roster ---------- */
-function Roster({ apprentices, monthsByUser, onSelect }) {
+function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssignClass, onDoNotHire }) {
   const roster = useMemo(() => apprentices.map((a) => {
     const months = monthsByUser[a.id] || [];
     const approved = months.filter((m) => m.status === "approved");
@@ -1022,7 +1022,15 @@ function Roster({ apprentices, monthsByUser, onSelect }) {
   const inputStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px", color: C.hi, fontSize: 12.5, fontFamily: FS };
 
   if (roster.length === 0) {
-    return <div style={{ color: C.mid, fontSize: 13, padding: "20px 0", textAlign: "center" }}>No apprentices yet. Add one below.</div>;
+    return (
+      <div>
+        <div style={{ color: C.mid, fontSize: 13, padding: "20px 0", textAlign: "center" }}>No apprentices yet. Add one below.</div>
+        <button className="foc" onClick={onAddApprentice}
+          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
+          <Plus size={15} /> Add apprentice
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -1057,6 +1065,25 @@ function Roster({ apprentices, monthsByUser, onSelect }) {
             </button>
           )}
         </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        <button className="foc" onClick={onAddApprentice}
+          style={{ flex: "1 1 150px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
+          <Plus size={15} /> Add apprentice
+        </button>
+        {apprentices.length > 0 && (
+          <>
+            <button className="foc" onClick={onAssignClass}
+              style={{ flex: "1 1 150px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
+              <GraduationCap size={15} /> Assign class
+            </button>
+            <button className="foc" onClick={onDoNotHire}
+              style={{ flex: "1 1 150px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.danger, border: "1px dashed " + C.danger + "66", fontWeight: 700, fontSize: 13.5 }}>
+              <Ban size={15} /> Do not hire
+            </button>
+          </>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -1975,25 +2002,8 @@ export default function AdminBoard() {
               onBack={() => setSelectedId(null)} onChanged={load} />
           ) : (
             <>
-              <Roster apprentices={activeApprentices} monthsByUser={monthsByUser} onSelect={setSelectedId} />
-              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                <button className="foc" onClick={() => setNewModal(true)}
-                  style={{ flex: "1 1 150px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
-                  <Plus size={15} /> Add apprentice
-                </button>
-                {activeApprentices.length > 0 && (
-                  <>
-                    <button className="foc" onClick={() => setClassModal([])}
-                      style={{ flex: "1 1 150px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
-                      <GraduationCap size={15} /> Assign class
-                    </button>
-                    <button className="foc" onClick={() => setDnhModal(true)}
-                      style={{ flex: "1 1 150px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.danger, border: "1px dashed " + C.danger + "66", fontWeight: 700, fontSize: 13.5 }}>
-                      <Ban size={15} /> Do not hire
-                    </button>
-                  </>
-                )}
-              </div>
+              <Roster apprentices={activeApprentices} monthsByUser={monthsByUser} onSelect={setSelectedId}
+                onAddApprentice={() => setNewModal(true)} onAssignClass={() => setClassModal([])} onDoNotHire={() => setDnhModal(true)} />
 
               {archivedApprentices.length > 0 && (
                 <button className="foc" onClick={() => setShowArchived((v) => !v)}
