@@ -70,7 +70,8 @@ create table profiles (
   custom_companies  text[] not null default '{}',  -- ad-hoc company names typed in, not in `companies`
   archived_at       timestamptz,  -- set = off the active roster, kept for record; null = active. Permanent delete requires this set first.
   do_not_hire_at    timestamptz,  -- set = on the union's do-not-hire list (late OJT, missed mandatory class, etc); null = clear
-  do_not_hire_reason text
+  do_not_hire_reason text,
+  avatar_url        text  -- ID photo, admin-uploaded to the public `avatars` storage bucket below
 );
 
 -- one row per (user, show): "my status/note on this show" — never touches the
@@ -329,7 +330,7 @@ create table admin_audit_log (
   id           bigint generated always as identity primary key,
   actor_email  text,
   target_email text,
-  action       text not null,  -- 'archive' | 'restore' | 'delete' | 'dnh_add' | 'dnh_remove' | 'admin_create'
+  action       text not null,  -- 'archive' | 'restore' | 'delete' | 'dnh_add' | 'dnh_remove' | 'admin_create' | 'admin_revoke'
   message      text not null,
   created_at   timestamptz not null default now()
 );
@@ -426,3 +427,17 @@ alter table notifications enable row level security;
 create policy "own rows" on notifications for select using (user_id = auth.uid());
 create policy "own delete" on notifications for delete using (user_id = auth.uid());
 create policy "admin insert" on notifications for insert with check (is_admin_user());
+
+-- ============================================================================
+-- Storage: apprentice ID photos. Public bucket (simple `getPublicUrl`, no
+-- signed-URL refresh logic) — the object path is the apprentice's own uuid,
+-- so a photo is only reachable if you already know their id. Admin-only
+-- writes; the upload route (app/api/admin/avatar) uses the service-role
+-- client anyway, so these policies mostly guard the Supabase dashboard.
+-- ============================================================================
+insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true) on conflict (id) do nothing;
+create policy "admin write avatars" on storage.objects for all
+  using (bucket_id = 'avatars' and is_admin_user())
+  with check (bucket_id = 'avatars' and is_admin_user());
+create policy "public read avatars" on storage.objects for select
+  using (bucket_id = 'avatars');

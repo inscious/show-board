@@ -1,6 +1,7 @@
 import { guardedRoute } from "@/lib/apiGuard";
 import { adminDoNotHireSchema } from "@/lib/schemas";
 import { logAudit } from "@/lib/auditLog";
+import { sendEmail } from "@/lib/email";
 
 /* plain profiles update — RLS's "admin update all" policy is what actually
    allows this; requireAdmin here is belt-and-suspenders. do_not_hire_at /
@@ -23,6 +24,18 @@ export async function POST(request) {
     await supabase.from("notifications").insert({
       id: "ndnh" + Date.now().toString(36), user_id: data.userId, type: "dnh", message,
     });
+
+    // best-effort, same as the notification — a missing/failed email
+    // shouldn't undo the status change itself
+    if (target?.email) {
+      await sendEmail({
+        to: target.email,
+        subject: data.onList ? "L831 Tracker — do-not-hire status" : "L831 Tracker — do-not-hire status cleared",
+        html: data.onList
+          ? `<p>You've been placed on the union's do-not-hire list${data.reason ? ": " + data.reason : "."}</p><p>Contact the JATC office to resolve it.</p>`
+          : `<p>You've been removed from the do-not-hire list.</p>`,
+      });
+    }
 
     await logAudit(supabase, {
       actorEmail: user.email, targetEmail: target?.email,

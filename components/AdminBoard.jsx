@@ -11,7 +11,7 @@ import {
   Search, AlertTriangle, Ban, Archive as ArchiveIcon, TrendingDown, Bell, Pencil, Building2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { C, SHADOW, FM, FS, hrsFmt, mMed, mShort, levelIndex, ojtTotals, ojtRows, rollupEntries, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth, keyOf, fromKey, fmtClock, mAdd, monthGrid, sameDay, bookingOn, classOn, BOOKED } from "@/lib/core";
+import { C, SHADOW, FM, FS, hrsFmt, mMed, mShort, levelIndex, ojtTotals, ojtRows, rollupEntries, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth, keyOf, fromKey, fmtClock, mAdd, monthGrid, sameDay, bookingOn, classOn, BOOKED, mkDate, showYear, matchCo, fmtTel } from "@/lib/core";
 import { ShowForm, ImportForm, EMPTY } from "@/components/ShowEditor";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 
@@ -30,8 +30,14 @@ function avatarColor(key) {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
 }
-function Avatar({ name, email, size = 38 }) {
+function Avatar({ name, email, size = 38, avatarUrl }) {
   const color = avatarColor(email || name);
+  if (avatarUrl) {
+    return (
+      <img src={avatarUrl} alt={name || email || "avatar"}
+        style={{ width: size, height: size, borderRadius: size >= 48 ? 12 : 9, flexShrink: 0, objectFit: "cover", border: "1px solid " + C.line }} />
+    );
+  }
   return (
     <div
       style={{
@@ -374,6 +380,38 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
   const [profileState, setProfileState] = useState("idle");
   const [profileMsg, setProfileMsg] = useState("");
 
+  const [avatarState, setAvatarState] = useState("idle");
+  const [avatarMsg, setAvatarMsg] = useState("");
+  const uploadAvatar = async (file) => {
+    setAvatarState("saving");
+    setAvatarMsg("");
+    try {
+      const body = new FormData();
+      body.append("userId", apprentice.id);
+      body.append("file", file);
+      const res = await fetch("/api/admin/avatar", { method: "POST", body });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Upload failed");
+      setAvatarState("done");
+      onChanged();
+    } catch (e) {
+      setAvatarState("error");
+      setAvatarMsg(e.message);
+    }
+  };
+  const removeAvatar = async () => {
+    setAvatarState("saving");
+    setAvatarMsg("");
+    try {
+      await req("DELETE", "/api/admin/avatar", { userId: apprentice.id });
+      setAvatarState("idle");
+      onChanged();
+    } catch (e) {
+      setAvatarState("error");
+      setAvatarMsg(e.message);
+    }
+  };
+
   const saveProfile = async () => {
     setProfileState("saving");
     setProfileMsg("");
@@ -465,7 +503,7 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
 
       <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Avatar name={apprentice.name} email={apprentice.email} size={52} />
+          <Avatar name={apprentice.name} email={apprentice.email} avatarUrl={apprentice.avatar_url} size={52} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="truncate" style={{ fontSize: 15, fontWeight: 800, color: C.hi }}>{apprentice.name || apprentice.email}</div>
             <div className="truncate" style={{ fontSize: 11, color: C.lo, fontFamily: FM, marginTop: 2 }}>{apprentice.email}</div>
@@ -799,6 +837,28 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
 
       {detailTab === "settings" && (
       <>
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>ID PHOTO</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Avatar name={apprentice.name} email={apprentice.email} avatarUrl={apprentice.avatar_url} size={56} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label className="foc" style={{ display: "inline-flex", alignItems: "center", gap: 6, background: C.raise, color: C.hi, border: "1px solid " + C.line, borderRadius: 8, padding: "8px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
+              {avatarState === "saving" ? "Uploading…" : apprentice.avatar_url ? "Replace photo" : "Upload photo"}
+              <input type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }}
+                disabled={avatarState === "saving"}
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = ""; }} />
+            </label>
+            {apprentice.avatar_url && (
+              <button className="foc" onClick={removeAvatar} disabled={avatarState === "saving"}
+                style={{ background: "transparent", color: C.danger, border: "1px solid " + C.line, borderRadius: 8, padding: "7px 12px", fontSize: 12, fontWeight: 700 }}>
+                Remove photo
+              </button>
+            )}
+          </div>
+        </div>
+        {avatarMsg && <div style={{ marginTop: 8, fontSize: 11.5, color: C.danger }}>{avatarMsg}</div>}
+      </div>
+
       <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
         <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>PROFILE</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1367,7 +1427,7 @@ function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssign
       {filtered.map((a) => (
         <button key={a.id} className="foc roster-row" onClick={() => onSelect(a.id)}
           style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW }}>
-          <Avatar name={a.name} email={a.email} />
+          <Avatar name={a.name} email={a.email} avatarUrl={a.avatar_url} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="truncate" style={{ fontSize: 14, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
             {a.name && <div className="truncate" style={{ fontSize: 10.5, color: C.lo, fontFamily: FM, marginTop: 1 }}>{a.email}</div>}
@@ -1405,7 +1465,7 @@ function ArchivedRoster({ apprentices, onSelect }) {
       {rows.map((a) => (
         <button key={a.id} className="foc roster-row" onClick={() => onSelect(a.id)}
           style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: C.sunk, border: "1px solid " + C.line, borderRadius: 12, padding: "13px 15px", opacity: 0.8 }}>
-          <Avatar name={a.name} email={a.email} size={34} />
+          <Avatar name={a.name} email={a.email} avatarUrl={a.avatar_url} size={34} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.mid }}>{a.name || a.email}</div>
             <div className="truncate" style={{ fontSize: 10.5, color: C.lo, marginTop: 1 }}>
@@ -1578,11 +1638,14 @@ function ApprenticeMonthlyChart({ months }) {
     const approved = (months || []).filter((m) => m.status === "approved");
     const byMonth = {};
     approved.forEach((m) => { byMonth[m.m] = m; });
-    const today = todayMid();
-    const janKey = mKey(today.getFullYear(), 0);
+    // rolling 12-month window ending at the current month, not a bare
+    // calendar year — same fix as the apprentice's own chart, otherwise
+    // half the bars sit empty until December every year.
+    const nowKey = mKey(todayMid().getFullYear(), todayMid().getMonth());
+    const startKey = mAdd(nowKey, -11);
     const out = [];
     for (let i = 0; i < 12; i++) {
-      const k = (() => { const d = mParse(janKey); const nd = new Date(d.y, d.m + i, 1); return mKey(nd.getFullYear(), nd.getMonth()); })();
+      const k = mAdd(startKey, i);
       const row = byMonth[k];
       const a = num(row?.a), b = num(row?.b), c = num(row?.c), d = num(row?.d);
       out.push({ k, label: MONTHS[mParse(k).m], a, b, c, d, total: a + b + c + d });
@@ -1594,8 +1657,8 @@ function ApprenticeMonthlyChart({ months }) {
   if (!hasAny) {
     return (
       <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
-        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 6 }}>MONTHLY HOURS · {todayMid().getFullYear()}</div>
-        <div style={{ fontSize: 12.5, color: C.lo }}>Nothing approved this year yet.</div>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 6 }}>MONTHLY HOURS · LAST 12 MONTHS</div>
+        <div style={{ fontSize: 12.5, color: C.lo }}>Nothing approved in the last 12 months.</div>
       </div>
     );
   }
@@ -1603,7 +1666,7 @@ function ApprenticeMonthlyChart({ months }) {
   return (
     <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px 4px", boxShadow: SHADOW, marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 8 }}>
-        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>MONTHLY HOURS · {todayMid().getFullYear()}</div>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>MONTHLY HOURS · {data.length > 0 ? mShort(data[0].k) + " – " + mShort(data[data.length - 1].k) : ""}</div>
         <div style={{ display: "flex", gap: 9, marginLeft: "auto" }}>
           {["A", "B", "C", "D"].map((k) => (
             <div key={k} style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -1864,7 +1927,7 @@ function UpcomingClasses({ apprentices, classesByUser, onOpenApprentice, onChang
             {open.people.map(({ apprentice: a, missedCount }) => (
               <button key={a.id} className="foc" onClick={() => onOpenApprentice(a.id)}
                 style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
-                <Avatar name={a.name} email={a.email} size={30} />
+                <Avatar name={a.name} email={a.email} avatarUrl={a.avatar_url} size={30} />
                 <div className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
                 {missedCount > 0 && (
                   <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: C.danger, border: "1px solid " + C.danger + "55", borderRadius: 5, padding: "2px 6px" }}>{missedCount} MISSED</span>
@@ -1966,7 +2029,7 @@ function DoNotHirePanel({ apprentices, onOpenApprentice }) {
           {rows.map((a) => (
             <button key={a.id} className="foc" onClick={() => onOpenApprentice(a.id)}
               style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
-              <Avatar name={a.name} email={a.email} size={30} />
+              <Avatar name={a.name} email={a.email} avatarUrl={a.avatar_url} size={30} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
                 <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>
@@ -2089,6 +2152,80 @@ function NewAdminForm({ onCreated }) {
   );
 }
 
+/* ---------- current admin accounts — revoke-only mirror of NewAdminForm.
+   Self-fetches (Settings-only content). Can't revoke your own session or
+   drop the last admin — both enforced server-side too, this is just the
+   UI-level version of the same guardrails. ---------- */
+function AdminAccountsPanel({ currentEmail }) {
+  const [rows, setRows] = useState(null);
+  const [confirmFor, setConfirmFor] = useState(null); // admin row, or null
+  const [state, setState] = useState("idle");
+  const [msg, setMsg] = useState("");
+
+  const load = async () => {
+    const supabase = createClient();
+    const { data } = await supabase.from("profiles").select("id,email,name").eq("is_admin", true).order("email");
+    setRows(data || []);
+  };
+  useEffect(() => { load(); }, []);
+
+  const revoke = async () => {
+    setState("saving");
+    setMsg("");
+    try {
+      await req("POST", "/api/admin/revoke-admin", { userId: confirmFor.id });
+      setConfirmFor(null);
+      setState("idle");
+      load();
+    } catch (e) {
+      setState("error");
+      setMsg(e.message);
+    }
+  };
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+      <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>ADMIN ACCOUNTS{rows ? " — " + rows.length : ""}</div>
+      {rows === null ? (
+        <div className="skeleton" style={{ height: 60 }} />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {rows.map((a) => {
+            const isSelf = a.email === currentEmail;
+            return (
+              <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+                <Avatar name={a.name} email={a.email} avatarUrl={a.avatar_url} size={30} />
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
+                  {a.name && <div className="truncate" style={{ fontSize: 10.5, color: C.lo, fontFamily: FM }}>{a.email}</div>}
+                </div>
+                {isSelf ? (
+                  <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9.5, fontWeight: 800, color: C.lo, border: "1px solid " + C.line, borderRadius: 5, padding: "2px 6px" }}>YOU</span>
+                ) : (
+                  <button className="foc" onClick={() => setConfirmFor(a)}
+                    style={{ flexShrink: 0, background: "transparent", border: "1px solid " + C.line, color: C.danger, borderRadius: 7, padding: "6px 10px", fontSize: 11.5, fontWeight: 700 }}>
+                    Revoke
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {confirmFor && (
+        <ConfirmModal
+          title="Revoke admin access?"
+          message={<>{confirmFor.name || confirmFor.email} loses admin console access immediately and becomes a normal (empty) apprentice profile. They can be granted admin access again later from here.</>}
+          confirmLabel="Revoke"
+          onClose={() => { setConfirmFor(null); setMsg(""); }}
+          onConfirm={revoke}
+        />
+      )}
+      {msg && <div style={{ marginTop: 8, fontSize: 11.5, color: C.danger }}>{msg}</div>}
+    </div>
+  );
+}
+
 /* ---------- audit log — archive/restore, permanent delete, do-not-hire,
    and new admin accounts. append-only on the DB side (see schema.sql);
    fetches its own data since it's the one thing on this page nobody looks
@@ -2100,6 +2237,7 @@ const AUDIT_ACTION_META = {
   dnh_add: { label: "Do-not-hire", color: C.danger },
   dnh_remove: { label: "DNH cleared", color: C.working },
   admin_create: { label: "New admin", color: C.brand },
+  admin_revoke: { label: "Admin revoked", color: C.danger },
 };
 function AuditLogPanel() {
   const [rows, setRows] = useState(null); // null = loading
@@ -2354,6 +2492,91 @@ function JatcContactsPanel() {
 }
 
 /* ---------- this week — read-only activity strip, no personal hours to show ---------- */
+/* ---------- on the floor today / next move-ins — same shared `shows`
+   table the apprentice's own Home tab reads, just not filtered to "mine"
+   since admin cares about the whole union schedule. Self-fetches the
+   company directory for the phone-number lookup, same as CompanyDirectoryPanel. ---------- */
+function OnTheFloorPanel({ shows }) {
+  const [companies, setCompanies] = useState(null);
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("companies").select("*");
+      setCompanies((data || []).map((c) => ({ n: c.name, city: c.city || "", st: c.state || "", tel: c.labor_line || "", fm: c.foreman || "" })));
+    })();
+  }, []);
+
+  const today = todayMid();
+  const onFloor = useMemo(() => showsOn(shows, today).sort((a, b) => sortDate(a) - sortDate(b)), [shows, today.getTime()]);
+  const nextUp = useMemo(() => shows
+    .filter((s) => { const mi = mkDate(s.mi, showYear(s)) || mkDate(s.start, showYear(s)); return mi && mi > today; })
+    .sort((a, b) => sortDate(a) - sortDate(b))
+    .slice(0, 3), [shows, today.getTime()]);
+
+  if (onFloor.length === 0 && nextUp.length === 0) return null;
+
+  const ShowLine = (s) => {
+    const region = REGION[s.region] || REGION.OTHER;
+    const gc = companies ? matchCo(s.co, s.region, companies) : null;
+    return (
+      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + region.color + "3A", borderRadius: 9, padding: "9px 10px" }}>
+        <span style={{ width: 3, alignSelf: "stretch", borderRadius: 2, background: region.color, flexShrink: 0 }} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.hi }}>{s.name}</div>
+          <div className="truncate" style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>
+            {s.loc}{s.booth && s.booth !== "TBD" ? " · " + s.booth : ""}
+          </div>
+        </div>
+        <div style={{ flexShrink: 0, textAlign: "right" }}>
+          <div className="truncate" style={{ fontFamily: FM, fontSize: 10.5, fontWeight: 800, color: C.gc, maxWidth: 100 }}>{(s.co || "TBD").toUpperCase()}</div>
+          {gc && gc.tel && <div style={{ fontFamily: FM, fontSize: 10, color: C.lo, marginTop: 2 }}>{fmtTel(gc.tel)}</div>}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+      {onFloor.length > 0 && (
+        <div style={{ marginBottom: nextUp.length ? 13 : 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <span style={{ width: 7, height: 7, borderRadius: 9, background: C.working, boxShadow: "0 0 8px " + C.working }} />
+            <span style={{ fontSize: 9.5, letterSpacing: 0.8, color: C.working, fontFamily: FM, fontWeight: 800 }}>ON THE FLOOR TODAY</span>
+            <span style={{ marginLeft: "auto", fontFamily: FM, fontSize: 10, color: C.lo }}>{onFloor.length}</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{onFloor.slice(0, 5).map(ShowLine)}</div>
+        </div>
+      )}
+      {nextUp.length > 0 && (
+        <div>
+          <div style={{ fontSize: 9.5, letterSpacing: 0.8, color: C.lo, fontFamily: FM, marginBottom: 8 }}>NEXT MOVE-INS</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {nextUp.map((s) => {
+              const cd = countdown(s);
+              const region = REGION[s.region] || REGION.OTHER;
+              return (
+                <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
+                  <div style={{ flexShrink: 0, width: 42, textAlign: "center" }}>
+                    <div style={{ fontFamily: FM, fontSize: 14, fontWeight: 800, color: region.color, lineHeight: 1.1 }}>{s.mi}</div>
+                    <div style={{ fontFamily: FM, fontSize: 8.5, color: C.lo, marginTop: 1 }}>MOVE IN</div>
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.hi }}>{s.name}</div>
+                    <div className="truncate" style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{s.loc} · {s.co || "TBD"}</div>
+                  </div>
+                  {cd && (
+                    <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: cd.c, border: "1px solid " + cd.c + "55", borderRadius: 5, padding: "2px 6px" }}>{cd.t}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ThisWeek({ shows, onOpenDay }) {
   const today = todayMid();
   const week = useMemo(() => {
@@ -2748,6 +2971,7 @@ export default function AdminBoard() {
                 sub="across everyone" color={C.brand} />
             </div>
             <ThisWeek shows={shows} onOpenDay={() => setTab("schedule")} />
+            <OnTheFloorPanel shows={shows} />
             <RosterCategoryChart apprentices={activeApprentices} monthsByUser={monthsByUser} />
             <FallingBehindPanel apprentices={activeApprentices} monthsByUser={monthsByUser} onOpenApprentice={goToApprentice} />
             <DoNotHirePanel apprentices={activeApprentices} onOpenApprentice={goToApprentice} />
@@ -2786,6 +3010,7 @@ export default function AdminBoard() {
         {tab === "settings" && (
           <>
             <NewAdminForm onCreated={load} />
+            <AdminAccountsPanel currentEmail={email} />
             <CompanyDirectoryPanel />
             <JatcContactsPanel />
             <AuditLogPanel />

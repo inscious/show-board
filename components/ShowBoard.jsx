@@ -30,6 +30,8 @@ import {
     Eye,
     EyeOff,
     Lock,
+    ShieldAlert,
+    Bell,
 } from "lucide-react";
 import { store } from "@/lib/store";
 import {
@@ -1478,6 +1480,35 @@ function DaySheet({
     const dd = fromKey(dayKey);
     const hol = holidayName(dd);
 
+    // most recent day before this one with anything logged — "copy" reuses
+    // its first entry's company/category/hours so a multi-day call at the
+    // same company doesn't mean retyping the same thing every morning
+    const lastLoggedDay = useMemo(() => {
+        const d = new Date(dd);
+        for (let i = 0; i < 21; i++) {
+            d.setDate(d.getDate() - 1);
+            const k = keyOf(d);
+            if ((entries[k] || []).length > 0) return k;
+        }
+        return null;
+    }, [dd, entries]);
+    const copyFromDay = (key) => {
+        const src = (entries[key] || [])[0];
+        if (!src) return;
+        setCo(src.co);
+        setCat(src.cat || "");
+        setNote(src.note || "");
+        if (src.in != null && src.out != null) {
+            setMode("time");
+            setTin(src.in % 1440);
+            setTout(src.out % 1440);
+            setBrk(num(src.brk));
+        } else {
+            setMode("hrs");
+            setHrs(src.hrs);
+        }
+    };
+
     /* an out that lands at or before the in means the call ran overnight */
     const inM = tin;
     let outM = tout;
@@ -1956,7 +1987,7 @@ function DaySheet({
                 </div>
             )}
 
-            {onBoard.length > 0 && (
+            {onBoard.length > 0 && klass.length === 0 && (
                 <div style={{ marginBottom: 14 }}>
                     <div
                         style={{
@@ -2283,6 +2314,33 @@ function DaySheet({
                 </div>
             ) : (
                 <>
+                    {!editId && list.length === 0 && lastLoggedDay && (
+                        <button
+                            className="foc"
+                            onClick={() => copyFromDay(lastLoggedDay)}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 7,
+                                width: "100%",
+                                background: C.sunk,
+                                border: "1px dashed " + C.line,
+                                borderRadius: 9,
+                                padding: "9px 11px",
+                                marginBottom: 10,
+                                color: C.mid,
+                                fontSize: 12,
+                                fontWeight: 700,
+                            }}
+                        >
+                            <Copy size={13} style={{ flexShrink: 0 }} />
+                            Copy {longDate(fromKey(lastLoggedDay))
+                                .split(", ")
+                                .slice(1)
+                                .join(", ")}
+                            's log — {entries[lastLoggedDay][0].co}
+                        </button>
+                    )}
                     <div
                         style={{
                             fontSize: 10,
@@ -7789,9 +7847,8 @@ function OjtTab({
                     }}
                 >
                     An overnight call rolls into the next day and picks up that
-                    day's rule. Everything rounds to the half hour. The{" "}
-                    <span style={{ fontFamily: FM, color: C.brand }}>×1.5</span>{" "}
-                    on OT is still my assumption — the rest is yours.
+                    day's rule. Everything rounds to the half hour. OT pays{" "}
+                    <span style={{ fontFamily: FM, color: C.brand }}>×1.5</span>.
                 </div>
             </Fold>
 
@@ -8505,7 +8562,7 @@ function MonthlyHoursChart({ series }) {
                         fontFamily: FM,
                     }}
                 >
-                    MONTHLY HOURS · {YEAR}
+                    MONTHLY HOURS · {series.length > 0 ? mShort(series[0].k) + " – " + mShort(series[series.length - 1].k) : YEAR}
                 </div>
                 <div style={{ display: "flex", gap: 9, marginLeft: "auto" }}>
                     {CAT_KEYS.map((k) => {
@@ -8639,10 +8696,13 @@ function HomeTab({
         return out;
     }, [approvedMonths]);
     const monthlySeries = useMemo(() => {
-        const janKey = mKey(mParse(mk).y, 0);
+        // rolling 12-month window ending at the current month, not a bare
+        // calendar year — otherwise half the chart sits empty for the
+        // months still ahead of "now" every year until December.
+        const startKey = mAdd(mk, -11);
         const out = [];
         for (let i = 0; i < 12; i++) {
-            const k = mAdd(janKey, i);
+            const k = mAdd(startKey, i);
             const cats =
                 k === mk
                     ? { a: num(m.a), b: num(m.b), c: num(m.c), d: num(m.d) }
@@ -8893,6 +8953,35 @@ function HomeTab({
 
     return (
         <div className="dgrid">
+            {(lateSt.k === "late" || (openSt.k === "open" && openSt.days <= 3)) && (
+                <button
+                    className="foc dspan"
+                    onClick={() => onGoto("ojt")}
+                    style={{
+                        width: "100%",
+                        textAlign: "left",
+                        background: lateSt.k === "late" ? "rgba(232,146,124,0.1)" : "rgba(255,176,32,0.08)",
+                        border: "1px solid " + (lateSt.k === "late" ? C.danger : C.brand) + "77",
+                        borderRadius: 12,
+                        padding: "13px 15px",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 10,
+                    }}
+                >
+                    <GraduationCap size={17} color={lateSt.k === "late" ? C.danger : C.brand} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: lateSt.k === "late" ? C.danger : C.brand }}>
+                            {lateSt.k === "late" ? mMed(lastMk) + " OJT is late" : mMed(mk) + " OJT due " + (openSt.days === 0 ? "today, 4 PM" : "in " + openSt.days + " day" + (openSt.days === 1 ? "" : "s"))}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.mid, marginTop: 3, lineHeight: 1.5 }}>
+                            {lateSt.k === "late"
+                                ? "Due the 1st by 4 PM — that's the do-not-hire list."
+                                : hrsFmt(r1(m.total)) + " hrs logged so far — turn it in the 1st by 4 PM."}
+                        </div>
+                    </div>
+                </button>
+            )}
             {doNotHire && doNotHire.on && (
                 <div
                     className="dspan"
@@ -8922,120 +9011,134 @@ function HomeTab({
                     </div>
                 </div>
             )}
-            {/* notifications: new class assignments, schedule updates — cleared one at a time or all at once */}
-            {notifications.length > 0 && (
-                <div
-                    className="dspan"
-                    style={{
-                        background: "rgba(127,178,255,0.07)",
-                        border: "1px solid rgba(127,178,255,0.3)",
-                        borderRadius: 12,
-                        padding: "11px 13px",
-                    }}
-                >
+            {/* notifications: new class assignments, cert reminders, do-not-hire
+                status, schedule updates — color-coded by type, cleared one at
+                a time or all at once. Stays visible even when empty so it's
+                not a section that randomly appears/disappears. */}
+            {(() => {
+                const NOTE_META = {
+                    class: { icon: GraduationCap, color: KLASS },
+                    dnh: { icon: Ban, color: C.danger },
+                    cert: { icon: ShieldAlert, color: C.brand },
+                    schedule: { icon: CalendarDays, color: C.gc },
+                    ojt: { icon: GraduationCap, color: C.brand },
+                };
+                const metaFor = (t) => NOTE_META[t] || { icon: Bell, color: C.gc };
+                return (
                     <div
+                        className="dspan"
                         style={{
-                            display: "flex",
-                            alignItems: "center",
-                            marginBottom: 8,
+                            background: "rgba(127,178,255,0.07)",
+                            border: "1px solid rgba(127,178,255,0.3)",
+                            borderRadius: 12,
+                            padding: "11px 13px",
                         }}
                     >
-                        <span
+                        <div
                             style={{
-                                fontSize: 9.5,
-                                letterSpacing: 0.8,
-                                color: C.gc,
-                                fontFamily: FM,
-                                fontWeight: 800,
+                                display: "flex",
+                                alignItems: "center",
+                                marginBottom: 8,
                             }}
                         >
-                            NOTIFICATIONS
-                        </span>
-                        {notifications.length > 1 && (
-                            <button
-                                className="foc"
-                                onClick={() => onClearNotification("all")}
+                            <span
                                 style={{
-                                    marginLeft: "auto",
-                                    background: "transparent",
-                                    border: "none",
-                                    color: C.lo,
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    padding: 0,
+                                    fontSize: 9.5,
+                                    letterSpacing: 0.8,
+                                    color: C.gc,
+                                    fontFamily: FM,
+                                    fontWeight: 800,
                                 }}
                             >
-                                Clear all
-                            </button>
-                        )}
-                    </div>
-                    <div
-                        style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 6,
-                        }}
-                    >
-                        {notifications.map((n) => {
-                            const Ico =
-                                n.type === "class"
-                                    ? GraduationCap
-                                    : n.type === "dnh"
-                                      ? Ban
-                                      : CalendarDays;
-                            const ntColor = n.type === "dnh" ? C.danger : C.gc;
-                            return (
-                                <div
-                                    key={n.id}
+                                NOTIFICATIONS
+                            </span>
+                            {notifications.length > 1 && (
+                                <button
+                                    className="foc"
+                                    onClick={() => onClearNotification("all")}
                                     style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 9,
-                                        background: C.sunk,
-                                        border: "1px solid " + (n.type === "dnh" ? C.danger + "55" : C.line),
-                                        borderRadius: 9,
-                                        padding: "8px 10px",
+                                        marginLeft: "auto",
+                                        background: "transparent",
+                                        border: "none",
+                                        color: C.lo,
+                                        fontSize: 11,
+                                        fontWeight: 700,
+                                        padding: 0,
                                     }}
                                 >
-                                    <Ico
-                                        size={14}
-                                        color={ntColor}
-                                        style={{ flexShrink: 0 }}
-                                    />
-                                    <div
-                                        className="truncate"
-                                        style={{
-                                            flex: 1,
-                                            minWidth: 0,
-                                            fontSize: 12.5,
-                                            color: n.type === "dnh" ? C.danger : C.hi,
-                                            fontWeight: n.type === "dnh" ? 700 : 400,
-                                        }}
-                                    >
-                                        {n.message}
-                                    </div>
-                                    <button
-                                        className="foc"
-                                        onClick={() =>
-                                            onClearNotification(n.id)
-                                        }
-                                        aria-label="Dismiss"
-                                        style={{
-                                            flexShrink: 0,
-                                            background: "transparent",
-                                            border: "none",
-                                            color: C.lo,
-                                            padding: 2,
-                                        }}
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                </div>
-                            );
-                        })}
+                                    Clear all
+                                </button>
+                            )}
+                        </div>
+                        {notifications.length === 0 ? (
+                            <div style={{ fontSize: 12, color: C.lo, padding: "4px 0" }}>
+                                Nothing new.
+                            </div>
+                        ) : (
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 6,
+                                }}
+                            >
+                                {notifications.map((n) => {
+                                    const { icon: Ico, color: ntColor } = metaFor(n.type);
+                                    const strong = n.type === "dnh";
+                                    return (
+                                        <div
+                                            key={n.id}
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 9,
+                                                background: C.sunk,
+                                                border: "1px solid " + (strong ? ntColor + "55" : C.line),
+                                                borderRadius: 9,
+                                                padding: "8px 10px",
+                                            }}
+                                        >
+                                            <Ico
+                                                size={14}
+                                                color={ntColor}
+                                                style={{ flexShrink: 0 }}
+                                            />
+                                            <div
+                                                className="truncate"
+                                                style={{
+                                                    flex: 1,
+                                                    minWidth: 0,
+                                                    fontSize: 12.5,
+                                                    color: strong ? ntColor : C.hi,
+                                                    fontWeight: strong ? 700 : 400,
+                                                }}
+                                            >
+                                                {n.message}
+                                            </div>
+                                            <button
+                                                className="foc"
+                                                onClick={() =>
+                                                    onClearNotification(n.id)
+                                                }
+                                                aria-label="Dismiss"
+                                                style={{
+                                                    flexShrink: 0,
+                                                    background: "transparent",
+                                                    border: "none",
+                                                    color: C.lo,
+                                                    padding: 2,
+                                                }}
+                                            >
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* nudge: no password on file yet, still relying on the email link */}
             {!hasPassword && (
