@@ -2593,7 +2593,22 @@ function DaySheet({
                         <div>
                             <div style={{ display: "flex", gap: 7 }}>
                                 {[
-                                    ["IN", tin, setTin],
+                                    [
+                                        "IN",
+                                        tin,
+                                        (v) => {
+                                            setTin(v);
+                                            // moving IN later shouldn't leave a stale OUT
+                                            // sitting minutes away — bump it to a sane
+                                            // 4-hour-minimum shift unless OUT was already
+                                            // set further out than that.
+                                            setTout((prev) =>
+                                                prev < v + 240
+                                                    ? Math.min(v + 240, TIME_SLOTS[TIME_SLOTS.length - 1])
+                                                    : prev,
+                                            );
+                                        },
+                                    ],
                                     ["OUT", tout, setTout],
                                 ].map(([lab, v, set]) => (
                                     <div
