@@ -1,81 +1,64 @@
 "use client";
 
-import { useState } from "react";
-import { Mail, HardHat, Lock, Eye, EyeOff } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Mail, HardHat, Lock, User, Eye, EyeOff } from "lucide-react";
 import { C, SHADOW, FM, FS } from "@/lib/core";
 
-// same build-time flag app/signup/page.jsx checks — kept in sync so the
-// entry point and the destination turn on/off together.
+// build-time flag, same convention as every other optional feature in this
+// app (CRON_SECRET, RESEND_API_KEY) — off means this page (and the API
+// route behind it) don't exist as far as anyone can tell from the outside.
 const SIGNUP_ENABLED = process.env.NEXT_PUBLIC_SELF_SIGNUP_ENABLED === "true";
 
-export default function LoginPage() {
-  const [mode, setMode] = useState("password"); // password | magiclink
+export default function SignupPage() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [state, setState] = useState("idle"); // idle | sending | sent | error
   const [msg, setMsg] = useState("");
 
-  const submitPassword = async (e) => {
+  useEffect(() => {
+    if (!SIGNUP_ENABLED) window.location.href = "/login";
+  }, []);
+
+  if (!SIGNUP_ENABLED) return null;
+
+  const submit = async (e) => {
     e.preventDefault();
+    if (password !== confirm) {
+      setState("error");
+      setMsg("Passwords don't match.");
+      return;
+    }
     setState("sending");
     setMsg("");
     try {
-      const res = await fetch("/api/auth/sign-in", {
+      const res = await fetch("/api/auth/sign-up", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({ email: email.trim(), password, name: name.trim() }),
       });
       const body = await res.json().catch(() => ({}));
       if (res.status === 429) {
         setState("error");
-        setMsg("Too many attempts. Wait a few minutes and try again.");
+        setMsg("Too many attempts. Wait a while and try again.");
         return;
       }
       if (!res.ok) {
         setState("error");
-        setMsg(body.error || "Couldn't sign in. Try again.");
+        setMsg(body.error || "Couldn't create that account.");
         return;
       }
+      // no email confirmation step — signUp() already returned an active
+      // session, the route's cookie-backed client set it on this response.
+      // Full navigation (not client-side) so middleware re-reads it and
+      // routes to /pending.
       window.location.href = "/";
     } catch {
       setState("error");
       setMsg("Network error — check your connection and try again.");
     }
-  };
-
-  const submitMagicLink = async (e) => {
-    e.preventDefault();
-    setState("sending");
-    setMsg("");
-    try {
-      const res = await fetch("/api/auth/request-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (res.status === 429) {
-        setState("error");
-        setMsg("Too many attempts. Wait a few minutes and try again.");
-        return;
-      }
-      if (!res.ok) {
-        setState("error");
-        setMsg(body.error || "Couldn't send the link. Try again.");
-        return;
-      }
-      setState("sent");
-    } catch {
-      setState("error");
-      setMsg("Network error — check your connection and try again.");
-    }
-  };
-
-  const switchMode = (next) => {
-    setMode(next);
-    setState("idle");
-    setMsg("");
   };
 
   return (
@@ -99,21 +82,27 @@ export default function LoginPage() {
           </span>
           <div style={{ fontWeight: 800, fontSize: 19, color: C.hi }}>L831 Tracker</div>
         </div>
-        <div style={{ fontSize: 11.5, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 20 }}>IUPAT LOCAL 831</div>
+        <div style={{ fontSize: 11.5, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 20 }}>CREATE AN ACCOUNT</div>
 
-        {state === "sent" ? (
-          <div style={{ fontSize: 13.5, color: C.hi, lineHeight: 1.5 }}>
-            Check <strong>{email.trim()}</strong> for a sign-in link. It expires shortly — request a new one if it's been a while.
-          </div>
-        ) : mode === "password" ? (
-          <form onSubmit={submitPassword}>
+        <form onSubmit={submit}>
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NAME</div>
+            <div className="login-field" style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12, transition: "border-color .15s, box-shadow .15s" }}>
+              <User size={15} color={C.lo} />
+              <input
+                required
+                autoFocus
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Jane Apprentice"
+                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
+              />
+            </div>
             <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EMAIL</div>
             <div className="login-field" style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12, transition: "border-color .15s, box-shadow .15s" }}>
               <Mail size={15} color={C.lo} />
               <input
                 type="email"
                 required
-                autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
@@ -126,9 +115,10 @@ export default function LoginPage() {
               <input
                 type={showPw ? "text" : "password"}
                 required
+                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="8+ characters"
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
               />
               <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? "Hide password" : "Show password"}
@@ -136,56 +126,35 @@ export default function LoginPage() {
                 {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
-            <button
-              className="login-submit"
-              type="submit"
-              disabled={state === "sending" || !email.trim() || !password}
-              style={{ width: "100%", padding: "12px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14, opacity: state === "sending" ? 0.6 : 1, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}
-            >
-              {state === "sending" ? "Signing in…" : "Sign in"}
-            </button>
-            {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
-            <button className="login-link" type="button" onClick={() => switchMode("magiclink")}
-              style={{ width: "100%", marginTop: 16, background: "transparent", border: "none", color: C.gc, fontSize: 12.5, fontWeight: 700, padding: 0 }}>
-              Email me a sign-in link instead
-            </button>
-            {SIGNUP_ENABLED && (
-              <a className="login-link" href="/signup"
-                style={{ display: "block", textAlign: "center", width: "100%", marginTop: 10, background: "transparent", border: "none", color: C.lo, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-                New here? Create an account
-              </a>
-            )}
-          </form>
-        ) : (
-          <form onSubmit={submitMagicLink}>
-            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EMAIL</div>
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>RETYPE PASSWORD</div>
             <div className="login-field" style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12, transition: "border-color .15s, box-shadow .15s" }}>
-              <Mail size={15} color={C.lo} />
+              <Lock size={15} color={C.lo} />
               <input
-                type="email"
+                type={showPw ? "text" : "password"}
                 required
-                autoFocus
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="8+ characters"
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
               />
             </div>
             <button
               className="login-submit"
               type="submit"
-              disabled={state === "sending" || !email.trim()}
+              disabled={state === "sending" || !name.trim() || !email.trim() || !password || !confirm}
               style={{ width: "100%", padding: "12px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14, opacity: state === "sending" ? 0.6 : 1, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}
             >
-              {state === "sending" ? "Sending…" : "Email me a sign-in link"}
+              {state === "sending" ? "Creating account…" : "Create account"}
             </button>
             {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
-            <button className="login-link" type="button" onClick={() => switchMode("password")}
-              style={{ width: "100%", marginTop: 16, background: "transparent", border: "none", color: C.gc, fontSize: 12.5, fontWeight: 700, padding: 0 }}>
-              Sign in with a password instead
-            </button>
-          </form>
-        )}
+            <div style={{ fontSize: 11, color: C.lo, lineHeight: 1.5, marginTop: 14 }}>
+              Your account still needs an admin to approve it before you get full access — that's normal, not an error.
+            </div>
+            <a className="login-link" href="/login"
+              style={{ display: "block", textAlign: "center", width: "100%", marginTop: 16, background: "transparent", border: "none", color: C.gc, fontSize: 12.5, fontWeight: 700, textDecoration: "none" }}>
+              Already have an account? Sign in
+            </a>
+        </form>
       </div>
     </div>
   );

@@ -16,7 +16,7 @@ export async function POST(request) {
     });
     if (error) return Response.json({ error: error.message || "Could not create account" }, { status: 400 });
 
-    await admin.from("profiles").update({ name: data.name || null, has_password: true, is_admin: true }).eq("id", created.user.id);
+    await admin.from("profiles").update({ name: data.name || null, has_password: true, is_admin: true, approved_at: new Date().toISOString() }).eq("id", created.user.id);
 
     await logAudit(admin, {
       actorEmail: user.email, targetEmail: data.email,

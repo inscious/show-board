@@ -249,6 +249,17 @@ $$;
 -- signs in for the first time. Everyone starts as a non-admin apprentice;
 -- promote an account by hand afterward with:
 --   update public.profiles set is_admin = true where email = '...';
+--
+-- name comes from auth.users' own metadata when present — self-signup
+-- (app/api/auth/sign-up) passes { data: { name } } to supabase.auth.signUp(),
+-- which lands in raw_user_meta_data. That's deliberate: with email
+-- confirmation required, signUp() returns no active session until the user
+-- confirms, so there's no RLS-scoped moment to update profiles.name from the
+-- route itself — the security-definer trigger is the only place that can
+-- set it at row-creation time regardless of confirmation state. Admin-created
+-- accounts pass no metadata, so this is null for them (unchanged from
+-- before — that route already sets name itself right after, via the
+-- service-role client it's already gated to use).
 -- ============================================================================
 create or replace function handle_new_user()
 returns trigger
@@ -257,8 +268,8 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, is_admin)
-  values (new.id, new.email, false);
+  insert into public.profiles (id, email, is_admin, name)
+  values (new.id, new.email, false, new.raw_user_meta_data->>'name');
   return new;
 end;
 $$;
