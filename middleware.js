@@ -30,8 +30,13 @@ export async function middleware(request) {
 
   const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
   const isApiAuth = request.nextUrl.pathname.startsWith("/api/auth/");
+  // Vercel Cron has no user session — it authenticates with its own
+  // Authorization: Bearer $CRON_SECRET check inside the route handler
+  // (see app/api/cron/ojt-reminders/route.js). Without this bypass every
+  // cron invocation gets redirected to /login before the route ever runs.
+  const isCron = request.nextUrl.pathname.startsWith("/api/cron/");
 
-  if (!user && !isPublic && !isApiAuth) {
+  if (!user && !isPublic && !isApiAuth && !isCron) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
