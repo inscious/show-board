@@ -161,3 +161,12 @@ export const adminCertSchema = z.object({ userId, id, name: z.string().trim().mi
 export const adminCertDeleteSchema = z.object({ userId, id });
 
 export const notificationDeleteSchema = z.object({ id: z.union([id, z.literal("all")]) });
+
+/* -------- inferred types --------
+   Real TS types generated from the schemas above, not hand-duplicated —
+   if a bound or field changes here, every consumer's type updates with it.
+   Only the shapes other lib/ modules actually need typed against so far;
+   add more as lib/core.ts, lib/store.ts, etc. pick up real types. */
+export type EntryInput = z.infer<typeof entrySchema>;
+export type OjtMonthInput = z.infer<typeof ojtMonthSchema>;
+export type BookingInput = z.infer<typeof bookingSchema>;

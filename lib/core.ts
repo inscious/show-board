@@ -1,5 +1,5 @@
 /* ============================================================
-   core.js — every constant, seed and pure helper. No React, no DOM.
+   core.ts — every constant, seed and pure helper. No React, no DOM.
    No personal data lives here (or anywhere the client bundle can see) —
    name, member ID, SSN last-4, OJT hours, pay rates, bookings and classes
    all live in Supabase now (see supabase/schema.sql, lib/store.js) and are
@@ -15,6 +15,14 @@
 
      SHARED — same for everyone in Local 831, seeded once
        RAW_MAY / RAW_JUNE / RAW_JULY, LEVELS, CATS_META, PAY, JATC.office
+
+   Types below describe the app's runtime data shapes (Show, Entry, Split,
+   OjtMonth, Booking, Klass, Company) — they mirror the zod schemas in
+   lib/schemas.ts where a route validates the same shape, but aren't
+   generated from them 1:1: the local blob (what this file operates on)
+   and the API POST body (what a schema validates) aren't always identical
+   — e.g. an Entry here has no clock/st/ot/dt, those are derived by
+   entrySplit() below, not stored on the object this file receives.
    ============================================================ */
 
 /* ---------- constants ---------- */
@@ -27,6 +35,7 @@ export const MY_COMPANIES = ["EAGLE", "WILLWORK"];
 export const DEFAULT_PINS = ["Eagle Management Group", "Willwork Inc."];
 
 import { Hammer, Target, Ban } from "lucide-react";
+import type { ComponentType } from "react";
 
 export const FS = 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 export const FM = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Roboto Mono", monospace';
@@ -44,36 +53,118 @@ export const C = {
 };
 export const SHADOW = "0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 14px rgba(0,0,0,0.45)";
 
+/* ---------- shared domain types ---------- */
+export type Show = {
+  id: string;
+  mi?: string | null;
+  start?: string | null;
+  end?: string | null;
+  name: string;
+  loc?: string | null;
+  booth?: string | null;
+  co?: string | null;
+  region?: string | null;
+  status?: "working" | "target" | "passed" | null;
+  note?: string;
+  src?: string;
+  sheetMonth?: string;
+};
+
+export type Entry = {
+  id?: string;
+  co: string;
+  cat?: string | null;
+  note?: string | null;
+  hrs?: number | null;
+  in?: number | null;
+  out?: number | null;
+  brk?: number | null;
+};
+
+export type EntriesByDay = Record<string, Entry[]>;
+
+/* {st,ot,dt} on their own (shiftSplit/takeBreak) vs. the fuller entrySplit()
+   result that also carries clock/timed/holiday/guarantee — kept as two
+   types since not every caller has (or needs) the extra fields. */
+export type Hours = { st: number; ot: number; dt: number };
+export type Split = Hours & { clock: number; timed: boolean; holiday: string | null; guarantee: number };
+type SplitLike = Hours & { clock?: number; guarantee?: number };
+
+export type Level = {
+  k: string;
+  label: string;
+  hrs: number;
+  pay: number;
+  hrsEst: boolean;
+  payEst: boolean;
+  src?: string;
+  goal?: boolean;
+};
+
+export type OjtMonth = {
+  m: string;
+  a?: number;
+  b?: number;
+  c?: number;
+  d?: number;
+  status?: string;
+};
+
+export type Company = { n: string; city?: string; st?: string; tel?: string; fm?: string };
+/* matchCo's return shape uses name/fm/city/tel — distinct from Company (n/fm/city/tel),
+   since it's mapping a directory hit (or the hardcoded union-dispatch case) into what
+   the UI actually renders, not returning a directory row verbatim. */
+type MatchedCo = { name: string; fm?: string; city?: string; tel?: string; union?: boolean };
+
+export type Booking = {
+  id: string;
+  co: string;
+  show?: string;
+  note?: string;
+  dates: string[];
+  dayNotes?: Record<string, string>;
+};
+
+export type Klass = {
+  id: string;
+  name: string;
+  start?: number | null;
+  loc?: string;
+  note?: string;
+  dates: string[];
+  missedDates?: string[];
+};
+
 /* stable per-company colour — hue-spread so two shops never land on the same swatch,
    and never on a colour the calendar uses to mean something */
-export function hsl2hex(h, sat, li) {
+export function hsl2hex(h: number, sat: number, li: number): string {
   const a = (sat / 100) * Math.min(li / 100, 1 - li / 100);
-  const f = (n) => {
+  const f = (n: number) => {
     const k = (n + h / 30) % 12;
     const v = li / 100 - a * Math.max(-1, Math.min(k - 3, Math.min(9 - k, 1)));
     return Math.round(255 * v).toString(16).padStart(2, "0");
   };
   return "#" + f(0) + f(8) + f(4);
 }
-export function coColor(n) {
+export function coColor(n: string | null | undefined): string {
   let h = 0; const s = String(n || "");
   for (let i = 0; i < s.length; i++) h = (h * 131 + s.charCodeAt(i)) >>> 0;
   return hsl2hex((h * 47) % 360, 62, 68);
 }
 /* open the phone's default maps app */
-export function mapsUrl(addr) {
+export function mapsUrl(addr: string | null | undefined): string {
   const q = encodeURIComponent(addr || "");
   const ios = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent || "");
   return ios ? "https://maps.apple.com/?q=" + q : "https://www.google.com/maps/search/?api=1&query=" + q;
 }
 
-export const STATUS = {
+export const STATUS: Record<"working" | "target" | "passed", { label: string; color: string; Icon: ComponentType<{ size?: number }> }> = {
   working: { label: "Working", color: C.working, Icon: Hammer },
   target:  { label: "Target",  color: C.brand,   Icon: Target },
   passed:  { label: "Passed",  color: C.passed,  Icon: Ban },
 };
 
-export const REGION = {
+export const REGION: Record<string, { label: string; color: string }> = {
   SD:    { label: "SD",  color: "#43BFB2" },
   LA:    { label: "LA",  color: "#B49BF0" },
   LB:    { label: "LB",  color: "#6FA8E8" },
@@ -85,7 +176,7 @@ export const REGION_KEYS = ["SD", "LA", "LB", "OC", "PS", "OTHER"];
 export const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
 
 /* ---------- date helpers ---------- */
-export function mkDate(md, year) {
+export function mkDate(md: string | null | undefined, year: number): Date | null {
   if (!md) return null;
   const p = String(md).split("/");
   if (p.length < 2) return null;
@@ -93,50 +184,50 @@ export function mkDate(md, year) {
   if (!mo || !d) return null;
   return new Date(year, mo - 1, d);
 }
-export function todayMid() { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+export function todayMid(): Date { const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
 /* every show date on the sheet is printed as bare "M/D" — no year. The sheet
    itself (`sheetMonth`, "YYYY-MM") is the only place the real year survives
    past import, so date math on a show always derives its year from there
    instead of assuming the single global YEAR — that assumption breaks the
    instant the roster spans more than one calendar year. */
-export function showYear(s) {
+export function showYear(s?: { sheetMonth?: string | null } | null): number {
   const sm = String(s?.sheetMonth || "");
   const y = parseInt(sm.slice(0, 4), 10);
   return y || YEAR;
 }
-export function sortDate(s) { return mkDate(s.mi, showYear(s)) || mkDate(s.start, showYear(s)) || new Date(YEAR, 11, 31); }
-export function endDate(s) { return mkDate(s.end, showYear(s)) || mkDate(s.start, showYear(s)) || sortDate(s); }
-export function isPast(s) { return endDate(s) < todayMid(); }
-export function monthLabel(s) { const d = mkDate(s.start, showYear(s)) || mkDate(s.mi, showYear(s)); return d ? MONTHS[d.getMonth()] + " " + d.getFullYear() : "SCHEDULED"; }
-export function fmtTel(d) { if (!d) return ""; const s = ("" + d).replace(/\D/g, ""); if (s.length === 10) return "(" + s.slice(0, 3) + ") " + s.slice(3, 6) + "-" + s.slice(6); return "" + d; }
+export function sortDate(s: Show): Date { return mkDate(s.mi, showYear(s)) || mkDate(s.start, showYear(s)) || new Date(YEAR, 11, 31); }
+export function endDate(s: Show): Date { return mkDate(s.end, showYear(s)) || mkDate(s.start, showYear(s)) || sortDate(s); }
+export function isPast(s: Show): boolean { return endDate(s) < todayMid(); }
+export function monthLabel(s: Show): string { const d = mkDate(s.start, showYear(s)) || mkDate(s.mi, showYear(s)); return d ? MONTHS[d.getMonth()] + " " + d.getFullYear() : "SCHEDULED"; }
+export function fmtTel(d: string | number | null | undefined): string { if (!d) return ""; const s = ("" + d).replace(/\D/g, ""); if (s.length === 10) return "(" + s.slice(0, 3) + ") " + s.slice(3, 6) + "-" + s.slice(6); return "" + d; }
 
 /* ---------- calendar helpers ---------- */
 export const DOW = ["S", "M", "T", "W", "T", "F", "S"];
 export const DAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-export function keyOf(d) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
-export function fromKey(k) { const p = String(k).split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
-export function sameDay(a, b) { return a && b && a.getTime() === b.getTime(); }
-export function longDate(d) { return DAY_LONG[d.getDay()] + ", " + MONTHS[d.getMonth()].charAt(0) + MONTHS[d.getMonth()].slice(1).toLowerCase() + " " + d.getDate(); }
-export function monthGrid(y, m) {
+export function keyOf(d: Date): string { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+export function fromKey(k: string): Date { const p = String(k).split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+export function sameDay(a: Date | null | undefined, b: Date | null | undefined): boolean { return !!(a && b && a.getTime() === b.getTime()); }
+export function longDate(d: Date): string { return DAY_LONG[d.getDay()] + ", " + MONTHS[d.getMonth()].charAt(0) + MONTHS[d.getMonth()].slice(1).toLowerCase() + " " + d.getDate(); }
+export function monthGrid(y: number, m: number): Date[] {
   const first = new Date(y, m, 1);
   const days = new Date(y, m + 1, 0).getDate();
   const weeks = Math.ceil((first.getDay() + days) / 7);
-  const cells = [];
+  const cells: Date[] = [];
   for (let i = 0; i < weeks * 7; i++) cells.push(new Date(y, m, 1 - first.getDay() + i));
   return cells;
 }
 /* a show occupies every day from move-in through end */
-export function showSpan(s) {
+export function showSpan(s: Show): [Date | null, Date | null] {
   const a = mkDate(s.mi, showYear(s)) || mkDate(s.start, showYear(s));
   const b = mkDate(s.end, showYear(s)) || mkDate(s.start, showYear(s)) || a;
   return [a, b];
 }
-export function showsOn(shows, d) {
-  return shows.filter((s) => { const sp = showSpan(s); return sp[0] && sp[1] && d >= sp[0] && d <= sp[1]; });
+export function showsOn(shows: Show[], d: Date): Show[] {
+  return shows.filter((s) => { const sp = showSpan(s); return !!(sp[0] && sp[1] && d >= sp[0] && d <= sp[1]); });
 }
 /* flagged shows paint the calendar: working wins over target */
-export function statusOn(shows, d) {
-  let out = null;
+export function statusOn(shows: Show[], d: Date): "working" | "target" | null {
+  let out: "working" | "target" | null = null;
   showsOn(shows, d).forEach((s) => {
     if (s.status === "working") out = "working";
     else if (s.status === "target" && out !== "working") out = "target";
@@ -144,11 +235,11 @@ export function statusOn(shows, d) {
   return out;
 }
 /* month bucket a show belongs to, as a sortable integer */
-export function monthKey(s) { const d = mkDate(s.start, showYear(s)) || mkDate(s.mi, showYear(s)); return d ? d.getFullYear() * 12 + d.getMonth() : 999999; }
-export function monthKeyNow() { const t = todayMid(); return t.getFullYear() * 12 + t.getMonth(); }
-export function labelFromKey(k) { return MONTHS[k % 12] + " " + Math.floor(k / 12); }
-export function daysUntil(d) { return d ? Math.round((d - todayMid()) / 86400000) : null; }
-export function countdown(s) {
+export function monthKey(s: Show): number { const d = mkDate(s.start, showYear(s)) || mkDate(s.mi, showYear(s)); return d ? d.getFullYear() * 12 + d.getMonth() : 999999; }
+export function monthKeyNow(): number { const t = todayMid(); return t.getFullYear() * 12 + t.getMonth(); }
+export function labelFromKey(k: number): string { return MONTHS[k % 12] + " " + Math.floor(k / 12); }
+export function daysUntil(d: Date | null | undefined): number | null { return d ? Math.round((d.getTime() - todayMid().getTime()) / 86400000) : null; }
+export function countdown(s: Show): { t: string; c: string } | null {
   const mi = mkDate(s.mi, showYear(s)) || mkDate(s.start, showYear(s));
   const end = endDate(s);
   if (!mi) return null;
@@ -156,15 +247,15 @@ export function countdown(s) {
   if (todayMid() >= mi && todayMid() <= end) return { t: "ON FLOOR", c: C.working };
   if (n === 0) return { t: "MOVE-IN TODAY", c: C.brand };
   if (n === 1) return { t: "MOVE-IN TMRW", c: C.brand };
-  if (n > 1 && n <= 10) return { t: "IN " + n + "D", c: C.mid };
+  if (n !== null && n > 1 && n <= 10) return { t: "IN " + n + "D", c: C.mid };
   return null;
 }
-export function hrsFmt(h) { const n = Number(h) || 0; return n % 1 === 0 ? String(n) : n.toFixed(1); }
+export function hrsFmt(h: number | string | null | undefined): string { const n = Number(h) || 0; return n % 1 === 0 ? String(n) : n.toFixed(1); }
 
 /* ---------- region detection ---------- */
-export function detectRegion(loc) {
+export function detectRegion(loc: string | null | undefined): string {
   const s = (loc || "").toUpperCase();
-  const has = (x) => s.indexOf(x) !== -1;
+  const has = (x: string) => s.indexOf(x) !== -1;
   if (has("LA JOLLA") || has("LA COSTA")) return "SD";
   if (has("SDCC") || has("SAN DIEGO") || has(" SD") || s.indexOf("SD ") === 0 || has("MISSION VALLEY") || has("TOWN & COUNTRY") ||
       has("T & C") || has("T&C") || has("MANCHESTER") || has("BAYFRONT") || has("CORONADO") ||
@@ -179,10 +270,10 @@ export function detectRegion(loc) {
       has("D. SPRINGS") || has("DESERT SPRINGS")) return "PS";
   return "OTHER";
 }
-export function isMine(co) { const u = (co || "").toUpperCase(); return MY_COMPANIES.some((m) => u.indexOf(m) !== -1); }
+export function isMine(co: string | null | undefined): boolean { const u = (co || "").toUpperCase(); return MY_COMPANIES.some((m) => u.indexOf(m) !== -1); }
 
 /* map a schedule "COMPANY" token to a directory entry (general contractor lookup) */
-export const CO_ALIAS = {
+export const CO_ALIAS: Record<string, string> = {
   "SHEPARD": "Shepard Exposition Services",
   "INNOVATIVE": "Innovative Expo",
   "SHOW READY": "Show Ready",
@@ -205,16 +296,15 @@ export const CO_ALIAS = {
   "ALL EXHIBIT SOLUTIONS": "All Exhibits Solutions",
   "STEELE TRADESHOW": "Steele Tradeshow Services",
   "XIME": "Xime Solutions Group",
-  "TRICORD": "Tricord Tradeshow Services",
 };
-export function findCo(name, companies) { return (companies || []).find((c) => c.n === name) || null; }
+export function findCo(name: string | null | undefined, companies: Company[] | null | undefined): Company | null { return (companies || []).find((c) => c.n === name) || null; }
 /* companies (the labor/I&D directory) now lives in Supabase, not here — see
    lib/store.js. Freeman/GES used to get hardcoded named-rep branches with
    their direct numbers baked into this file; that's exactly the kind of
    real-person data that shouldn't sit in a public repo, and it turned out
    redundant anyway — the directory already carries "(SD)"/"(LA)" variants
    for both, so a plain region-aware lookup covers the same ground. */
-export function matchCo(co, region, companies) {
+export function matchCo(co: string | null | undefined, region: string | null | undefined, companies: Company[] | null | undefined): MatchedCo | null {
   const up = (co || "").toUpperCase().trim();
   if (!up || up === "TBD") return null;
   if (up.indexOf("PLA") === 0 || up.indexOf("LU 831") !== -1) return { name: "LU 831 Dispatch", fm: "Union hall", city: "", tel: UNION_LINE, union: true };
@@ -229,7 +319,7 @@ export function matchCo(co, region, companies) {
 }
 
 /* ---------- seed data: Local 831 JULY 2026 schedule ---------- */
-export const RAW_JULY = [
+export const RAW_JULY: string[][] = [
   ["6/25","6/28","6/29","BO & MA","LBCC","A-C","FREEMAN"],
   ["6/27","6/30","7/3","SERVPRO","SDCC","160","UPA"],
   ["6/27","7/2","7/5","ANIME EXPO","LACC","FULL FACILITY","SHEPARD"],
@@ -252,7 +342,7 @@ export const RAW_JULY = [
   ["7/27","8/1","8/7","NALC","LACC","SOUTH","FREEMAN"],
   ["8/6","8/14","8/16","D23","ACC","FULL FACILITY / SPECIAL","FREEMAN"],
 ];
-export const RAW_MAY = [
+export const RAW_MAY: string[][] = [
   ["4/25","4/28","4/29","HDA TRUCK PRIDE","GAYLORD","130","FREEMAN"],
   ["4/26","4/28","4/29","SVC","LBCC","A / 210","FREEMAN"],
   ["4/27","4/29","4/30","BOOST","PALM SPRINGS CC","230","STEELE TRADESHOW"],
@@ -281,7 +371,7 @@ export const RAW_MAY = [
   ["5/26","5/27","5/30","IFFM","SD HYATT REGENCY","118","GES"],
   ["5/26","5/27","5/27","ASTA","GAYLORD","223","GES"],
 ];
-export const RAW_JUNE = [
+export const RAW_JUNE: string[][] = [
   ["5/25","5/30","6/2","SNNMI","LACC","SOUTH","ALL EXHIBIT SOLUTIONS"],
   ["5/29","5/31","6/4","ASMS","SDCC","180","FREEMAN"],
   ["5/29","6/1","6/3","ASMS","MARRIOTT MARQUIS SD","180","FREEMAN"],
@@ -314,14 +404,14 @@ export const RAW_JUNE = [
 ];
 
 export let _idc = 0;
-export function mkShow(r, src) {
+export function mkShow(r: string[], src: string): Show {
   const [mi, start, end, name, loc, booth, co] = r;
   return { id: "s" + (_idc++), mi, start, end, name, loc, booth, co, region: detectRegion(loc), status: null, note: "", src };
 }
-export function showKey(s) { return ((s.name || "") + "|" + (s.start || "")).toUpperCase().trim(); }
+export function showKey(s: Show): string { return ((s.name || "") + "|" + (s.start || "")).toUpperCase().trim(); }
 /* the sheets overlap month to month (WORLD CUP, ASMS, BO & MA...) — keep one of each */
-export const SEED = (() => {
-  const seen = {}; const out = [];
+export const SEED: Show[] = (() => {
+  const seen: Record<string, 1> = {}; const out: Show[] = [];
   RAW_MAY.concat(RAW_JUNE, RAW_JULY).forEach((r) => {
     const s = mkShow(r, "union");
     const k = showKey(s);
@@ -331,15 +421,15 @@ export const SEED = (() => {
   return out;
 })();
 /* fold any schedule rows the board hasn't seen yet into a saved board, without touching saved state */
-export function mergeSeed(saved) {
-  const seen = {};
+export function mergeSeed(saved: Show[]): Show[] {
+  const seen: Record<string, 1> = {};
   saved.forEach((s) => { seen[showKey(s)] = 1; });
   const add = SEED.filter((s) => !seen[showKey(s)]);
   return add.length ? saved.concat(add) : saved;
 }
 
 /* July union dates & dues (from the posted July 2026 sheet) */
-export const JULY_NOTES = [
+export const JULY_NOTES: Array<[string, string, string]> = [
   ["FRI JUL 3", "Independence Day — observed union holiday", C.passed],
   ["WED JUL 15", "Monthly meeting · 6:00 PM · 14930 Marquardt Ave, Santa Fe Springs", C.brand],
   ["THU JUL 16", "Informational meeting · 5:30 PM · 6225 Federal Blvd, San Diego", C.brand],
@@ -356,36 +446,36 @@ export const JATC = {
   office: "11366 Markon Dr., Garden Grove, CA 92841",
 };
 /* an OJT slip is due the 1st of the following month, 4:00 PM. every month, worked or not. */
-export function ojtDue(monthKey) { return mAdd(monthKey, 1) + "-01"; }
-export function ojtState(monthKey, months) {
+export function ojtDue(monthKey: string): string { return mAdd(monthKey, 1) + "-01"; }
+export function ojtState(monthKey: string, months: OjtMonth[] | null | undefined): { k: "in" | "late" | "open"; t: string; c: string; due?: Date; days?: number } {
   const submitted = (months || []).some((m) => m.m === monthKey);
   const due = fromKey(ojtDue(monthKey));
   const t = todayMid();
   if (submitted) return { k: "in", t: "SUBMITTED", c: C.working };
   if (t > due) return { k: "late", t: "LATE", c: C.danger, due };
-  const n = Math.round((due - t) / 86400000);
+  const n = Math.round((due.getTime() - t.getTime()) / 86400000);
   return { k: "open", t: n === 0 ? "DUE TODAY 4PM" : "DUE " + MONTHS[due.getMonth()] + " 1", c: n <= 3 ? C.brand : C.lo, due, days: n };
 }
 
-export function rateFor(co, lvIdx, rates) {
+export function rateFor(co: string | null | undefined, lvIdx: number, rates: Record<string, string> | null | undefined): { rate: number; level: string; over: boolean } {
   const scale = LEVELS[lvIdx] || LEVELS[0];
   const map = rates || {};
   const hit = Object.keys(map).find((k) => k.toLowerCase() === String(co || "").toLowerCase());
   const lv = hit ? LEVELS.find((l) => l.k === map[hit]) : null;
   const over = !!(lv && lv.pay > scale.pay);
-  return { rate: over ? lv.pay : scale.pay, level: over ? lv.k : scale.k, over };
+  return { rate: over ? lv!.pay : scale.pay, level: over ? lv!.k : scale.k, over };
 }
 /* one entry -> its split, its rate, and what it actually pays */
-export function entryPay(dayKey, e, lvIdx, rates) {
+export function entryPay(dayKey: string, e: Entry, lvIdx: number, rates: Record<string, string> | null | undefined) {
   const sp = entrySplit(dayKey, e);
   const r = rateFor(e.co, lvIdx, rates);
   const paid = paidHours(sp);
   return { sp, paid, rate: r.rate, level: r.level, over: r.over, gross: paid * r.rate };
 }
 /* a bucket of days -> blended gross, plus the per-company detail */
-export function rangePay(entries, keys, lvIdx, rates) {
-  let gross = 0, paid = 0, split = ZERO_SPLIT;
-  const byCo = {};
+export function rangePay(entries: EntriesByDay, keys: string[], lvIdx: number, rates: Record<string, string> | null | undefined) {
+  let gross = 0, paid = 0, split: SplitLike = ZERO_SPLIT;
+  const byCo: Record<string, { hrs: number; paid: number; gross: number; rate: number; level: string; over: boolean }> = {};
   keys.forEach((k) => (entries[k] || []).forEach((e) => {
     const p = entryPay(k, e, lvIdx, rates);
     gross += p.gross; paid += p.paid; split = splitAdd(split, p.sp);
@@ -397,7 +487,7 @@ export function rangePay(entries, keys, lvIdx, rates) {
 
 /* the four apprentice work processes, straight off the JATC sheet.
    their own colour family — nothing here doubles as a calendar state. */
-export const CATS_META = {
+export const CATS_META: Record<"A" | "B" | "C" | "D", { name: string; target: number; color: string; desc: string }> = {
   A: { name: "General Decorating", target: 1350, color: "#F2B441",
        desc: "Taping booth lines, booth carpet and visqueen, backwall and ID signs, delivering, topping and skirting tables, floor layout." },
   B: { name: "Exhibit Install & Dismantle", target: 900, color: "#4FC1A6",
@@ -410,7 +500,7 @@ export const CATS_META = {
 export const CAT_TOTAL = 1350 + 900 + 600 + 750;
 
 /* hrsEst / payEst flag what is assumed vs. confirmed on paper */
-export const LEVELS = [
+export const LEVELS: Level[] = [
   { k: "L1", label: "Level 1", hrs: 0,    pay: 27.08, hrsEst: false, payEst: false },
   { k: "L2", label: "Level 2", hrs: 600,  pay: 30.24, hrsEst: false, payEst: false, src: "JATC letter" },
   { k: "L3", label: "Level 3", hrs: 1200, pay: 33.40, hrsEst: true,  payEst: false },
@@ -424,14 +514,14 @@ export const LEVELS = [
 /* Level 2 package, straight off the JATC letter */
 export const L2_PACKAGE = {
   base: 30.24, vacHol: 2.30, taxable: 32.55,
-  benefits: [["H & W", 13.40], ["Pension", 16.35], ["Training", 0.64], ["FTI", 0.03], ["LMP", 0.02]],
+  benefits: [["H & W", 13.40], ["Pension", 16.35], ["Training", 0.64], ["FTI", 0.03], ["LMP", 0.02]] as Array<[string, number]>,
   benefitsTotal: 30.44,
   total: 62.99,
   travel: 10,
 };
 
 
-export const OJT_DEFAULT = { months: [] };
+export const OJT_DEFAULT: { months: OjtMonth[] } = { months: [] };
 
 /* ---------- pay rules ----------
    MON-FRI   8:00a - 4:30p   ST
@@ -450,29 +540,29 @@ export const PAY = {
   holMinOt: 8,              /* federal holiday -> at least 8 hrs at OT */
   step: 30,                 /* half-hour granularity, everywhere */
 };
-export const PAY_COLOR = { st: "#8FA0B8", ot: "#FFB020", dt: "#2FB07A" };
+export const PAY_COLOR: Record<"st" | "ot" | "dt", string> = { st: "#8FA0B8", ot: "#FFB020", dt: "#2FB07A" };
 export const BOOKED = "#B49BF0";   /* scheduled to work, not logged yet */
 export const KLASS = "#E8927C";    /* union class — mandatory, unpaid */
 
 /* ---------- federal holidays (observed) ---------- */
-export function nthDow(y, m, dow, n) {
+export function nthDow(y: number, m: number, dow: number, n: number): Date {
   const first = new Date(y, m, 1);
   return new Date(y, m, 1 + ((dow - first.getDay() + 7) % 7) + (n - 1) * 7);
 }
-export function lastDow(y, m, dow) {
+export function lastDow(y: number, m: number, dow: number): Date {
   const last = new Date(y, m + 1, 0);
   return new Date(y, m, last.getDate() - ((last.getDay() - dow + 7) % 7));
 }
-export function observedDay(d) {
+export function observedDay(d: Date): Date {
   const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   if (x.getDay() === 6) x.setDate(x.getDate() - 1);   /* Sat -> observed Friday */
   if (x.getDay() === 0) x.setDate(x.getDate() + 1);   /* Sun -> observed Monday */
   return x;
 }
-export const HOL_CACHE = {};
-export function holidaysFor(y) {
+export const HOL_CACHE: Record<number, Record<string, string>> = {};
+export function holidaysFor(y: number): Record<string, string> {
   if (HOL_CACHE[y]) return HOL_CACHE[y];
-  const list = [
+  const list: Array<[string, Date]> = [
     ["New Year's Day", observedDay(new Date(y, 0, 1))],
     ["MLK Day", nthDow(y, 0, 1, 3)],
     ["Presidents' Day", nthDow(y, 1, 1, 3)],
@@ -485,42 +575,42 @@ export function holidaysFor(y) {
     ["Thanksgiving", nthDow(y, 10, 4, 4)],
     ["Christmas", observedDay(new Date(y, 11, 25))],
   ];
-  const out = {};
+  const out: Record<string, string> = {};
   list.forEach((x) => { out[keyOf(x[1])] = x[0]; });
   HOL_CACHE[y] = out;
   return out;
 }
-export function holidayName(d) { return holidaysFor(d.getFullYear())[keyOf(d)] || null; }
-export function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
+export function holidayName(d: Date): string | null { return holidaysFor(d.getFullYear())[keyOf(d)] || null; }
+export function isWeekend(d: Date): boolean { return d.getDay() === 0 || d.getDay() === 6; }
 
 /* ---------- clock ---------- */
-export function hhmmToMin(v) {
+export function hhmmToMin(v: string | null | undefined): number | null {
   const p = String(v || "").split(":");
   if (p.length !== 2) return null;
   const h = Number(p[0]), m = Number(p[1]);
   if (!isFinite(h) || !isFinite(m)) return null;
   return h * 60 + m;
 }
-export function minToHHMM(m) {
+export function minToHHMM(m: number): string {
   const x = ((m % 1440) + 1440) % 1440;
   return String(Math.floor(x / 60)).padStart(2, "0") + ":" + String(x % 60).padStart(2, "0");
 }
-export function fmtClock(m) {
+export function fmtClock(m: number): string {
   const x = ((m % 1440) + 1440) % 1440;
   const h24 = Math.floor(x / 60), mm = x % 60;
   const h = h24 % 12 === 0 ? 12 : h24 % 12;
   return h + ":" + String(mm).padStart(2, "0") + (h24 >= 12 ? "pm" : "am");
 }
 /* every half hour of the day — the only times a time ticket ever shows */
-export const TIME_SLOTS = (() => { const o = []; for (let m = 0; m < 1440; m += PAY.step) o.push(m); return o; })();
+export const TIME_SLOTS: number[] = (() => { const o: number[] = []; for (let m = 0; m < 1440; m += PAY.step) o.push(m); return o; })();
 export const BREAK_SLOTS = [0, 30, 60, 90];
 
 /* out may run past 1440 for an overnight call */
-export function shiftSplit(d, inM, outM) {
-  const acc = { st: 0, ot: 0, dt: 0 };
+export function shiftSplit(d: Date, inM: number | null | undefined, outM: number | null | undefined): Hours {
+  const acc: Hours = { st: 0, ot: 0, dt: 0 };
   if (inM == null || outM == null || outM <= inM) return acc;
-  const day = (d0, a, b) => {
-    const ov = (x, y) => Math.max(0, Math.min(b, y) - Math.max(a, x));
+  const day = (d0: Date, a: number, b: number) => {
+    const ov = (x: number, y: number) => Math.max(0, Math.min(b, y) - Math.max(a, x));
     if (isWeekend(d0)) { acc.dt += ov(0, 1440); return; }      /* weekend beats everything */
     if (holidayName(d0)) { acc.ot += ov(0, 1440); return; }    /* holiday -> all OT */
     acc.st += ov(PAY.stStart, PAY.stEnd);
@@ -536,19 +626,19 @@ export function shiftSplit(d, inM, outM) {
   return acc;
 }
 /* an unpaid break comes out of straight time first */
-export function takeBreak(sp, brkMin) {
+export function takeBreak(sp: Hours, brkMin: number | null | undefined): Hours {
   let b = num(brkMin) / 60;
-  const o = { st: sp.st, ot: sp.ot, dt: sp.dt };
-  ["st", "ot", "dt"].forEach((k) => { const t = Math.min(o[k], b); o[k] -= t; b -= t; });
+  const o: Hours = { st: sp.st, ot: sp.ot, dt: sp.dt };
+  (["st", "ot", "dt"] as const).forEach((k) => { const t = Math.min(o[k], b); o[k] -= t; b -= t; });
   return o;
 }
 /* one entry -> pay buckets AND clock hours. they are not the same number:
    a federal holiday guarantees 8 OT hrs even if you only worked 4. the union
    still only gets the 4 you actually stood on the floor. */
-export function entrySplit(dayKey, e) {
+export function entrySplit(dayKey: string, e: Entry): Split {
   const d = fromKey(dayKey);
   const timed = e.in != null && e.out != null && e.out > e.in;
-  let sp = timed
+  let sp: Hours = timed
     ? takeBreak(shiftSplit(d, e.in, e.out), e.brk)
     : shiftSplit(d, PAY.stStart, PAY.stStart + num(e.hrs) * 60);
   const clock = sp.st + sp.ot + sp.dt;
@@ -560,40 +650,40 @@ export function entrySplit(dayKey, e) {
   }
   return { st: sp.st, ot: sp.ot, dt: sp.dt, clock, timed, holiday: hol, guarantee };
 }
-export function splitAdd(a, b) {
+export function splitAdd(a: SplitLike, b: SplitLike): { st: number; ot: number; dt: number; clock: number; guarantee: number } {
   return {
     st: a.st + b.st, ot: a.ot + b.ot, dt: a.dt + b.dt,
     clock: num(a.clock) + (b.clock != null ? b.clock : b.st + b.ot + b.dt),
     guarantee: num(a.guarantee) + num(b.guarantee),
   };
 }
-export const ZERO_SPLIT = { st: 0, ot: 0, dt: 0, clock: 0, guarantee: 0 };
-export function splitHours(sp) { return sp.clock != null ? sp.clock : sp.st + sp.ot + sp.dt; }
-export function paidHours(sp) { return sp.st + sp.ot * PAY.otMult + sp.dt * PAY.dtMult; }
+export const ZERO_SPLIT: SplitLike = { st: 0, ot: 0, dt: 0, clock: 0, guarantee: 0 };
+export function splitHours(sp: SplitLike): number { return sp.clock != null ? sp.clock : sp.st + sp.ot + sp.dt; }
+export function paidHours(sp: Hours): number { return sp.st + sp.ot * PAY.otMult + sp.dt * PAY.dtMult; }
 
 /* ---------- OJT helpers ---------- */
-export function num(v) { const n = Number(v); return isFinite(n) ? n : 0; }
-export function mKey(y, m) { return y + "-" + String(m + 1).padStart(2, "0"); }
-export function mParse(k) { const p = String(k).split("-").map(Number); return { y: p[0], m: (p[1] || 1) - 1 }; }
-export function mShort(k) { const p = mParse(k); return MONTHS[p.m] + " " + String(p.y).slice(2); }
-export function mMed(k) { const p = mParse(k); return MONTHS[p.m] + " " + p.y; }
-export function mLong(k) { const p = mParse(k); return MON_FULL[p.m] + " " + p.y; }
-export function mAdd(k, n) { const p = mParse(k); const d = new Date(p.y, p.m + n, 1); return mKey(d.getFullYear(), d.getMonth()); }
-export function monthTotal(m) { return num(m.a) + num(m.b) + num(m.c) + num(m.d); }
+export function num(v: unknown): number { const n = Number(v); return isFinite(n) ? n : 0; }
+export function mKey(y: number, m: number): string { return y + "-" + String(m + 1).padStart(2, "0"); }
+export function mParse(k: string): { y: number; m: number } { const p = String(k).split("-").map(Number); return { y: p[0], m: (p[1] || 1) - 1 }; }
+export function mShort(k: string): string { const p = mParse(k); return MONTHS[p.m] + " " + String(p.y).slice(2); }
+export function mMed(k: string): string { const p = mParse(k); return MONTHS[p.m] + " " + p.y; }
+export function mLong(k: string): string { const p = mParse(k); return MON_FULL[p.m] + " " + p.y; }
+export function mAdd(k: string, n: number): string { const p = mParse(k); const d = new Date(p.y, p.m + n, 1); return mKey(d.getFullYear(), d.getMonth()); }
+export function monthTotal(m: OjtMonth): number { return num(m.a) + num(m.b) + num(m.c) + num(m.d); }
 
-export function ojtTotals(months) {
+export function ojtTotals(months: OjtMonth[] | null | undefined): { a: number; b: number; c: number; d: number; total: number } {
   const t = { a: 0, b: 0, c: 0, d: 0, total: 0 };
   (months || []).forEach((m) => { t.a += num(m.a); t.b += num(m.b); t.c += num(m.c); t.d += num(m.d); });
   t.total = t.a + t.b + t.c + t.d;
   return t;
 }
-export function levelIndex(total) {
+export function levelIndex(total: number): number {
   let i = 0;
   LEVELS.forEach((lv, k) => { if (total >= lv.hrs) i = k; });
   return i;
 }
 /* months ordered oldest-first, each carrying its running total + any level crossed that month */
-export function ojtRows(months) {
+export function ojtRows(months: OjtMonth[] | null | undefined): Array<OjtMonth & { total: number; run: number; crossed: Level[] }> {
   const sorted = (months || []).slice().sort((a, b) => (a.m < b.m ? -1 : a.m > b.m ? 1 : 0));
   let run = 0;
   return sorted.map((m) => {
@@ -604,45 +694,45 @@ export function ojtRows(months) {
     return { ...m, total, run, crossed };
   });
 }
-export function projectMonth(need, avg, fromKey) {
+export function projectMonth(need: number, avg: number | null | undefined, fromKey: string | null | undefined): string | null {
   if (!avg || avg <= 0 || !fromKey || need <= 0) return null;
   return mAdd(fromKey, Math.ceil(need / avg));
 }
 /* what the calendar tab actually logged, bucketed by month — kept separate from what was submitted */
-export function rollupEntries(entries) {
-  const out = {};
+export function rollupEntries(entries: EntriesByDay | null | undefined): Record<string, { a: number; b: number; c: number; d: number; uncat: number; total: number; days: number }> {
+  const out: Record<string, { a: number; b: number; c: number; d: number; uncat: number; total: number; days: number }> = {};
   Object.keys(entries || {}).forEach((dk) => {
     const k = dk.slice(0, 7);
     const r = out[k] || (out[k] = { a: 0, b: 0, c: 0, d: 0, uncat: 0, total: 0, days: 0 });
-    const list = entries[dk] || [];
+    const list = (entries || {})[dk] || [];
     if (list.length) r.days += 1;
     list.forEach((e) => {
       const h = num(e.hrs);
       const c = String(e.cat || "").toUpperCase();
       r.total += h;
-      if (c === "A" || c === "B" || c === "C" || c === "D") r[c.toLowerCase()] += h;
+      if (c === "A" || c === "B" || c === "C" || c === "D") r[c.toLowerCase() as "a" | "b" | "c" | "d"] += h;
       else r.uncat += h;
     });
   });
   return out;
 }
-export function certState(exp) {
+export function certState(exp: string): { t: string; c: string; days: number } {
   const p = String(exp).split("-").map(Number);
   const d = new Date(p[0], p[1] - 1, p[2]);
-  const days = Math.round((d - todayMid()) / 86400000);
+  const days = Math.round((d.getTime() - todayMid().getTime()) / 86400000);
   if (days < 0) return { t: "EXPIRED", c: C.danger, days };
   if (days <= 90) return { t: "RENEW SOON", c: C.brand, days };
   return { t: "ACTIVE", c: C.working, days };
 }
 
 /* ---------- scheduled work + union classes ---------- */
-export function bookingOn(bookings, dayKey) { return (bookings || []).filter((b) => (b.dates || []).indexOf(dayKey) !== -1); }
-export function classOn(classes, dayKey) { return (classes || []).filter((c) => (c.dates || []).indexOf(dayKey) !== -1); }
+export function bookingOn(bookings: Booking[] | null | undefined, dayKey: string): Booking[] { return (bookings || []).filter((b) => (b.dates || []).indexOf(dayKey) !== -1); }
+export function classOn(classes: Klass[] | null | undefined, dayKey: string): Klass[] { return (classes || []).filter((c) => (c.dates || []).indexOf(dayKey) !== -1); }
 /* every day that carries any kind of commitment, sorted */
-export function commitDays(list) {
-  const out = {};
+export function commitDays(list: Array<{ dates?: string[] | null }> | null | undefined): string[] {
+  const out: Record<string, 1> = {};
   (list || []).forEach((x) => (x.dates || []).forEach((d) => { out[d] = 1; }));
   return Object.keys(out).sort();
 }
 /* a class or booking that hasn't happened yet */
-export function nextDates(x, from) { return (x.dates || []).filter((d) => d >= from).sort(); }
+export function nextDates(x: { dates?: string[] | null }, from: string): string[] { return (x.dates || []).filter((d) => d >= from).sort(); }
