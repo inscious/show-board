@@ -71,7 +71,15 @@ create table profiles (
   archived_at       timestamptz,  -- set = off the active roster, kept for record; null = active. Permanent delete requires this set first.
   do_not_hire_at    timestamptz,  -- set = on the union's do-not-hire list (late OJT, missed mandatory class, etc); null = clear
   do_not_hire_reason text,
-  avatar_url        text  -- ID photo, admin-uploaded to the public `avatars` storage bucket below
+  avatar_url        text,  -- ID photo, admin-uploaded to the public `avatars` storage bucket below
+  -- set = a real, admin-vetted account; null = exists but not yet allowed
+  -- past the pending-review holding page. Admin-created accounts (the
+  -- existing "Add apprentice" flow) get this stamped at creation time,
+  -- since admin already vetted them by creating the account directly.
+  -- Self-signup (when SELF_SIGNUP_ENABLED) is the only path that leaves
+  -- it null on arrival. Same nullable-timestamp shape as archived_at /
+  -- do_not_hire_at above, not a boolean, so "when" is on file for free.
+  approved_at       timestamptz
 );
 
 -- one row per (user, show): "my status/note on this show" — never touches the
