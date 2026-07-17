@@ -896,6 +896,34 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
       </div>
 
       <div style={{ background: C.panel, border: "1px solid " + C.danger + "44", borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginTop: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.danger, fontFamily: FM, marginBottom: 9 }}>DO NOT HIRE LIST</div>
+        {onDnhList ? (
+          <>
+            <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 10 }}>
+              On the list since {apprentice.do_not_hire_at.slice(0, 10)}{apprentice.do_not_hire_reason ? " — " + apprentice.do_not_hire_reason : ""}.
+            </div>
+            <button className="foc" onClick={() => setConfirmDnhRemove(true)} disabled={dnhState === "saving"}
+              style={{ width: "100%", padding: "9px 14px", borderRadius: 8, background: C.raise, color: C.hi, border: "1px solid " + C.line, fontSize: 12.5, fontWeight: 700 }}>
+              Remove from do-not-hire list
+            </button>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 10 }}>
+              Late OJT paperwork, a missed mandatory class, or a Rules & Regs violation — puts them on the union's do-not-hire list. They'll see it on their own account and get a notification.
+            </div>
+            <textarea value={dnhReason} onChange={(e) => setDnhReason(e.target.value)} placeholder="Reason (required)" rows={2}
+              style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 10px", color: C.hi, fontSize: 12.5, fontFamily: FS, resize: "vertical", marginBottom: 8 }} />
+            <button className="foc" onClick={() => setDnh(true, dnhReason.trim())} disabled={dnhState === "saving" || !dnhReason.trim()}
+              style={{ width: "100%", padding: "9px 14px", borderRadius: 8, background: "transparent", color: C.danger, border: "1px solid " + C.danger + "66", fontSize: 12.5, fontWeight: 700, opacity: dnhReason.trim() ? 1 : 0.6 }}>
+              Put on do-not-hire list
+            </button>
+          </>
+        )}
+        {dnhMsg && <div style={{ marginTop: 8, fontSize: 11.5, color: C.danger }}>{dnhMsg}</div>}
+      </div>
+
+      <div style={{ background: C.panel, border: "1px solid " + C.danger + "44", borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginTop: 12 }}>
         <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.danger, fontFamily: FM, marginBottom: 9 }}>DANGER ZONE</div>
         {archived ? (
           <>
@@ -925,34 +953,6 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
           </>
         )}
         {archiveMsg && <div style={{ marginTop: 8, fontSize: 11.5, color: C.danger }}>{archiveMsg}</div>}
-      </div>
-
-      <div style={{ background: C.panel, border: "1px solid " + C.danger + "44", borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginTop: 12 }}>
-        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.danger, fontFamily: FM, marginBottom: 9 }}>DO NOT HIRE LIST</div>
-        {onDnhList ? (
-          <>
-            <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 10 }}>
-              On the list since {apprentice.do_not_hire_at.slice(0, 10)}{apprentice.do_not_hire_reason ? " — " + apprentice.do_not_hire_reason : ""}.
-            </div>
-            <button className="foc" onClick={() => setConfirmDnhRemove(true)} disabled={dnhState === "saving"}
-              style={{ width: "100%", padding: "9px 14px", borderRadius: 8, background: C.raise, color: C.hi, border: "1px solid " + C.line, fontSize: 12.5, fontWeight: 700 }}>
-              Remove from do-not-hire list
-            </button>
-          </>
-        ) : (
-          <>
-            <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 10 }}>
-              Late OJT paperwork, a missed mandatory class, or a Rules & Regs violation — puts them on the union's do-not-hire list. They'll see it on their own account and get a notification.
-            </div>
-            <textarea value={dnhReason} onChange={(e) => setDnhReason(e.target.value)} placeholder="Reason (required)" rows={2}
-              style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 10px", color: C.hi, fontSize: 12.5, fontFamily: FS, resize: "vertical", marginBottom: 8 }} />
-            <button className="foc" onClick={() => setDnh(true, dnhReason.trim())} disabled={dnhState === "saving" || !dnhReason.trim()}
-              style={{ width: "100%", padding: "9px 14px", borderRadius: 8, background: "transparent", color: C.danger, border: "1px solid " + C.danger + "66", fontSize: 12.5, fontWeight: 700, opacity: dnhReason.trim() ? 1 : 0.6 }}>
-              Put on do-not-hire list
-            </button>
-          </>
-        )}
-        {dnhMsg && <div style={{ marginTop: 8, fontSize: 11.5, color: C.danger }}>{dnhMsg}</div>}
       </div>
       </>
       )}

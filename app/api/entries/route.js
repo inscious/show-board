@@ -2,7 +2,13 @@ import { guardedRoute } from "@/lib/apiGuard";
 import { entrySchema, entryDeleteSchema } from "@/lib/schemas";
 
 export async function POST(request) {
-  return guardedRoute(request, "entries:post", { schema: entrySchema }, async ({ supabase, user, data }) => {
+  // Local-first: every state change in the app (not just entries) re-runs the
+  // debounced sync, and a failed entry keeps retrying on every subsequent save
+  // until it lands. The default 30/60s cap is shared across phone+desktop on
+  // the same account and the fixed window doesn't self-heal while the app is
+  // in active use (see check_rate_limit in schema.sql) — too easy to jam
+  // during a normal editing session, which then blocks real hour-logging.
+  return guardedRoute(request, "entries:post", { schema: entrySchema, rateLimit: { max: 120, windowSeconds: 60 } }, async ({ supabase, user, data }) => {
     const { error } = await supabase.from("work_entries").upsert({
       id: data.id,
       user_id: user.id,

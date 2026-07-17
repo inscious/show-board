@@ -32,8 +32,9 @@ import {
     Lock,
     ShieldAlert,
     Bell,
+    CloudOff,
 } from "lucide-react";
-import { store } from "@/lib/store";
+import { store, subscribeSyncStatus } from "@/lib/store";
 import {
     BOOKED,
     BREAK_SLOTS,
@@ -10424,6 +10425,7 @@ export default function App() {
     const [bookings, setBookings] = useState([]);
     const [classes, setClasses] = useState([]);
     const [loaded, setLoaded] = useState(false);
+    const [syncStatus, setSyncStatus] = useState({ ok: true, message: "" });
     const [view, setView] = useState("upcoming");
     const [regionsOn, setRegionsOn] = useState(() =>
         REGION_KEYS.reduce((a, r) => ((a[r] = true), a), {}),
@@ -10550,6 +10552,11 @@ export default function App() {
         classes,
         loaded,
     ]);
+
+    /* store.js's sync used to fail silently — surface it so a stuck save
+       (rate limit, offline, server error) reads as "will retry" instead of
+       looking identical to a working save. */
+    useEffect(() => subscribeSyncStatus(setSyncStatus), []);
 
     /* clear just the hours for one month — bookings, classes and the board stay put */
     const clearMonth = (prefix) =>
@@ -10878,6 +10885,30 @@ export default function App() {
                         </a>
                     </div>
                 </div>
+
+                {!syncStatus.ok && (
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            background: C.danger + "1a",
+                            border: "1px solid " + C.danger + "55",
+                            borderRadius: 10,
+                            padding: "9px 12px",
+                            marginBottom: 12,
+                            fontSize: 12,
+                            color: C.hi,
+                        }}
+                    >
+                        <CloudOff
+                            size={15}
+                            color={C.danger}
+                            style={{ flexShrink: 0 }}
+                        />
+                        {syncStatus.message}
+                    </div>
+                )}
 
                 {/* tabs + controls */}
                 <div
