@@ -11,7 +11,7 @@ import {
   Search, AlertTriangle, Ban, Archive as ArchiveIcon, TrendingDown, Bell, Pencil, Building2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { C, SHADOW, FM, FS, hrsFmt, mMed, mShort, levelIndex, ojtTotals, ojtRows, rollupEntries, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth, keyOf, fromKey, fmtClock, mAdd, monthGrid, sameDay, bookingOn, classOn, BOOKED } from "@/lib/core";
+import { C, SHADOW, FM, FS, hrsFmt, mMed, mShort, levelIndex, ojtTotals, ojtRows, rollupEntries, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth, keyOf, fromKey, fmtClock, mAdd, monthGrid, sameDay, bookingOn, classOn, BOOKED, coColor } from "@/lib/core";
 import { ShowForm, ImportForm, EMPTY } from "@/components/ShowEditor";
 import { OnTheFloorPanel } from "@/components/admin/OnTheFloorPanel";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
@@ -2268,7 +2268,7 @@ function AuditLogPanel() {
           {rows.map((r) => {
             const meta = AUDIT_ACTION_META[r.action] || { label: r.action, color: C.mid };
             return (
-              <div key={r.id} style={{ background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
+              <div key={r.id} style={{ background: C.raise, border: "1px solid " + meta.color + "3A", borderRadius: 9, padding: "9px 10px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: meta.color, border: "1px solid " + meta.color + "55", borderRadius: 5, padding: "2px 6px" }}>{meta.label.toUpperCase()}</span>
                   <span style={{ fontFamily: FM, fontSize: 10, color: C.lo, marginLeft: "auto", flexShrink: 0 }}>{r.created_at.slice(0, 16).replace("T", " ")}</span>
@@ -2374,11 +2374,14 @@ function CompanyDirectoryPanel() {
         <div className="skeleton" style={{ height: 60 }} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto" }}>
-          {rows.map((c) => (
+          {rows.map((c) => {
+            const accent = coColor(c.name);
+            return (
             <div key={c.name} className="foc" role="button" tabIndex={0}
               onClick={() => openEdit(c)}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openEdit(c); } }}
-              style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 9, background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+              style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 9, background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px 8px 0" }}>
+              <span style={{ width: 3, alignSelf: "stretch", borderRadius: "0 2px 2px 0", background: accent, flexShrink: 0 }} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{c.name}</div>
                 <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>
@@ -2386,9 +2389,10 @@ function CompanyDirectoryPanel() {
                 </div>
               </div>
               <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); remove(c.name); }}
-                style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+                style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0, marginRight: 4 }}><Trash2 size={13} /></button>
             </div>
-          ))}
+            );
+          })}
           {rows.length === 0 && <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file yet.</div>}
         </div>
       )}
@@ -2483,6 +2487,7 @@ function JatcContactsPanel() {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {rows.map((c) => (
             <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+              <Avatar name={c.name} email={c.email} size={30} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{c.name}</div>
                 <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>
