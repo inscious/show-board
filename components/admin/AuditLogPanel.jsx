@@ -16,6 +16,7 @@ const AUDIT_ACTION_META = {
   dnh_remove: { label: "DNH cleared", color: C.working },
   admin_create: { label: "New admin", color: C.brand },
   admin_revoke: { label: "Admin revoked", color: C.danger },
+  approve_signup: { label: "Signup approved", color: C.working },
 };
 
 export function AuditLogPanel() {

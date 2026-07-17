@@ -99,6 +99,7 @@ export const adminSetPasswordSchema = z.object({ userId, password });
 
 export const adminArchiveApprenticeSchema = z.object({ userId, archived: z.boolean() });
 export const adminDeleteApprenticeSchema = z.object({ userId });
+export const adminApproveSignupSchema = z.object({ userId });
 export const adminDoNotHireSchema = z.object({ userId, onList: z.boolean(), reason: z.string().trim().max(300).optional().nullable() });
 
 export const adminCertReminderSchema = z.object({

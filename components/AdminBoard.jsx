@@ -18,6 +18,7 @@ import { AdminAccountsPanel } from "@/components/admin/AdminAccountsPanel";
 import { AuditLogPanel } from "@/components/admin/AuditLogPanel";
 import { CompanyDirectoryPanel } from "@/components/admin/CompanyDirectoryPanel";
 import { JatcContactsPanel } from "@/components/admin/JatcContactsPanel";
+import { PendingSignupsPanel } from "@/components/admin/PendingSignupsPanel";
 import { Avatar, Modal, ConfirmModal, req } from "@/components/admin/shared";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 
@@ -2358,7 +2359,10 @@ export default function AdminBoard() {
     // write" RLS policy (see supabase/schema.sql) — until those are applied
     // they just come back empty and the relevant section quietly shows nothing.
     const [profilesRes, monthsRes, showsRes, bookingsRes, flagsRes, classesRes, certsRes] = await Promise.all([
-      supabase.from("profiles").select("*").eq("is_admin", false),
+      // a self-signed-up account with approved_at still null isn't real yet
+      // (see PendingSignupsPanel) — excluded here so it can't clutter the
+      // normal roster, Falling Behind, or Do Not Hire before it is.
+      supabase.from("profiles").select("*").eq("is_admin", false).not("approved_at", "is", null),
       supabase.from("ojt_months").select("*"),
       supabase.from("shows").select("*"),
       supabase.from("bookings").select("*"),
@@ -2493,6 +2497,7 @@ export default function AdminBoard() {
               <Stat label="PENDING APPROVALS" value={String(Object.values(monthsByUser).flat().filter((m) => m.status === "pending").length)}
                 sub="across everyone" color={C.brand} />
             </div>
+            <PendingSignupsPanel />
             <ThisWeek shows={shows} onOpenDay={() => setTab("schedule")} />
             <OnTheFloorPanel shows={shows} onSelectShow={goToShow} />
             <RosterCategoryChart apprentices={activeApprentices} monthsByUser={monthsByUser} />
