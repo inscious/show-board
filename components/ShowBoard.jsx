@@ -211,6 +211,7 @@ function Card({
 
     return (
         <div
+            id={"show-" + show.id}
             style={{
                 background: C.panel,
                 borderRadius: 13,
@@ -8920,7 +8921,7 @@ function HomeTab({
                         {s.booth && s.booth !== "TBD" ? " · " + s.booth : ""}
                     </div>
                 </div>
-                <div style={{ flexShrink: 0, textAlign: "right" }}>
+                <div style={{ flexShrink: 0, textAlign: "right", maxWidth: 130 }}>
                     <div
                         className="truncate"
                         style={{
@@ -8928,10 +8929,9 @@ function HomeTab({
                             fontSize: 10.5,
                             fontWeight: 800,
                             color: isMine(s.co) ? C.brand : C.gc,
-                            maxWidth: 92,
                         }}
                     >
-                        {(s.co || "TBD").toUpperCase()}
+                        {gc?.name || (s.co || "TBD").toUpperCase()}
                     </div>
                     {gc && gc.tel && (
                         <div
@@ -10447,6 +10447,7 @@ export default function App() {
     );
     const [query, setQuery] = useState("");
     const [expandedId, setExpandedId] = useState(null);
+    const [boardFocusId, setBoardFocusId] = useState(null);
     const [modal, setModal] = useState(null);
     const [showDates, setShowDates] = useState(false);
     const [openMonths, setOpenMonths] = useState({});
@@ -10593,11 +10594,39 @@ export default function App() {
     };
 
     /* switch tabs and, if a show id came along for the ride (tapping a show
-       from the Home tab), land on the Board tab with that exact show already expanded. */
+       from the Home tab), land on the Board tab with that exact show already
+       expanded — boardFocusId is a one-shot signal separate from expandedId
+       so the scroll/filter-clearing effect below only fires on this kind of
+       cross-tab jump, never on an ordinary manual card toggle. */
     const goto = (tabName, showId) => {
         setTab(tabName);
-        if (showId) setExpandedId(showId);
+        if (showId) {
+            setExpandedId(showId);
+            setBoardFocusId(showId);
+        }
     };
+
+    useEffect(() => {
+        if (!boardFocusId) return;
+        const target = shows.find((s) => s.id === boardFocusId);
+        if (target) {
+            setQuery("");
+            setRegionsOn(REGION_KEYS.reduce((a, r) => ((a[r] = true), a), {}));
+            const past = isPast(target);
+            setView(past ? "past" : "upcoming");
+            const mk = past
+                ? monthKey(target)
+                : Math.max(monthKey(target), monthKeyNow());
+            const label = mk === 999999 ? "SCHEDULED" : labelFromKey(mk);
+            setOpenMonths((prev) => ({ ...prev, [label]: true }));
+            requestAnimationFrame(() => {
+                document
+                    .getElementById("show-" + boardFocusId)
+                    ?.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+        }
+        setBoardFocusId(null);
+    }, [boardFocusId]);
 
     const counts = useMemo(
         () => ({
