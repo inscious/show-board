@@ -11,8 +11,9 @@ import {
   Search, AlertTriangle, Ban, Archive as ArchiveIcon, TrendingDown, Bell, Pencil, Building2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { C, SHADOW, FM, FS, hrsFmt, mMed, mShort, levelIndex, ojtTotals, ojtRows, rollupEntries, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth, keyOf, fromKey, fmtClock, mAdd, monthGrid, sameDay, bookingOn, classOn, BOOKED, mkDate, showYear, matchCo, fmtTel } from "@/lib/core";
+import { C, SHADOW, FM, FS, hrsFmt, mMed, mShort, levelIndex, ojtTotals, ojtRows, rollupEntries, LEVELS, money, STATUS, REGION, sortDate, monthLabel, monthKey, isPast, certState, KLASS, todayMid, DOW, showsOn, CATS_META, countdown, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth, keyOf, fromKey, fmtClock, mAdd, monthGrid, sameDay, bookingOn, classOn, BOOKED } from "@/lib/core";
 import { ShowForm, ImportForm, EMPTY } from "@/components/ShowEditor";
+import { OnTheFloorPanel } from "@/components/admin/OnTheFloorPanel";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 
 /* ---------- avatar placeholder — initials on a deterministic color, standing
@@ -2193,7 +2194,7 @@ function AdminAccountsPanel({ currentEmail }) {
           {rows.map((a) => {
             const isSelf = a.email === currentEmail;
             return (
-              <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+              <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
                 <Avatar name={a.name} email={a.email} avatarUrl={a.avatar_url} size={30} />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
@@ -2267,7 +2268,7 @@ function AuditLogPanel() {
           {rows.map((r) => {
             const meta = AUDIT_ACTION_META[r.action] || { label: r.action, color: C.mid };
             return (
-              <div key={r.id} style={{ background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
+              <div key={r.id} style={{ background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: meta.color, border: "1px solid " + meta.color + "55", borderRadius: 5, padding: "2px 6px" }}>{meta.label.toUpperCase()}</span>
                   <span style={{ fontFamily: FM, fontSize: 10, color: C.lo, marginLeft: "auto", flexShrink: 0 }}>{r.created_at.slice(0, 16).replace("T", " ")}</span>
@@ -2285,10 +2286,14 @@ function AuditLogPanel() {
 
 /* ---------- company directory — shared I&D labor-shop list. Fetches its
    own data, same reasoning as AuditLogPanel: Settings-only content nobody
-   needs on every load(). name is the natural key, so "add" is an upsert
-   (typing an existing name in and saving just edits it). ---------- */
-function CompanyForm({ onSaved, onClose }) {
-  const [form, setForm] = useState({ name: "", city: "", state: "", laborLine: "", foreman: "" });
+   needs on every load(). name is the primary key (unique in schema.sql) and
+   the API POST is a true upsert on it — editing an existing row keeps name
+   locked, since typing a different name there would insert a second row
+   under the new name rather than rename the original, orphaning it. */
+function CompanyForm({ onSaved, onClose, initial }) {
+  const [form, setForm] = useState(() => initial
+    ? { name: initial.name || "", city: initial.city || "", state: initial.state || "", laborLine: initial.labor_line || "", foreman: initial.foreman || "" }
+    : { name: "", city: "", state: "", laborLine: "", foreman: "" });
   const [state, setState] = useState("idle");
   const [msg, setMsg] = useState("");
   const fieldStyle = { flex: "1 1 120px", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14 };
@@ -2312,12 +2317,13 @@ function CompanyForm({ onSaved, onClose }) {
   return (
     <form onSubmit={submit}>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>COMPANY NAME</div>
-      <input required autoFocus value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-        style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
+      <input required autoFocus={!initial} disabled={!!initial} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+        style={{ ...fieldStyle, width: "100%", marginBottom: initial ? 4 : 12, opacity: initial ? 0.6 : 1 }} />
+      {initial && <div style={{ fontSize: 10.5, color: C.lo, marginBottom: 12 }}>Name can't be changed here — delete and re-add to rename.</div>}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CITY</div>
-          <input value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} style={{ ...fieldStyle, width: "100%" }} />
+          <input autoFocus={!!initial} value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} style={{ ...fieldStyle, width: "100%" }} />
         </div>
         <div style={{ flex: "0 1 80px" }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>STATE</div>
@@ -2332,7 +2338,7 @@ function CompanyForm({ onSaved, onClose }) {
         style={{ ...fieldStyle, width: "100%", marginBottom: 14 }} />
       <button type="submit" disabled={state === "saving"}
         style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
-        {state === "saving" ? "Saving…" : state === "done" ? "Saved" : "Save company"}
+        {state === "saving" ? "Saving…" : state === "done" ? "Saved" : initial ? "Save changes" : "Save company"}
       </button>
       {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
     </form>
@@ -2342,6 +2348,7 @@ function CompanyForm({ onSaved, onClose }) {
 function CompanyDirectoryPanel() {
   const [rows, setRows] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState(null);
 
   const load = async () => {
     const supabase = createClient();
@@ -2354,34 +2361,40 @@ function CompanyDirectoryPanel() {
     await req("DELETE", "/api/admin/companies", { name });
     load();
   };
+  const openAdd = () => { setEditingRow(null); setFormOpen(true); };
+  const openEdit = (row) => { setEditingRow(row); setFormOpen(true); };
 
   return (
     <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", marginBottom: 9 }}>
         <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>COMPANY DIRECTORY{rows ? " — " + rows.length : ""}</div>
-        <button className="foc" onClick={() => setFormOpen(true)} style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.gc, fontSize: 11.5, fontWeight: 700, padding: 0 }}>+ Add</button>
+        <button className="foc" onClick={openAdd} style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.gc, fontSize: 11.5, fontWeight: 700, padding: 0 }}>+ Add</button>
       </div>
       {rows === null ? (
         <div className="skeleton" style={{ height: 60 }} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto" }}>
           {rows.map((c) => (
-            <div key={c.name} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+            <div key={c.name} className="foc" role="button" tabIndex={0}
+              onClick={() => openEdit(c)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openEdit(c); } }}
+              style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 9, background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{c.name}</div>
                 <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>
                   {[c.city && c.state ? c.city + ", " + c.state : c.city || c.state, c.labor_line, c.foreman].filter(Boolean).join(" · ") || "no details on file"}
                 </div>
               </div>
-              <button className="foc icon-btn" onClick={() => remove(c.name)} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+              <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); remove(c.name); }}
+                style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
             </div>
           ))}
           {rows.length === 0 && <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file yet.</div>}
         </div>
       )}
       {formOpen && (
-        <Modal title="Add company" onClose={() => setFormOpen(false)}>
-          <CompanyForm onSaved={load} onClose={() => setFormOpen(false)} />
+        <Modal title={editingRow ? "Edit company" : "Add company"} onClose={() => setFormOpen(false)}>
+          <CompanyForm initial={editingRow} onSaved={load} onClose={() => setFormOpen(false)} />
         </Modal>
       )}
     </div>
@@ -2469,7 +2482,7 @@ function JatcContactsPanel() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {rows.map((c) => (
-            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{c.name}</div>
                 <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>
@@ -2492,90 +2505,6 @@ function JatcContactsPanel() {
 }
 
 /* ---------- this week — read-only activity strip, no personal hours to show ---------- */
-/* ---------- on the floor today / next move-ins — same shared `shows`
-   table the apprentice's own Home tab reads, just not filtered to "mine"
-   since admin cares about the whole union schedule. Self-fetches the
-   company directory for the phone-number lookup, same as CompanyDirectoryPanel. ---------- */
-function OnTheFloorPanel({ shows }) {
-  const [companies, setCompanies] = useState(null);
-  useEffect(() => {
-    (async () => {
-      const supabase = createClient();
-      const { data } = await supabase.from("companies").select("*");
-      setCompanies((data || []).map((c) => ({ n: c.name, city: c.city || "", st: c.state || "", tel: c.labor_line || "", fm: c.foreman || "" })));
-    })();
-  }, []);
-
-  const today = todayMid();
-  const onFloor = useMemo(() => showsOn(shows, today).sort((a, b) => sortDate(a) - sortDate(b)), [shows, today.getTime()]);
-  const nextUp = useMemo(() => shows
-    .filter((s) => { const mi = mkDate(s.mi, showYear(s)) || mkDate(s.start, showYear(s)); return mi && mi > today; })
-    .sort((a, b) => sortDate(a) - sortDate(b))
-    .slice(0, 3), [shows, today.getTime()]);
-
-  if (onFloor.length === 0 && nextUp.length === 0) return null;
-
-  const ShowLine = (s) => {
-    const region = REGION[s.region] || REGION.OTHER;
-    const gc = companies ? matchCo(s.co, s.region, companies) : null;
-    return (
-      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + region.color + "3A", borderRadius: 9, padding: "9px 10px" }}>
-        <span style={{ width: 3, alignSelf: "stretch", borderRadius: 2, background: region.color, flexShrink: 0 }} />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.hi }}>{s.name}</div>
-          <div className="truncate" style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>
-            {s.loc}{s.booth && s.booth !== "TBD" ? " · " + s.booth : ""}
-          </div>
-        </div>
-        <div style={{ flexShrink: 0, textAlign: "right" }}>
-          <div className="truncate" style={{ fontFamily: FM, fontSize: 10.5, fontWeight: 800, color: C.gc, maxWidth: 100 }}>{(s.co || "TBD").toUpperCase()}</div>
-          {gc && gc.tel && <div style={{ fontFamily: FM, fontSize: 10, color: C.lo, marginTop: 2 }}>{fmtTel(gc.tel)}</div>}
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
-      {onFloor.length > 0 && (
-        <div style={{ marginBottom: nextUp.length ? 13 : 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
-            <span style={{ width: 7, height: 7, borderRadius: 9, background: C.working, boxShadow: "0 0 8px " + C.working }} />
-            <span style={{ fontSize: 9.5, letterSpacing: 0.8, color: C.working, fontFamily: FM, fontWeight: 800 }}>ON THE FLOOR TODAY</span>
-            <span style={{ marginLeft: "auto", fontFamily: FM, fontSize: 10, color: C.lo }}>{onFloor.length}</span>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>{onFloor.slice(0, 5).map(ShowLine)}</div>
-        </div>
-      )}
-      {nextUp.length > 0 && (
-        <div>
-          <div style={{ fontSize: 9.5, letterSpacing: 0.8, color: C.lo, fontFamily: FM, marginBottom: 8 }}>NEXT MOVE-INS</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {nextUp.map((s) => {
-              const cd = countdown(s);
-              const region = REGION[s.region] || REGION.OTHER;
-              return (
-                <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
-                  <div style={{ flexShrink: 0, width: 42, textAlign: "center" }}>
-                    <div style={{ fontFamily: FM, fontSize: 14, fontWeight: 800, color: region.color, lineHeight: 1.1 }}>{s.mi}</div>
-                    <div style={{ fontFamily: FM, fontSize: 8.5, color: C.lo, marginTop: 1 }}>MOVE IN</div>
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.hi }}>{s.name}</div>
-                    <div className="truncate" style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{s.loc} · {s.co || "TBD"}</div>
-                  </div>
-                  {cd && (
-                    <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: cd.c, border: "1px solid " + cd.c + "55", borderRadius: 5, padding: "2px 6px" }}>{cd.t}</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function ThisWeek({ shows, onOpenDay }) {
   const today = todayMid();
@@ -2611,7 +2540,7 @@ function ThisWeek({ shows, onOpenDay }) {
 }
 
 /* ---------- schedule ---------- */
-function Schedule({ shows, onChanged }) {
+function Schedule({ shows, onChanged, focusId, onFocusHandled }) {
   const [modal, setModal] = useState(null); // "add" | "edit" | "import"
   const [editing, setEditing] = useState(null);
   const [collapsed, setCollapsed] = useState({}); // monthLabel -> bool, overrides the default
@@ -2619,6 +2548,25 @@ function Schedule({ shows, onChanged }) {
   const [showPast, setShowPast] = useState(false);
   const [q, setQ] = useState("");
   const [regionFilter, setRegionFilter] = useState("");
+
+  /* landing here from "On the floor today" (a show tapped on the dashboard)
+     — clear any filter that could be hiding it, force its month group open
+     even if it was previously collapsed, expand the show itself, and scroll
+     it into view once the DOM reflects that. */
+  useEffect(() => {
+    if (!focusId) return;
+    const target = shows.find((s) => s.id === focusId);
+    if (target) {
+      setQ("");
+      setRegionFilter("");
+      setCollapsed((prev) => ({ ...prev, [monthLabel(target)]: false }));
+      setExpandedId(focusId);
+      requestAnimationFrame(() => {
+        document.getElementById("show-" + focusId)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+    onFocusHandled?.();
+  }, [focusId]);
 
   const regionsPresent = useMemo(() => Array.from(new Set(shows.map((s) => s.region).filter(Boolean))), [shows]);
   const filteredShows = useMemo(() => shows.filter((s) => {
@@ -2691,7 +2639,7 @@ function Schedule({ shows, onChanged }) {
               const open = expandedId === s.id;
               const cd = !past ? countdown(s) : null;
               return (
-                <div key={s.id} style={{ background: C.panel, border: "1px solid " + (open ? C.brand + "66" : C.edge), borderRadius: 10, opacity: past ? 0.55 : 1, overflow: "hidden" }}>
+                <div key={s.id} id={"show-" + s.id} style={{ background: C.panel, border: "1px solid " + (open ? C.brand + "66" : C.edge), borderRadius: 10, opacity: past ? 0.55 : 1, overflow: "hidden" }}>
                   <button className="foc" onClick={() => setExpandedId(open ? null : s.id)}
                     style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: "none", padding: "10px 12px" }}>
                     <div style={{ flexShrink: 0, width: 38, textAlign: "center" }}>
@@ -2823,6 +2771,7 @@ export default function AdminBoard() {
   const [shows, setShows] = useState([]);
   const [tab, setTab] = useState("dashboard"); // dashboard | roster | schedule | settings
   const [selectedId, setSelectedId] = useState(null);
+  const [scheduleFocusId, setScheduleFocusId] = useState(null);
   const [newModal, setNewModal] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [classModal, setClassModal] = useState(false); // false | array of preselected userIds
@@ -2896,6 +2845,7 @@ export default function AdminBoard() {
 
   const selected = selectedId ? apprentices.find((a) => a.id === selectedId) : null;
   const goToApprentice = (id) => { setTab("roster"); setSelectedId(id); };
+  const goToShow = (id) => { setTab("schedule"); setScheduleFocusId(id); };
   const activeApprentices = useMemo(() => apprentices.filter((a) => !a.archived_at), [apprentices]);
   const archivedApprentices = useMemo(() => apprentices.filter((a) => a.archived_at), [apprentices]);
 
@@ -2971,7 +2921,7 @@ export default function AdminBoard() {
                 sub="across everyone" color={C.brand} />
             </div>
             <ThisWeek shows={shows} onOpenDay={() => setTab("schedule")} />
-            <OnTheFloorPanel shows={shows} />
+            <OnTheFloorPanel shows={shows} onSelectShow={goToShow} />
             <RosterCategoryChart apprentices={activeApprentices} monthsByUser={monthsByUser} />
             <FallingBehindPanel apprentices={activeApprentices} monthsByUser={monthsByUser} onOpenApprentice={goToApprentice} />
             <DoNotHirePanel apprentices={activeApprentices} onOpenApprentice={goToApprentice} />
@@ -3005,7 +2955,9 @@ export default function AdminBoard() {
           )
         )}
 
-        {tab === "schedule" && <Schedule shows={shows} onChanged={load} />}
+        {tab === "schedule" && (
+          <Schedule shows={shows} onChanged={load} focusId={scheduleFocusId} onFocusHandled={() => setScheduleFocusId(null)} />
+        )}
 
         {tab === "settings" && (
           <>
