@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "IUPAT Local 831 — show board, work calendar and OJT tracker",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
