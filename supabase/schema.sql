@@ -200,6 +200,14 @@ create table rate_limits (
   count        int not null default 0
 );
 
+-- No policies on purpose: the only legitimate access is check_rate_limit()
+-- below, a security definer function that runs as its owner and so bypasses
+-- RLS regardless. Enabling RLS with zero policies makes every other role
+-- (including a signed-in apprentice hitting the REST API directly) get a
+-- flat deny — otherwise anyone could read or delete rate-limit counters
+-- (their own or anyone else's) and bypass throttling entirely.
+alter table rate_limits enable row level security;
+
 create or replace function check_rate_limit(p_key text, p_max int, p_window_seconds int)
 returns boolean
 language plpgsql
