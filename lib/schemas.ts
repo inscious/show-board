@@ -122,9 +122,16 @@ export const adminProfileSchema = z.object({
   userId,
   name: shortText,
   memberId: shortText,
-  last4: z.string().trim().regex(/^\d{4}$/, "expected 4 digits").optional().nullable(),
+  // both of these have the same shape of bug fixed here: the admin profile
+  // form always sends every field, so clearing an input sends "" rather
+  // than omitting the key or sending null — but a bare regex still rejects
+  // "" even wrapped in .optional().nullable(), since neither of those
+  // exempts an empty string from matching the pattern. The route
+  // (app/api/admin/profile/route.js) already normalizes falsy last4/joined
+  // to null on write; the schema just needs to actually let "" reach it.
+  last4: z.union([z.string().trim().regex(/^\d{4}$/, "expected 4 digits"), z.literal("")]).optional().nullable(),
   local: shortText,
-  joined: dateStr.optional().nullable(),
+  joined: z.union([dateStr, z.literal("")]).optional().nullable(),
   rsiCredits: z.number().min(0).max(1000).optional().nullable(),
   city: shortText,
 });
