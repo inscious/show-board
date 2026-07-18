@@ -67,9 +67,9 @@ import {
     PAY_COLOR,
 } from "@/lib/core";
 import { store } from "@/lib/store";
-import { DirectoryContext } from "@/components/DirectoryContext";
-import { Modal } from "@/components/Modal";
-import { Stat } from "@/components/Stat";
+import { DirectoryContext } from "@/components/utils/DirectoryContext";
+import { Modal } from "@/components/ui/Modal";
+import { Stat } from "@/components/ui/Stat";
 import { ClassCurriculum } from "@/components/ojt/ClassCurriculum";
 
 const OJT_IMPORT_ENABLED = process.env.NEXT_PUBLIC_OJT_IMPORT_ENABLED === "true";

@@ -35,8 +35,8 @@ import {
     statusOn,
     todayMid,
 } from "@/lib/core";
-import { hexRgb } from "@/components/hexRgb";
-import { r1 } from "@/components/r1";
+import { hexRgb } from "@/components/utils/hexRgb";
+import { r1 } from "@/components/utils/r1";
 
 // not lib/core exports — tiny locals also defined (separately) in
 // ShowBoard.jsx; duplicating a few lines here beats adding exports just for

@@ -3,7 +3,7 @@
 /* ST/OT/DT chip row — shared between the day sheet, Home, and Calendar.
    Split into its own module so none of them have to duplicate it. */
 import { FM, PAY_COLOR, hrsFmt } from "@/lib/core";
-import { r1 } from "@/components/r1";
+import { r1 } from "@/components/utils/r1";
 
 export function SplitChips({ sp, size }) {
     const items = [

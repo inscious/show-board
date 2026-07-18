@@ -2,23 +2,23 @@
 
 import React, { useState, useEffect, useMemo, useRef, useContext } from "react";
 import dynamic from "next/dynamic";
-import { DirectoryContext } from "@/components/DirectoryContext";
-import { Modal } from "@/components/Modal";
-import { Stat } from "@/components/Stat";
-import { hexRgb } from "@/components/hexRgb";
-import { r1 } from "@/components/r1";
-import { SplitChips } from "@/components/SplitChips";
+import { DirectoryContext } from "@/components/utils/DirectoryContext";
+import { Modal } from "@/components/ui/Modal";
+import { Stat } from "@/components/ui/Stat";
+import { hexRgb } from "@/components/utils/hexRgb";
+import { r1 } from "@/components/utils/r1";
+import { SplitChips } from "@/components/ui/SplitChips";
 // Home is the default tab everyone sees first — imported normally (not
 // dynamic()) since lazy-loading the thing everyone needs immediately would
 // only add a loading flicker, not a real payload saving.
-import { HomeTab } from "@/components/tabs/HomeTab";
+import { HomeTab } from "@/components/apprentice/tabs/HomeTab";
 
 // loaded only when the OJT tab is actually opened — it's the single largest
 // tab (rules reference, curriculum, pay-scale panels), no reason a Home-tab
 // visit should pay to parse it. No SSR needed either: this only ever
 // renders after the client-side store.load() finishes, same as every other
 // tab here.
-const OjtTab = dynamic(() => import("@/components/tabs/OjtTab").then((m) => m.OjtTab), {
+const OjtTab = dynamic(() => import("@/components/apprentice/tabs/OjtTab").then((m) => m.OjtTab), {
     ssr: false,
     loading: () => (
         <div style={{ padding: "40px 0", textAlign: "center", color: "#6B7383", fontSize: 13 }}>
@@ -31,7 +31,7 @@ const OjtTab = dynamic(() => import("@/components/tabs/OjtTab").then((m) => m.Oj
 // same module (rather than a plain import) so opening "month summary" from
 // the shell's modal dispatch doesn't pull CalTab's code back into the main
 // bundle just because something outside the lazy boundary references it.
-const CalTab = dynamic(() => import("@/components/tabs/CalTab").then((m) => m.CalTab), {
+const CalTab = dynamic(() => import("@/components/apprentice/tabs/CalTab").then((m) => m.CalTab), {
     ssr: false,
     loading: () => (
         <div style={{ padding: "40px 0", textAlign: "center", color: "#6B7383", fontSize: 13 }}>
@@ -39,7 +39,7 @@ const CalTab = dynamic(() => import("@/components/tabs/CalTab").then((m) => m.Ca
         </div>
     ),
 });
-const Summary = dynamic(() => import("@/components/tabs/CalTab").then((m) => m.Summary), { ssr: false });
+const Summary = dynamic(() => import("@/components/apprentice/tabs/CalTab").then((m) => m.Summary), { ssr: false });
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import {
     Phone,

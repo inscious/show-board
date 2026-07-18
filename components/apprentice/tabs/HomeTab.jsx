@@ -59,11 +59,11 @@ import {
     statusOn,
     todayMid,
 } from "@/lib/core";
-import { DirectoryContext } from "@/components/DirectoryContext";
-import { Stat } from "@/components/Stat";
-import { SplitChips } from "@/components/SplitChips";
-import { hexRgb } from "@/components/hexRgb";
-import { r1 } from "@/components/r1";
+import { DirectoryContext } from "@/components/utils/DirectoryContext";
+import { Stat } from "@/components/ui/Stat";
+import { SplitChips } from "@/components/ui/SplitChips";
+import { hexRgb } from "@/components/utils/hexRgb";
+import { r1 } from "@/components/utils/r1";
 
 // not a lib/core export — a tiny local also defined (separately) in
 // ShowBoard.jsx; duplicating 3 lines here beats adding an export just for
