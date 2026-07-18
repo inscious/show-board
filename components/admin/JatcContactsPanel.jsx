@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM } from "@/lib/core";
-import { Modal, Avatar, req } from "@/components/admin/shared";
+import { Modal, ConfirmModal, Avatar, req } from "@/components/admin/shared";
 
 function JatcContactForm({ onSaved, onClose }) {
   const [form, setForm] = useState({ name: "", tel: "", ext: "", email: "", sms: "" });
@@ -63,6 +63,7 @@ function JatcContactForm({ onSaved, onClose }) {
 export function JatcContactsPanel() {
   const [rows, setRows] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [removing, setRemoving] = useState(null); // contact row, or null
 
   const load = async () => {
     const supabase = createClient();
@@ -95,7 +96,7 @@ export function JatcContactsPanel() {
                   {[c.tel && c.ext ? c.tel + " ext " + c.ext : c.tel, c.email, c.sms ? "sms " + c.sms : null].filter(Boolean).join(" · ") || "no details on file"}
                 </div>
               </div>
-              <button className="foc icon-btn" onClick={() => remove(c.id)} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+              <button className="foc icon-btn" onClick={() => setRemoving(c)} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
             </div>
           ))}
           {rows.length === 0 && <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file yet.</div>}
@@ -105,6 +106,15 @@ export function JatcContactsPanel() {
         <Modal title="Add JATC contact" onClose={() => setFormOpen(false)}>
           <JatcContactForm onSaved={load} onClose={() => setFormOpen(false)} />
         </Modal>
+      )}
+      {removing && (
+        <ConfirmModal
+          title="Remove this contact?"
+          message={<>This permanently deletes <strong style={{ color: C.hi }}>{removing.name}</strong> from the JATC office directory apprentices see. It's not recoverable — you'd need to re-enter their info from scratch.</>}
+          confirmLabel="Remove contact"
+          onClose={() => setRemoving(null)}
+          onConfirm={async () => { await remove(removing.id); setRemoving(null); }}
+        />
       )}
     </div>
   );

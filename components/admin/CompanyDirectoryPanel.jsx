@@ -10,7 +10,7 @@ import { useState, useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM, coColor } from "@/lib/core";
-import { Modal, req } from "@/components/admin/shared";
+import { Modal, ConfirmModal, req } from "@/components/admin/shared";
 
 function CompanyForm({ onSaved, onClose, initial }) {
   const [form, setForm] = useState(() => initial
@@ -71,6 +71,7 @@ export function CompanyDirectoryPanel() {
   const [rows, setRows] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
+  const [removing, setRemoving] = useState(null); // company row, or null
 
   const load = async () => {
     const supabase = createClient();
@@ -110,7 +111,7 @@ export function CompanyDirectoryPanel() {
                   {[c.city && c.state ? c.city + ", " + c.state : c.city || c.state, c.labor_line, c.foreman].filter(Boolean).join(" · ") || "no details on file"}
                 </div>
               </div>
-              <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); remove(c.name); }}
+              <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); setRemoving(c); }}
                 style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0, marginRight: 4 }}><Trash2 size={13} /></button>
             </div>
             );
@@ -122,6 +123,15 @@ export function CompanyDirectoryPanel() {
         <Modal title={editingRow ? "Edit company" : "Add company"} onClose={() => setFormOpen(false)}>
           <CompanyForm initial={editingRow} onSaved={load} onClose={() => setFormOpen(false)} />
         </Modal>
+      )}
+      {removing && (
+        <ConfirmModal
+          title="Remove this company?"
+          message={<>This permanently deletes <strong style={{ color: C.hi }}>{removing.name}</strong> from the directory. It's not recoverable — you'd need to re-enter it from scratch.</>}
+          confirmLabel="Remove company"
+          onClose={() => setRemoving(null)}
+          onConfirm={async () => { await remove(removing.name); setRemoving(null); }}
+        />
       )}
     </div>
   );

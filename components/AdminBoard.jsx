@@ -418,6 +418,9 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
     await req("DELETE", "/api/admin/certs", { userId: apprentice.id, id });
     onChanged();
   };
+  const [confirmRemoveCert, setConfirmRemoveCert] = useState(null); // cert row, or null
+  const [confirmRemoveMonth, setConfirmRemoveMonth] = useState(null); // month row, or null
+  const [confirmRemoveAvatar, setConfirmRemoveAvatar] = useState(false);
 
   const [detailTab, setDetailTab] = useState("overview");
 
@@ -606,7 +609,7 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
                     <span style={{ fontFamily: FM, color: C.hi, width: 74, flexShrink: 0 }}>{mMed(r.m)}</span>
                     <span style={{ fontFamily: FM, color: C.mid, flex: 1 }}>A{hrsFmt(r.a)} B{hrsFmt(r.b)} C{hrsFmt(r.c)} D{hrsFmt(r.d)}</span>
                     <span style={{ fontFamily: FM, color: C.working, fontWeight: 800 }}>{hrsFmt(r.total)}h</span>
-                    <button className="foc icon-btn" onClick={() => removeMonth(r.m)} style={{ background: "transparent", border: "none", color: C.lo, padding: 2, borderRadius: 5 }}><Trash2 size={13} /></button>
+                    <button className="foc icon-btn" onClick={() => setConfirmRemoveMonth(r)} style={{ background: "transparent", border: "none", color: C.lo, padding: 2, borderRadius: 5 }}><Trash2 size={13} /></button>
                   </div>
                   {(r.crossed.length > 0 || (app && delta !== 0)) && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
@@ -736,7 +739,7 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
                     <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>Expires {c.exp}</div>
                   </div>
                   <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: st.c, border: "1px solid " + st.c + "55", borderRadius: 5, padding: "2px 6px" }}>{st.t}</span>
-                  <button className="foc icon-btn" onClick={() => removeCert(c.id)} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+                  <button className="foc icon-btn" onClick={() => setConfirmRemoveCert(c)} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
                 </div>
               );
             })}
@@ -758,6 +761,33 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
           onConfirm={async () => { await removeClass(confirmRemoveClass.id); setConfirmRemoveClass(null); }}
         />
       )}
+      {confirmRemoveMonth && (
+        <ConfirmModal
+          title="Remove this month?"
+          message={<>This deletes the <strong style={{ color: C.hi }}>{mMed(confirmRemoveMonth.m)}</strong> OJT record ({hrsFmt(confirmRemoveMonth.total)}h) from {apprentice.name || apprentice.email}'s history — approved or not, it's gone.</>}
+          confirmLabel="Remove month"
+          onClose={() => setConfirmRemoveMonth(null)}
+          onConfirm={async () => { await removeMonth(confirmRemoveMonth.m); setConfirmRemoveMonth(null); }}
+        />
+      )}
+      {confirmRemoveCert && (
+        <ConfirmModal
+          title="Remove this certification?"
+          message={<>This removes <strong style={{ color: C.hi }}>{confirmRemoveCert.name}</strong> (expires {confirmRemoveCert.exp}) from {apprentice.name || apprentice.email}'s record.</>}
+          confirmLabel="Remove cert"
+          onClose={() => setConfirmRemoveCert(null)}
+          onConfirm={async () => { await removeCert(confirmRemoveCert.id); setConfirmRemoveCert(null); }}
+        />
+      )}
+      {confirmRemoveAvatar && (
+        <ConfirmModal
+          title="Remove photo?"
+          message={<>Removes {apprentice.name || apprentice.email}'s ID photo. They (or an admin) can upload a new one anytime.</>}
+          confirmLabel="Remove photo"
+          onClose={() => setConfirmRemoveAvatar(false)}
+          onConfirm={async () => { await removeAvatar(); setConfirmRemoveAvatar(false); }}
+        />
+      )}
       </>
       )}
 
@@ -775,7 +805,7 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = ""; }} />
             </label>
             {apprentice.avatar_url && (
-              <button className="foc" onClick={removeAvatar} disabled={avatarState === "saving"}
+              <button className="foc" onClick={() => setConfirmRemoveAvatar(true)} disabled={avatarState === "saving"}
                 style={{ background: "transparent", color: C.danger, border: "1px solid " + C.line, borderRadius: 8, padding: "7px 12px", fontSize: 12, fontWeight: 700 }}>
                 Remove photo
               </button>
@@ -2166,6 +2196,7 @@ function Schedule({ shows, onChanged, focusId, onFocusHandled }) {
     await req("DELETE", "/api/shows", { id });
     onChanged();
   };
+  const [confirmRemoveShow, setConfirmRemoveShow] = useState(null); // show row, or null
   const addImported = async (rows) => {
     const withIds = rows.map((r, i) => ({ id: genId("i") + i, ...r }));
     await req("POST", "/api/shows/import", { shows: withIds });
@@ -2249,7 +2280,7 @@ function Schedule({ shows, onChanged, focusId, onFocusHandled }) {
                       <div style={{ display: "flex", gap: 8 }}>
                         <button className="foc" onClick={() => { setEditing(s); setModal("edit"); }}
                           style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 8, background: C.raise, color: C.hi, border: "1px solid " + C.line, fontSize: 13, fontWeight: 700 }}>Edit</button>
-                        <button className="foc" onClick={() => removeShow(s.id)}
+                        <button className="foc" onClick={() => setConfirmRemoveShow(s)}
                           style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 14px", borderRadius: 8, background: "transparent", color: C.danger, border: "1px solid " + C.line, fontSize: 13, fontWeight: 700 }}>
                           <Trash2 size={13} /> Delete
                         </button>
@@ -2327,6 +2358,15 @@ function Schedule({ shows, onChanged, focusId, onFocusHandled }) {
         <Modal title="Import from schedule" onClose={() => setModal(null)}>
           <ImportForm onClose={() => setModal(null)} onAdd={addImported} />
         </Modal>
+      )}
+      {confirmRemoveShow && (
+        <ConfirmModal
+          title="Delete this show?"
+          message={<>This permanently removes <strong style={{ color: C.hi }}>{confirmRemoveShow.name}</strong> from the schedule.</>}
+          confirmLabel="Delete show"
+          onClose={() => setConfirmRemoveShow(null)}
+          onConfirm={async () => { await removeShow(confirmRemoveShow.id); setConfirmRemoveShow(null); }}
+        />
       )}
     </div>
   );
