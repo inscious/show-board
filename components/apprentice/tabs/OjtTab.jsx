@@ -382,8 +382,10 @@ function LevelList({ total, avg, lastMonth }) {
                 }}
             >
                 Scale pay steps up {money(3.16)} per level, every 600 OJT hours.
-                Your level updates automatically as admin-approved hours cross
-                each threshold.
+                The union doesn't process the official level change (and pay
+                bump) the moment you cross a threshold — it usually lands a
+                few days after you turn in that OJT slip. Turning in a pay
+                stub that proves you hit the hours can get it processed early.
             </div>
         </div>
     );
