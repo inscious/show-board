@@ -9,7 +9,7 @@
    exclusive to this tab's monthly chart, confirmed via grep before moving. */
 import { useContext, useMemo } from "react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { Ban, Bell, Building2, CalendarDays, ChevronRight, GraduationCap, Hammer, Lock, Phone, ShieldAlert, X } from "lucide-react";
+import { Ban, Bell, Building2, CalendarDays, ChevronRight, GraduationCap, Hammer, Info, Lock, Phone, ShieldAlert, X } from "lucide-react";
 import {
     BOOKED,
     C,
@@ -44,6 +44,7 @@ import {
     mMed,
     mParse,
     mShort,
+    myCompanyTokens,
     nextDates,
     num,
     ojtDue,
@@ -278,6 +279,7 @@ export function HomeTab({
     const { companies } = useContext(DirectoryContext);
     const today = todayMid();
     const roll = useMemo(() => rollupEntries(entries), [entries]);
+    const mine = useMemo(() => myCompanyTokens(entries), [entries]);
     const mk = mKey(today.getFullYear(), today.getMonth());
     const m = roll[mk] || {
         a: 0,
@@ -528,7 +530,7 @@ export function HomeTab({
                             fontFamily: FM,
                             fontSize: 10.5,
                             fontWeight: 800,
-                            color: isMine(s.co) ? C.brand : C.gc,
+                            color: isMine(s.co, mine) ? C.brand : C.gc,
                         }}
                     >
                         {gc?.name || (s.co || "TBD").toUpperCase()}
@@ -1046,6 +1048,29 @@ export function HomeTab({
                         )}
                     </div>
                 </div>
+                {/* right next to the OT/DT numbers it explains, not buried
+                    below the monthly grid where it's easy to never see —
+                    that's where this note used to live. */}
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 6,
+                        marginTop: 10,
+                        paddingTop: 10,
+                        borderTop: "1px solid " + C.line,
+                        fontSize: 10.5,
+                        color: C.mid,
+                        lineHeight: 1.5,
+                    }}
+                >
+                    <Info size={12} color={C.gc} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <div>
+                        A flat hours entry (no clock in/out) assumes a standard {fmtClock(PAY.stStart)} start.
+                        Clocked in before {fmtClock(PAY.stStart)} or out after {fmtClock(PAY.otEnd)}? Use the time
+                        fields on the day sheet instead, or this OT/DT split — and the gross above — will be off.
+                    </div>
+                </div>
             </div>
 
             <MonthlyHoursChart series={monthlySeries} />
@@ -1246,13 +1271,6 @@ export function HomeTab({
                 />
             </div>
 
-            <div className="dspan" style={{ fontSize: 10.5, color: C.lo, lineHeight: 1.5, padding: "0 2px" }}>
-                Gross figures are only as accurate as how a day was logged.
-                Weekends and holidays are caught either way, but a flat hours
-                entry (no clock in/out) assumes a standard {fmtClock(PAY.stStart)} start —
-                if you actually clocked in before {fmtClock(PAY.stStart)} or out after {fmtClock(PAY.otEnd)},
-                use the time fields on the day sheet to get the real DT/OT.
-            </div>
 
             {/* OJT status — urgent styling covers both "never turned in" (late)
                 and "turned in, bounced back" (rejected), since both need the

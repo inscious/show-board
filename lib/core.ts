@@ -31,8 +31,12 @@ export const YEAR = 2026;
 export const RSI_REQUIRED = 10;
 export const UNION_LINE = "6262968075";
 export const UNION_LINE_PRETTY = "(626) 296-8075";
-export const MY_COMPANIES = ["EAGLE", "WILLWORK"];
-export const DEFAULT_PINS = ["Eagle Management Group", "Willwork Inc."];
+/* no shared default — which I&D houses call an apprentice is entirely
+   personal, so a brand-new account starts with nothing pinned and nothing
+   highlighted as "mine" rather than guessing at one specific apprentice's
+   shops (see myCompanyTokens() below for how "mine" actually gets decided
+   per apprentice, from their own logged hours). */
+export const DEFAULT_PINS: string[] = [];
 
 import { Hammer, Target, Ban } from "lucide-react";
 import type { ComponentType } from "react";
@@ -449,9 +453,30 @@ export function detectRegion(loc: string | null | undefined): string {
         return "PS";
     return "OTHER";
 }
-export function isMine(co: string | null | undefined): boolean {
+/* distinct company "tokens" this apprentice has actually logged hours for —
+   e.g. "Willwork Inc." -> "WILLWORK" — so isMine() below reflects whoever's
+   actually calling THIS apprentice, not one specific person's shops. Only
+   keeps tokens long enough (4+ chars) to be a meaningful match, not "LLC"/
+   generic filler words. */
+export function myCompanyTokens(
+    entries: EntriesByDay | null | undefined,
+): string[] {
+    const seen = new Set<string>();
+    Object.values(entries || {}).forEach((day) => {
+        (day || []).forEach((e) => {
+            const word = (e.co || "").trim().split(/\s+/)[0]?.toUpperCase();
+            if (word && word.length >= 4) seen.add(word);
+        });
+    });
+    return [...seen];
+}
+export function isMine(
+    co: string | null | undefined,
+    myCompanies?: string[],
+): boolean {
     const u = (co || "").toUpperCase();
-    return MY_COMPANIES.some((m) => u.indexOf(m) !== -1);
+    const list = myCompanies && myCompanies.length ? myCompanies : [];
+    return list.some((m) => u.indexOf(m) !== -1);
 }
 
 /* map a schedule "COMPANY" token to a directory entry (general contractor lookup) */

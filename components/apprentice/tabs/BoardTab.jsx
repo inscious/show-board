@@ -121,6 +121,7 @@ function Card({
     onSchedule,
     logged,
     books,
+    myCompanies,
 }) {
     const { companies } = useContext(DirectoryContext);
     const past = isPast(show);
@@ -377,7 +378,7 @@ function Card({
 
                     {(() => {
                         const gc = matchCo(show.co, show.region, companies);
-                        const mine = isMine(show.co);
+                        const mine = isMine(show.co, myCompanies);
                         return (
                             <div style={{ marginTop: 12 }}>
                                 <div
@@ -1350,6 +1351,7 @@ export function BoardTab({
                                                             booksByShow[s.id] ||
                                                             []
                                                         }
+                                                        myCompanies={mine}
                                                         onSchedule={(b) => {
                                                             const sp =
                                                                 showSpan(s);
