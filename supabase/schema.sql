@@ -113,6 +113,7 @@ create table bookings (
   dates     date[] not null,
   day_notes jsonb not null default '{}'::jsonb  -- { "YYYY-MM-DD": "start time, gate, booth..." }, overrides `note` for one date
 );
+create index on bookings (user_id);
 
 -- union classes: mandatory, unpaid, scheduled per apprentice. Admin-assigned
 -- only — apprentices can view but not add/edit/delete (see RLS below).
@@ -126,6 +127,7 @@ create table classes (
   dates        date[] not null,
   missed_dates date[] not null default '{}'  -- subset of `dates` the admin marked absent; revert by removing
 );
+create index on classes (user_id);
 
 -- one row per company per day. two shops in a day = two rows.
 -- hours split between categories, they never stack.
@@ -207,6 +209,7 @@ create table notifications (
   message    text not null,
   created_at timestamptz default now()
 );
+create index on notifications (user_id, created_at);
 
 -- ============================================================================
 -- Rate limiting. One table, one function, used by every mutating API route.
