@@ -422,6 +422,11 @@ begin
   if auth.uid() is not null and not is_admin_user() then
     if TG_OP = 'INSERT' then
       new.status := 'pending';
+    elsif old.status = 'rejected' then
+      -- a resubmit after a decline always goes back to pending, even with
+      -- identical numbers — declined is never a status a plain resave should
+      -- leave you stuck in.
+      new.status := 'pending';
     elsif (new.cat_a, new.cat_b, new.cat_c, new.cat_d) is distinct from (old.cat_a, old.cat_b, old.cat_c, old.cat_d) then
       new.status := 'pending';
     else

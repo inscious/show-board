@@ -1484,6 +1484,7 @@ function DaySheet({
     const [tout, setTout] = useState(PAY.stEnd);
     const [brk, setBrk] = useState(0);
     const [touched, setTouched] = useState(false);
+    const [justSaved, setJustSaved] = useState(false);
 
     const booked = bookingOn(bookings, dayKey);
     const klass = classOn(classes, dayKey);
@@ -1578,6 +1579,11 @@ function DaySheet({
                 ? { ...base, hrs: r1(clock), in: inM, out: outM, brk: num(brk) }
                 : { ...base, hrs: num(hrs) };
         onSave(dayKey, row);
+        // local-first save is already committed to state by the time onSave
+        // returns (see saveEntry in the App component) — this is just
+        // reassurance that it landed, not a wait-for-server confirmation.
+        setJustSaved(co + " · " + hrsFmt(r1(clock)) + "h");
+        setTimeout(() => setJustSaved(false), 1800);
         reset();
     };
     const startEdit = (e) => {
@@ -2951,6 +2957,27 @@ function DaySheet({
                                 Still need a {missing.join(" and a ")} before
                                 this saves.
                             </span>
+                        </div>
+                    )}
+
+                    {justSaved && (
+                        <div
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 7,
+                                marginTop: 14,
+                                padding: "9px 12px",
+                                borderRadius: 9,
+                                background: "rgba(47,176,122,0.12)",
+                                border: "1px solid rgba(47,176,122,0.4)",
+                                color: C.working,
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                            }}
+                        >
+                            <Check size={14} style={{ flexShrink: 0 }} />
+                            Saved — {justSaved}
                         </div>
                     )}
 
@@ -6730,6 +6757,15 @@ function OjtTab({
                 .sort((a, b) => (a.m < b.m ? -1 : 1)),
         [months],
     );
+    // rejected months would otherwise vanish — not pending, not approved,
+    // never shown anywhere — leaving no way back in to fix and resubmit.
+    const rejectedMonths = useMemo(
+        () =>
+            months
+                .filter((mo) => mo.status === "rejected")
+                .sort((a, b) => (a.m < b.m ? -1 : 1)),
+        [months],
+    );
     const rows = useMemo(() => ojtRows(approvedMonths), [approvedMonths]);
     const t = useMemo(() => ojtTotals(approvedMonths), [approvedMonths]);
     const roll = useMemo(() => rollupEntries(entries), [entries]);
@@ -7356,6 +7392,106 @@ function OjtTab({
                         >
                             Not counted in your total yet — once your admin
                             approves it, it rolls in.
+                        </div>
+                    </div>
+                )}
+
+                {rejectedMonths.length > 0 && (
+                    <div
+                        style={{
+                            background: "rgba(232,146,124,0.09)",
+                            border: "1px solid " + C.danger + "66",
+                            borderRadius: 12,
+                            padding: "16px 17px",
+                            boxShadow: SHADOW,
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: 10,
+                                letterSpacing: 0.6,
+                                color: C.danger,
+                                fontFamily: FM,
+                                marginBottom: 8,
+                            }}
+                        >
+                            DECLINED — FIX & RESUBMIT
+                        </div>
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 6,
+                            }}
+                        >
+                            {rejectedMonths.map((mo) => (
+                                <button
+                                    key={mo.m}
+                                    className="foc"
+                                    onClick={() => onEditMonth(mo)}
+                                    style={{
+                                        width: "100%",
+                                        textAlign: "left",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 9,
+                                        background: C.sunk,
+                                        border: "1px solid " + C.danger + "55",
+                                        borderRadius: 9,
+                                        padding: "10px 11px",
+                                    }}
+                                >
+                                    <div style={{ minWidth: 0, flex: 1 }}>
+                                        <div
+                                            style={{
+                                                fontFamily: FM,
+                                                fontSize: 12.5,
+                                                fontWeight: 800,
+                                                color: C.hi,
+                                            }}
+                                        >
+                                            {mMed(mo.m)}
+                                        </div>
+                                        <div
+                                            style={{
+                                                fontFamily: FM,
+                                                fontSize: 10.5,
+                                                color: C.mid,
+                                                marginTop: 2,
+                                            }}
+                                        >
+                                            A {hrsFmt(mo.a)} · B {hrsFmt(mo.b)}{" "}
+                                            · C {hrsFmt(mo.c)} · D{" "}
+                                            {hrsFmt(mo.d)}
+                                        </div>
+                                    </div>
+                                    <span
+                                        style={{
+                                            flexShrink: 0,
+                                            fontFamily: FM,
+                                            fontSize: 9,
+                                            fontWeight: 800,
+                                            color: C.danger,
+                                            border: "1px solid " + C.danger + "55",
+                                            borderRadius: 5,
+                                            padding: "2px 5px",
+                                        }}
+                                    >
+                                        DECLINED
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                        <div
+                            style={{
+                                fontSize: 10.5,
+                                color: C.lo,
+                                marginTop: 9,
+                                lineHeight: 1.5,
+                            }}
+                        >
+                            Tap a month to check the hours and resubmit — it
+                            goes back to your admin for another look.
                         </div>
                     </div>
                 )}
@@ -11750,27 +11886,29 @@ export default function App() {
                             </>
                         ) : tab === "board" ? null : tab === "ojt" ? (
                             <>
-                                <button
-                                    className="foc"
-                                    onClick={() => setModal({ type: "month" })}
-                                    style={{
-                                        flex: 1,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        gap: 7,
-                                        padding: "13px",
-                                        borderRadius: 12,
-                                        background: C.panel,
-                                        color: C.hi,
-                                        border: "1px solid " + C.edge,
-                                        fontWeight: 700,
-                                        fontSize: 14,
-                                        boxShadow: SHADOW,
-                                    }}
-                                >
-                                    <Plus size={17} /> Add month
-                                </button>
+                                {!OJT_IMPORT_ENABLED && (
+                                    <button
+                                        className="foc"
+                                        onClick={() => setModal({ type: "month" })}
+                                        style={{
+                                            flex: 1,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            gap: 7,
+                                            padding: "13px",
+                                            borderRadius: 12,
+                                            background: C.panel,
+                                            color: C.hi,
+                                            border: "1px solid " + C.edge,
+                                            fontWeight: 700,
+                                            fontSize: 14,
+                                            boxShadow: SHADOW,
+                                        }}
+                                    >
+                                        <Plus size={17} /> Add month
+                                    </button>
+                                )}
                                 {OJT_IMPORT_ENABLED && (
                                     <button
                                         className="foc"

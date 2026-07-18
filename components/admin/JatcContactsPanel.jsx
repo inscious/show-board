@@ -8,8 +8,10 @@ import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM } from "@/lib/core";
 import { Modal, ConfirmModal, Avatar, req } from "@/components/admin/shared";
 
-function JatcContactForm({ onSaved, onClose }) {
-  const [form, setForm] = useState({ name: "", tel: "", ext: "", email: "", sms: "" });
+function JatcContactForm({ onSaved, onClose, initial }) {
+  const [form, setForm] = useState(() => initial
+    ? { name: initial.name || "", tel: initial.tel || "", ext: initial.ext || "", email: initial.email || "", sms: initial.sms || "" }
+    : { name: "", tel: "", ext: "", email: "", sms: "" });
   const [state, setState] = useState("idle");
   const [msg, setMsg] = useState("");
   const fieldStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14 };
@@ -20,7 +22,7 @@ function JatcContactForm({ onSaved, onClose }) {
     setState("saving");
     setMsg("");
     try {
-      await req("POST", "/api/admin/jatc-contacts", { ...form, id: "jc" + Date.now().toString(36) });
+      await req("POST", "/api/admin/jatc-contacts", { ...form, id: initial?.id || "jc" + Date.now().toString(36) });
       setState("done");
       onSaved();
       setTimeout(onClose, 900);
@@ -53,7 +55,7 @@ function JatcContactForm({ onSaved, onClose }) {
         style={{ ...fieldStyle, width: "100%", marginBottom: 14 }} />
       <button type="submit" disabled={state === "saving"}
         style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
-        {state === "saving" ? "Saving…" : state === "done" ? "Saved" : "Save contact"}
+        {state === "saving" ? "Saving…" : state === "done" ? "Saved" : initial ? "Save changes" : "Save contact"}
       </button>
       {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
     </form>
@@ -63,6 +65,7 @@ function JatcContactForm({ onSaved, onClose }) {
 export function JatcContactsPanel() {
   const [rows, setRows] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState(null);
   const [removing, setRemoving] = useState(null); // contact row, or null
 
   const load = async () => {
@@ -76,19 +79,24 @@ export function JatcContactsPanel() {
     await req("DELETE", "/api/admin/jatc-contacts", { id });
     load();
   };
+  const openAdd = () => { setEditingRow(null); setFormOpen(true); };
+  const openEdit = (row) => { setEditingRow(row); setFormOpen(true); };
 
   return (
     <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", marginBottom: 9 }}>
         <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>JATC OFFICE CONTACTS{rows ? " — " + rows.length : ""}</div>
-        <button className="foc" onClick={() => setFormOpen(true)} style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.gc, fontSize: 11.5, fontWeight: 700, padding: 0 }}>+ Add</button>
+        <button className="foc" onClick={openAdd} style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.gc, fontSize: 11.5, fontWeight: 700, padding: 0 }}>+ Add</button>
       </div>
       {rows === null ? (
         <div className="skeleton" style={{ height: 60 }} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           {rows.map((c) => (
-            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+            <div key={c.id} className="foc" role="button" tabIndex={0}
+              onClick={() => openEdit(c)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openEdit(c); } }}
+              style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 9, background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
               <Avatar name={c.name} email={c.email} size={30} />
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{c.name}</div>
@@ -96,15 +104,15 @@ export function JatcContactsPanel() {
                   {[c.tel && c.ext ? c.tel + " ext " + c.ext : c.tel, c.email, c.sms ? "sms " + c.sms : null].filter(Boolean).join(" · ") || "no details on file"}
                 </div>
               </div>
-              <button className="foc icon-btn" onClick={() => setRemoving(c)} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+              <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); setRemoving(c); }} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
             </div>
           ))}
           {rows.length === 0 && <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file yet.</div>}
         </div>
       )}
       {formOpen && (
-        <Modal title="Add JATC contact" onClose={() => setFormOpen(false)}>
-          <JatcContactForm onSaved={load} onClose={() => setFormOpen(false)} />
+        <Modal title={editingRow ? "Edit JATC contact" : "Add JATC contact"} onClose={() => setFormOpen(false)}>
+          <JatcContactForm initial={editingRow} onSaved={load} onClose={() => setFormOpen(false)} />
         </Modal>
       )}
       {removing && (

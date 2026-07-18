@@ -1,5 +1,6 @@
 import { guardedRoute } from "@/lib/apiGuard";
 import { adminOjtMonthSchema, adminOjtMonthDeleteSchema, adminOjtStatusSchema } from "@/lib/schemas";
+import { mMed } from "@/lib/core";
 
 /* admin correcting or backfilling an apprentice's on-file OJT month —
    lands pre-approved since the admin is the authority here, not the
@@ -30,6 +31,18 @@ export async function PATCH(request) {
   return guardedRoute(request, "admin:ojt-months:status", { schema: adminOjtStatusSchema, requireAdmin: true }, async ({ supabase, data }) => {
     const { error } = await supabase.from("ojt_months").update({ status: data.status }).eq("month", data.m).eq("user_id", data.userId);
     if (error) return Response.json({ error: "Could not update" }, { status: 400 });
+
+    // let the apprentice know either way — a rejection especially, since
+    // that's the signal to fix and resubmit, not just a silent drop.
+    if (data.status === "approved" || data.status === "rejected") {
+      const message = data.status === "approved"
+        ? mMed(data.m) + " OJT approved — it now counts toward your total."
+        : mMed(data.m) + " OJT was declined by your admin — check the hours and resubmit.";
+      await supabase.from("notifications").insert({
+        id: "noj" + Date.now().toString(36), user_id: data.userId, type: "ojt", message,
+      });
+    }
+
     return Response.json({ ok: true });
   });
 }

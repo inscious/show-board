@@ -17,7 +17,10 @@ export async function POST(request) {
     const unchanged = existing
       && Number(existing.cat_a) === data.a && Number(existing.cat_b) === data.b
       && Number(existing.cat_c) === data.c && Number(existing.cat_d) === data.d;
-    const status = unchanged ? existing.status : "pending";
+    // a resubmit after a decline always goes back to pending, even with the
+    // same numbers — "unchanged" only means "don't undo an approval," not
+    // "leave a declined month stuck declined forever."
+    const status = unchanged && existing.status !== "rejected" ? existing.status : "pending";
 
     const { error } = await supabase.from("ojt_months").upsert({
       user_id: user.id,

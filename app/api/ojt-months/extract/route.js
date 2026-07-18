@@ -11,7 +11,7 @@ import { CATS_META } from "@/lib/core";
    Files are read into memory for this one request and never written to
    storage or disk — nothing to clean up, nothing extra retained. */
 
-const MAX_FILES = 4;
+const MAX_FILES = 10;
 const MAX_BYTES = 8_000_000; // 8MB/file — a phone photo or a scanned PDF page
 const ALLOWED = { "application/pdf": true, "image/jpeg": true, "image/png": true, "image/webp": true };
 

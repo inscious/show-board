@@ -25,6 +25,9 @@ export async function POST(request) {
       const unchanged = existing
         && Number(existing.cat_a) === r.a && Number(existing.cat_b) === r.b
         && Number(existing.cat_c) === r.c && Number(existing.cat_d) === r.d;
+      // same as the single-month route: a declined month always goes back
+      // to pending on resubmit, even with identical numbers.
+      const status = unchanged && existing.status !== "rejected" ? existing.status : "pending";
       return {
         user_id: user.id,
         month: r.m,
@@ -32,7 +35,7 @@ export async function POST(request) {
         cat_b: r.b,
         cat_c: r.c,
         cat_d: r.d,
-        status: unchanged ? existing.status : "pending",
+        status,
       };
     });
 

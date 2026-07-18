@@ -13,21 +13,30 @@
    one request — nothing is stored, nothing to clean up. */
 import { useState } from "react";
 import { Upload, Trash2, TriangleAlert, Plus } from "lucide-react";
-import { C, SHADOW, FM, CATS_META, num } from "@/lib/core";
+import { C, SHADOW, FM, CATS_META, num, mAdd, mKey, mMed, todayMid } from "@/lib/core";
 
 const fieldStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13.5 };
 
+function monthOptions() {
+  const t = todayMid();
+  const nowKey = mKey(t.getFullYear(), t.getMonth());
+  const out = [];
+  for (let i = 0; i < 36; i++) out.push(mAdd(nowKey, -i));
+  return out;
+}
+
 export function OjtImportFlow({ onSubmit, onCancel }) {
   const [files, setFiles] = useState([]);
-  const [state, setState] = useState("pick"); // pick | scanning | review | submitting | error
+  const [state, setState] = useState("pick"); // pick | scanning | review | submitting | manual | error
   const [msg, setMsg] = useState("");
   const [rows, setRows] = useState([]); // [{ id, m, a, b, c, d, confidence }]
+  const [manual, setManual] = useState({ m: monthOptions()[1] || "", a: "", b: "", c: "", d: "" });
 
   const pickFiles = (e) => {
     const chosen = Array.from(e.target.files || []);
     if (chosen.length === 0) return;
-    if (chosen.length > 4) {
-      setMsg("Pick at most 4 files at a time — you can always run this again for the rest.");
+    if (chosen.length > 10) {
+      setMsg("Pick at most 10 files at a time — you can always run this again for the rest.");
       return;
     }
     setFiles(chosen);
@@ -73,6 +82,49 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
       setMsg("Couldn't save — try again.");
     }
   };
+
+  const submitManual = async () => {
+    if (!manual.m) return;
+    setMsg("");
+    try {
+      await onSubmit([{ m: manual.m, a: num(manual.a), b: num(manual.b), c: num(manual.c), d: num(manual.d) }]);
+    } catch {
+      setMsg("Couldn't save — try again.");
+    }
+  };
+
+  if (state === "manual") {
+    return (
+      <div>
+        <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>MONTH</div>
+        <select value={manual.m} onChange={(e) => setManual((f) => ({ ...f, m: e.target.value }))}
+          style={{ ...fieldStyle, width: "100%", marginBottom: 12 }}>
+          {monthOptions().map((k) => <option key={k} value={k}>{mMed(k)}</option>)}
+        </select>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+          {(["a", "b", "c", "d"]).map((k) => (
+            <div key={k}>
+              <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>
+                {k.toUpperCase()} · {CATS_META[k.toUpperCase()].name}
+              </div>
+              <input type="number" min="0" step="0.5" value={manual[k]} onChange={(e) => setManual((f) => ({ ...f, [k]: e.target.value }))}
+                placeholder="0" style={{ ...fieldStyle, width: "100%" }} />
+            </div>
+          ))}
+        </div>
+        {msg && <div style={{ marginBottom: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={() => setState("pick")} style={{ flex: 1, padding: "11px", borderRadius: 9, background: "transparent", border: "1px solid " + C.line, color: C.mid, fontWeight: 700, fontSize: 13.5 }}>
+            Back
+          </button>
+          <button type="button" onClick={submitManual} disabled={!manual.m}
+            style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 13.5 }}>
+            <Plus size={15} /> Add month
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (state === "review") {
     return (
@@ -128,7 +180,7 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
   return (
     <div>
       <div style={{ fontSize: 12.5, color: C.mid, lineHeight: 1.5, marginBottom: 14 }}>
-        Photos or PDFs of your old OJT slips — up to 4 at a time. You'll review every number before anything is submitted.
+        Photos or PDFs of your old OJT slips — up to 10 at a time. You'll review every number before anything is submitted.
       </div>
       <label style={{
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
@@ -159,6 +211,10 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
           <Plus size={15} /> {state === "scanning" ? "Scanning…" : "Scan for hours"}
         </button>
       </div>
+      <button type="button" onClick={() => setState("manual")}
+        style={{ width: "100%", marginTop: 14, background: "transparent", border: "none", color: C.gc, fontSize: 12.5, fontWeight: 700, padding: 0 }}>
+        No slip handy? Type a month in manually
+      </button>
     </div>
   );
 }
