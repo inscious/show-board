@@ -6700,6 +6700,7 @@ function OjtTab({
     profile,
     onPasswordSet,
     certs,
+    completedClasses,
     pwIntent,
     onPwIntentConsumed,
 }) {
@@ -8152,7 +8153,7 @@ function OjtTab({
             </Fold>
 
             <Fold icon={GraduationCap} title="Class curriculum" color={KLASS}>
-                <ClassCurriculum />
+                <ClassCurriculum completed={new Set(completedClasses)} />
             </Fold>
 
             <button
@@ -10558,6 +10559,7 @@ export default function App() {
     });
     const [doNotHire, setDoNotHire] = useState({ on: false, reason: "", since: null });
     const [certs, setCerts] = useState([]);
+    const [completedClasses, setCompletedClasses] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [companies, setCompanies] = useState([]);
     const [jatcContacts, setJatcContacts] = useState([]);
@@ -10622,6 +10624,7 @@ export default function App() {
                     : { on: false, reason: "", since: null },
             );
             setCerts(data && Array.isArray(data.certs) ? data.certs : []);
+            setCompletedClasses(data && Array.isArray(data.completedClasses) ? data.completedClasses : []);
             setNotifications(
                 data && Array.isArray(data.notifications)
                     ? data.notifications
@@ -11297,6 +11300,7 @@ export default function App() {
                         isAdmin={isAdmin}
                         profile={profile}
                         certs={certs}
+                        completedClasses={completedClasses}
                         onPasswordSet={() => setHasPassword(true)}
                         pwIntent={pwIntent}
                         onPwIntentConsumed={() => setPwIntent(false)}

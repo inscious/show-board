@@ -169,6 +169,9 @@ export const adminClassAttendanceSchema = z.object({ userId, id, missedDates: z.
 export const adminCertSchema = z.object({ userId, id, name: z.string().trim().min(1).max(200), exp: dateStr });
 export const adminCertDeleteSchema = z.object({ userId, id });
 
+export const adminCompletedClassSchema = z.object({ userId, courseId: z.number().int().positive(), completedOn: dateStr.optional().nullable() });
+export const adminCompletedClassDeleteSchema = z.object({ userId, courseId: z.number().int().positive() });
+
 export const notificationDeleteSchema = z.object({ id: z.union([id, z.literal("all")]) });
 
 /* -------- inferred types --------

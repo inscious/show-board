@@ -82,6 +82,7 @@ export type Blob = {
   bookings: Booking[];
   classes: Klass[];
   certs?: Array<{ id: string; n: string; exp: string }>;
+  completedClasses?: number[];
   notifications?: Array<{ id: string; type: string; message: string; at: string }>;
   companies?: Company[];
   jatcContacts?: Array<{ n: string; tel: string; ext: string; email: string; sms: string }>;
@@ -362,7 +363,7 @@ export const store = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return cachedData;
 
-      const [profileRes, showsRes, flagsRes, entriesRes, ojtRes, bookingsRes, classesRes, ratesRes, pinsRes, certsRes, notifsRes, companiesRes, jatcRes] = await Promise.all([
+      const [profileRes, showsRes, flagsRes, entriesRes, ojtRes, bookingsRes, classesRes, ratesRes, pinsRes, certsRes, notifsRes, companiesRes, jatcRes, completedClassesRes] = await Promise.all([
         supabase.from("profiles").select("is_admin, has_password, custom_companies, name, member_id, ssn_last4, local, rsi_credits, joined_on, do_not_hire_at, do_not_hire_reason").eq("id", user.id).single(),
         supabase.from("shows").select("*"),
         supabase.from("show_flags").select("*").eq("user_id", user.id),
@@ -376,6 +377,7 @@ export const store = {
         supabase.from("notifications").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("companies").select("*"),
         supabase.from("jatc_contacts").select("*"),
+        supabase.from("completed_classes").select("course_id").eq("user_id", user.id),
       ]);
 
       const profile = profileRes.data as ProfileSelectRow | null;
@@ -391,6 +393,7 @@ export const store = {
       const notifRows = (notifsRes.data || []) as NotificationRow[];
       const companyRows = (companiesRes.data || []) as CompanyRow[];
       const jatcRows = (jatcRes.data || []) as JatcContactRow[];
+      const completedClassRows = (completedClassesRes.data || []) as { course_id: number }[];
 
       const flagById: Record<string, ShowFlagRow> = {};
       flagRows.forEach((f) => { flagById[f.show_id] = f; });
@@ -414,6 +417,7 @@ export const store = {
         bookings: bookingRows.map(bookingFromRow),
         classes: classRows.map(classFromRow),
         certs: certRows.map((c) => ({ id: c.id, n: c.name, exp: c.exp })),
+        completedClasses: completedClassRows.map((c) => c.course_id),
         notifications: notifRows.map((n) => ({ id: n.id, type: n.type, message: n.message, at: n.created_at })),
         // shared directory data — same shape the app has always used ({n, city, st, tel, fm})
         companies: companyRows.map((c) => ({ n: c.name, city: c.city || "", st: c.state || "", tel: c.labor_line || "", fm: c.foreman || "" })),

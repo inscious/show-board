@@ -187,6 +187,17 @@ create table certifications (
   exp     date not null
 );
 
+-- which classes off the static 61-class curriculum (JATC_CURRICULUM in
+-- lib/core.ts) an apprentice has actually completed, per the official JATC
+-- Student Progress Report. course_id matches JATC_CURRICULUM's courseId —
+-- admin-entered only, since apprentices don't self-report completion.
+create table completed_classes (
+  user_id      uuid not null references auth.users on delete cascade,
+  course_id    int not null,
+  completed_on date,
+  primary key (user_id, course_id)
+);
+
 -- one row per recipient per event (not a broadcast + read-join) — simplest
 -- correct thing for a handful of apprentices. Clearing = deleting your own row.
 create table notifications (
@@ -447,6 +458,12 @@ create policy "admin write" on classes for all using (is_admin_user()) with chec
 alter table certifications enable row level security;
 create policy "own rows" on certifications for select using (user_id = auth.uid());
 create policy "admin write" on certifications for all using (is_admin_user()) with check (is_admin_user());
+
+-- completed_classes: same shape as certifications — apprentice reads their
+-- own, only admin marks/unmarks completion.
+alter table completed_classes enable row level security;
+create policy "own rows" on completed_classes for select using (user_id = auth.uid());
+create policy "admin write" on completed_classes for all using (is_admin_user()) with check (is_admin_user());
 
 -- notifications: apprentice reads/deletes (clears) their own; admin creates
 -- them for anyone (assigning a class, adding/importing a show).

@@ -19,6 +19,7 @@ import { AuditLogPanel } from "@/components/admin/AuditLogPanel";
 import { CompanyDirectoryPanel } from "@/components/admin/CompanyDirectoryPanel";
 import { JatcContactsPanel } from "@/components/admin/JatcContactsPanel";
 import { PendingSignupsPanel } from "@/components/admin/PendingSignupsPanel";
+import { ClassCurriculum } from "@/components/ojt/ClassCurriculum";
 import { Avatar, Modal, ConfirmModal, req } from "@/components/admin/shared";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 
@@ -217,7 +218,7 @@ function AdminApprenticeCalendar({ entries, bookings, classes }) {
 }
 
 /* ---------- apprentice detail ---------- */
-function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs, shows, onAssignClass, onBack, onChanged }) {
+function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs, shows, completedClasses, onAssignClass, onBack, onChanged }) {
   const archived = !!apprentice.archived_at;
   const expiredCerts = useMemo(() => (certs || []).filter((c) => certState(c.exp).t === "EXPIRED"), [certs]);
 
@@ -421,6 +422,18 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
   const [confirmRemoveCert, setConfirmRemoveCert] = useState(null); // cert row, or null
   const [confirmRemoveMonth, setConfirmRemoveMonth] = useState(null); // month row, or null
   const [confirmRemoveAvatar, setConfirmRemoveAvatar] = useState(false);
+
+  // which curriculum classes are marked complete — off the apprentice's
+  // official JATC Student Progress Report, matched by courseId.
+  const completedSet = useMemo(() => new Set((completedClasses || []).map((c) => c.course_id)), [completedClasses]);
+  const toggleCompletedClass = async (courseId) => {
+    if (completedSet.has(courseId)) {
+      await req("DELETE", "/api/admin/completed-classes", { userId: apprentice.id, courseId });
+    } else {
+      await req("POST", "/api/admin/completed-classes", { userId: apprentice.id, courseId });
+    }
+    onChanged();
+  };
 
   const [detailTab, setDetailTab] = useState("overview");
 
@@ -745,6 +758,11 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
             })}
           </div>
         )}
+      </div>
+
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: KLASS, fontFamily: FM, marginBottom: 9 }}>CLASS CURRICULUM</div>
+        <ClassCurriculum completed={completedSet} onToggle={toggleCompletedClass} />
       </div>
 
       {certModal && (
@@ -2382,6 +2400,7 @@ export default function AdminBoard() {
   const [flagsByUser, setFlagsByUser] = useState({});
   const [classesByUser, setClassesByUser] = useState({});
   const [certsByUser, setCertsByUser] = useState({});
+  const [completedClassesByUser, setCompletedClassesByUser] = useState({});
   const [shows, setShows] = useState([]);
   const [tab, setTab] = useState("dashboard"); // dashboard | roster | schedule | settings
   const [selectedId, setSelectedId] = useState(null);
@@ -2398,7 +2417,7 @@ export default function AdminBoard() {
     // bookings/show_flags/classes each need their own "admin read"/"admin
     // write" RLS policy (see supabase/schema.sql) — until those are applied
     // they just come back empty and the relevant section quietly shows nothing.
-    const [profilesRes, monthsRes, showsRes, bookingsRes, flagsRes, classesRes, certsRes] = await Promise.all([
+    const [profilesRes, monthsRes, showsRes, bookingsRes, flagsRes, classesRes, certsRes, completedClassesRes] = await Promise.all([
       // a self-signed-up account with approved_at still null isn't real yet
       // (see PendingSignupsPanel) — excluded here so it can't clutter the
       // normal roster, Falling Behind, or Do Not Hire before it is.
@@ -2409,6 +2428,7 @@ export default function AdminBoard() {
       supabase.from("show_flags").select("*"),
       supabase.from("classes").select("*"),
       supabase.from("certifications").select("*"),
+      supabase.from("completed_classes").select("*"),
     ]);
     setApprentices(profilesRes.data || []);
     // normalize to the {m,a,b,c,d,status} shape lib/core.js's ojtTotals/etc.
@@ -2428,6 +2448,7 @@ export default function AdminBoard() {
       missedDates: c.missed_dates || [],
     }))));
     setCertsByUser(groupByUser(certsRes.data || []));
+    setCompletedClassesByUser(groupByUser(completedClassesRes.data || []));
     setShows((showsRes.data || []).map((r) => ({
       id: r.id, name: r.name, mi: r.move_in || "", start: r.starts_on || "", end: r.ends_on || "",
       loc: r.location || "", booth: r.booth || "", co: r.gc || "", region: r.region || "", src: r.source || "union",
@@ -2553,6 +2574,7 @@ export default function AdminBoard() {
             <ApprenticeDetail apprentice={selected} months={monthsByUser[selected.id] || []}
               bookings={bookingsByUser[selected.id] || []} flags={flagsByUser[selected.id] || []}
               classes={classesByUser[selected.id] || []} certs={certsByUser[selected.id] || []} shows={shows}
+              completedClasses={completedClassesByUser[selected.id] || []}
               onAssignClass={() => setClassModal([selected.id])}
               onBack={() => setSelectedId(null)} onChanged={load} />
           ) : (
