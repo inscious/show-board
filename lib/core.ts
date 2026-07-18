@@ -779,7 +779,7 @@ export const MON_FULL = [
 /* office address only — real names/numbers for the office staff are
    admin-managed in Supabase now (jatc_contacts), not committed here. */
 export const JATC = {
-    office: "11366 Markon Dr., Garden Grove, CA 92841",
+    office: "14930 Marquardt Ave, Santa Fe Springs, CA 90670",
 };
 
 /* Static reference content from the JATC Rules & Regulations packet —

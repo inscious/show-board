@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useContext } from "react";
 import dynamic from "next/dynamic";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { DirectoryContext } from "@/components/utils/DirectoryContext";
 import { Modal } from "@/components/ui/Modal";
 import { Stat } from "@/components/ui/Stat";
@@ -4026,7 +4027,20 @@ function NavBar({ tab, setTab, variant }) {
 
 /* ---------- main app ---------- */
 export default function App() {
-    const [tab, setTab] = useState("home");
+    // tab (and, on Board, which show is focused) live in the URL, not local
+    // state — that's what gives us back-button support and bookmarkable/
+    // deep-linkable tabs for free. router.push() (not replace) so every tab
+    // switch is a real history entry.
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const tab = searchParams.get("tab") || "home";
+    const setTab = (name) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", name);
+        params.delete("show");
+        router.push(`${pathname}?${params.toString()}`);
+    };
     // set by the "no password on file" nudge on Home so it can jump to the
     // OJT tab AND pop the Change Password modal open, not just switch tabs.
     const [pwIntent, setPwIntent] = useState(false);
@@ -4046,7 +4060,7 @@ export default function App() {
     );
     const [query, setQuery] = useState("");
     const [expandedId, setExpandedId] = useState(null);
-    const [boardFocusId, setBoardFocusId] = useState(null);
+    const focusedShowRef = useRef(null);
     const [modal, setModal] = useState(null);
     const [showDates, setShowDates] = useState(false);
     const [openMonths, setOpenMonths] = useState({});
@@ -4196,39 +4210,68 @@ export default function App() {
 
     /* switch tabs and, if a show id came along for the ride (tapping a show
        from the Home tab), land on the Board tab with that exact show already
-       expanded — boardFocusId is a one-shot signal separate from expandedId
-       so the scroll/filter-clearing effect below only fires on this kind of
-       cross-tab jump, never on an ordinary manual card toggle. */
+       expanded — the show id lives in the URL (?tab=board&show=<id>) so this
+       is also what makes a focused show bookmarkable/shareable, not just a
+       one-off in-app jump. */
     const goto = (tabName, showId, opts) => {
-        setTab(tabName);
-        if (showId) {
-            setExpandedId(showId);
-            setBoardFocusId(showId);
-        }
+        const params = new URLSearchParams(searchParams.toString());
+        params.set("tab", tabName);
+        if (showId) params.set("show", showId);
+        else params.delete("show");
+        router.push(`${pathname}?${params.toString()}`);
         if (opts?.openPassword) setPwIntent(true);
     };
 
+    // Runs whenever ?show=<id> changes (including a cold load straight into
+    // a deep link, before `shows` has even finished fetching — the `shows`
+    // dependency lets it wait and fire once the data lands). Sets expandedId
+    // here too (not in goto()) so a bookmarked/shared URL expands the right
+    // card on its own, without ever routing through goto(). focusedShowRef
+    // stops it from re-clearing filters every time `shows` changes for an
+    // unrelated reason (e.g. patch()) while the same show stays focused.
+    const focusShowId = searchParams.get("show");
     useEffect(() => {
-        if (!boardFocusId) return;
-        const target = shows.find((s) => s.id === boardFocusId);
-        if (target) {
-            setQuery("");
-            setRegionsOn(REGION_KEYS.reduce((a, r) => ((a[r] = true), a), {}));
-            const past = isPast(target);
-            setView(past ? "past" : "upcoming");
-            const mk = past
-                ? monthKey(target)
-                : Math.max(monthKey(target), monthKeyNow());
-            const label = mk === 999999 ? "SCHEDULED" : labelFromKey(mk);
-            setOpenMonths((prev) => ({ ...prev, [label]: true }));
-            requestAnimationFrame(() => {
-                document
-                    .getElementById("show-" + boardFocusId)
-                    ?.scrollIntoView({ behavior: "smooth", block: "center" });
-            });
+        if (!focusShowId) {
+            focusedShowRef.current = null;
+            return;
         }
-        setBoardFocusId(null);
-    }, [boardFocusId]);
+        if (focusedShowRef.current === focusShowId) return;
+        const target = shows.find((s) => s.id === focusShowId);
+        if (!target) return;
+        setExpandedId(focusShowId);
+        setQuery("");
+        setRegionsOn(REGION_KEYS.reduce((a, r) => ((a[r] = true), a), {}));
+        const past = isPast(target);
+        setView(past ? "past" : "upcoming");
+        const mk = past
+            ? monthKey(target)
+            : Math.max(monthKey(target), monthKeyNow());
+        const label = mk === 999999 ? "SCHEDULED" : labelFromKey(mk);
+        setOpenMonths((prev) => ({ ...prev, [label]: true }));
+        requestAnimationFrame(() => {
+            document
+                .getElementById("show-" + focusShowId)
+                ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+        focusedShowRef.current = focusShowId;
+    }, [focusShowId, shows]);
+
+    // bookmarkable "log today" entry point — a URL like /?action=log-today
+    // (e.g. saved to a phone home screen) opens straight to the day-log
+    // modal for today, then cleans the param off the URL via replace so it
+    // doesn't re-fire or clutter the address bar.
+    const actionParam = searchParams.get("action");
+    const handledActionRef = useRef(null);
+    useEffect(() => {
+        if (!actionParam || handledActionRef.current === actionParam) return;
+        handledActionRef.current = actionParam;
+        if (actionParam === "log-today") {
+            setModal({ type: "day", key: keyOf(todayMid()) });
+        }
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete("action");
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }, [actionParam]);
 
 
     const patch = (id, p) =>

@@ -639,6 +639,15 @@ export function HomeTab({
                     schedule: { icon: CalendarDays, color: C.gc },
                     ojt: { icon: GraduationCap, color: C.brand },
                 };
+                // where tapping a notification lands you — everything paperwork/
+                // class/status-related lives on OJT, schedule updates on Board.
+                const NOTE_TAB = {
+                    class: "ojt",
+                    dnh: "ojt",
+                    cert: "ojt",
+                    schedule: "board",
+                    ojt: "ojt",
+                };
                 const metaFor = (t) => NOTE_META[t] || { icon: Bell, color: C.gc };
                 return (
                     <div
@@ -702,9 +711,15 @@ export function HomeTab({
                                     const { icon: Ico, color: ntColor } = metaFor(n.type);
                                     const strong = n.type === "dnh";
                                     return (
-                                        <div
+                                        <button
                                             key={n.id}
+                                            className="foc"
+                                            onClick={() =>
+                                                onGoto(NOTE_TAB[n.type] || "ojt")
+                                            }
                                             style={{
+                                                width: "100%",
+                                                textAlign: "left",
                                                 display: "flex",
                                                 alignItems: "center",
                                                 gap: 9,
@@ -731,23 +746,23 @@ export function HomeTab({
                                             >
                                                 {n.message}
                                             </div>
-                                            <button
-                                                className="foc"
-                                                onClick={() =>
-                                                    onClearNotification(n.id)
-                                                }
+                                            <span
+                                                role="button"
                                                 aria-label="Dismiss"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onClearNotification(n.id);
+                                                }}
                                                 style={{
                                                     flexShrink: 0,
-                                                    background: "transparent",
-                                                    border: "none",
                                                     color: C.lo,
                                                     padding: 2,
+                                                    display: "flex",
                                                 }}
                                             >
                                                 <X size={14} />
-                                            </button>
-                                        </div>
+                                            </span>
+                                        </button>
                                     );
                                 })}
                             </div>
