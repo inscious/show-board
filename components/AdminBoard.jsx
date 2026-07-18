@@ -1018,6 +1018,45 @@ function NewApprenticeForm({ onCreated, onClose }) {
   );
 }
 
+/* ---------- shared checkbox-list-with-search apprentice picker — used by
+   every bulk-action form (assign class, add to class, bulk archive, bulk
+   do-not-hire). Search only shows once the list is long enough to need it;
+   at a handful of apprentices scanning by eye is faster than typing. ---------- */
+function ApprenticePicker({ apprentices, selected, onToggle, maxHeight = 260, selectedColor = C.brand, checkColor = "#1A1206" }) {
+  const [q, setQ] = useState("");
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return apprentices;
+    return apprentices.filter((a) =>
+      (a.name || "").toLowerCase().includes(s) || (a.email || "").toLowerCase().includes(s));
+  }, [apprentices, q]);
+
+  return (
+    <>
+      {apprentices.length > 6 && (
+        <div style={{ position: "relative", marginBottom: 8 }}>
+          <Search size={13} color={C.lo} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email…"
+            style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 8, padding: "8px 10px 8px 28px", color: C.hi, fontSize: 12.5, fontFamily: FS }} />
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, maxHeight, overflowY: "auto" }}>
+        {filtered.length === 0 ? (
+          <div style={{ fontSize: 12.5, color: C.lo, padding: "8px 2px" }}>No matches.</div>
+        ) : filtered.map((a) => (
+          <button key={a.id} type="button" onClick={() => onToggle(a.id)}
+            style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: C.sunk, border: "1px solid " + (selected.has(a.id) ? selectedColor + "88" : C.line), borderRadius: 8, padding: "8px 10px" }}>
+            <span style={{ width: 16, height: 16, borderRadius: 4, border: "1px solid " + C.line, background: selected.has(a.id) ? selectedColor : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              {selected.has(a.id) && <Check size={11} color={checkColor} />}
+            </span>
+            <span className="truncate" style={{ fontSize: 13, color: C.hi }}>{a.name || a.email}</span>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
 /* ---------- assign a class to one, several, or all apprentices ---------- */
 function AssignClassForm({ apprentices, preselected, onAssigned, onClose }) {
   const [selected, setSelected] = useState(() => new Set(preselected || []));
@@ -1071,17 +1110,7 @@ function AssignClassForm({ apprentices, preselected, onAssigned, onClose }) {
   return (
     <form onSubmit={submit}>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>APPRENTICES</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, maxHeight: 160, overflowY: "auto" }}>
-        {apprentices.map((a) => (
-          <button key={a.id} type="button" onClick={() => toggle(a.id)}
-            style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: C.sunk, border: "1px solid " + (selected.has(a.id) ? C.brand + "88" : C.line), borderRadius: 8, padding: "8px 10px" }}>
-            <span style={{ width: 16, height: 16, borderRadius: 4, border: "1px solid " + C.line, background: selected.has(a.id) ? C.brand : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              {selected.has(a.id) && <Check size={11} color="#1A1206" />}
-            </span>
-            <span className="truncate" style={{ fontSize: 13, color: C.hi }}>{a.name || a.email}</span>
-          </button>
-        ))}
-      </div>
+      <ApprenticePicker apprentices={apprentices} selected={selected} onToggle={toggle} maxHeight={160} />
 
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CLASS NAME</div>
       <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. #39–43 Double Decker"
@@ -1161,17 +1190,7 @@ function BulkDnhForm({ apprentices, onDone, onClose }) {
       ) : (
         <>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>APPRENTICES</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, maxHeight: 220, overflowY: "auto" }}>
-            {apprentices.map((a) => (
-              <button key={a.id} type="button" onClick={() => toggle(a.id)}
-                style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: C.sunk, border: "1px solid " + (selected.has(a.id) ? C.danger + "88" : C.line), borderRadius: 8, padding: "8px 10px" }}>
-                <span style={{ width: 16, height: 16, borderRadius: 4, border: "1px solid " + C.line, background: selected.has(a.id) ? C.danger : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {selected.has(a.id) && <Check size={11} color="#2A0E0A" />}
-                </span>
-                <span className="truncate" style={{ fontSize: 13, color: C.hi }}>{a.name || a.email}</span>
-              </button>
-            ))}
-          </div>
+          <ApprenticePicker apprentices={apprentices} selected={selected} onToggle={toggle} maxHeight={220} selectedColor={C.danger} checkColor="#2A0E0A" />
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>REASON (required, applies to everyone selected)</div>
           <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. OJT turned in late for June" rows={2}
             style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, fontFamily: FS, resize: "vertical", marginBottom: 14 }} />
@@ -1222,17 +1241,7 @@ function BulkArchiveForm({ apprentices, onDone, onClose }) {
       ) : (
         <>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>APPRENTICES</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, maxHeight: 260, overflowY: "auto" }}>
-            {apprentices.map((a) => (
-              <button key={a.id} type="button" onClick={() => toggle(a.id)}
-                style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: C.sunk, border: "1px solid " + (selected.has(a.id) ? C.brand + "88" : C.line), borderRadius: 8, padding: "8px 10px" }}>
-                <span style={{ width: 16, height: 16, borderRadius: 4, border: "1px solid " + C.line, background: selected.has(a.id) ? C.brand : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {selected.has(a.id) && <Check size={11} color="#1A1206" />}
-                </span>
-                <span className="truncate" style={{ fontSize: 13, color: C.hi }}>{a.name || a.email}</span>
-              </button>
-            ))}
-          </div>
+          <ApprenticePicker apprentices={apprentices} selected={selected} onToggle={toggle} maxHeight={260} />
           <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 14 }}>
             Everyone selected drops off the active roster — everything on file stays put, and each can be restored anytime from the archive.
           </div>
@@ -1712,17 +1721,7 @@ function AddToClassForm({ session, candidates, onAdded, onClose }) {
       ) : (
         <>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>APPRENTICES NOT YET IN THIS CLASS</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, maxHeight: 260, overflowY: "auto" }}>
-            {candidates.map((a) => (
-              <button key={a.id} type="button" onClick={() => toggle(a.id)}
-                style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: C.sunk, border: "1px solid " + (selected.has(a.id) ? C.brand + "88" : C.line), borderRadius: 8, padding: "8px 10px" }}>
-                <span style={{ width: 16, height: 16, borderRadius: 4, border: "1px solid " + C.line, background: selected.has(a.id) ? C.brand : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {selected.has(a.id) && <Check size={11} color="#1A1206" />}
-                </span>
-                <span className="truncate" style={{ fontSize: 13, color: C.hi }}>{a.name || a.email}</span>
-              </button>
-            ))}
-          </div>
+          <ApprenticePicker apprentices={candidates} selected={selected} onToggle={toggle} maxHeight={260} />
           <button type="submit" disabled={state === "saving"}
             style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
             {state === "saving" ? "Adding…" : state === "done" ? "Added" : "Add " + selected.size + " apprentice" + (selected.size === 1 ? "" : "s")}
