@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, HardHat, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, HardHat, Lock, Eye, EyeOff, ArrowLeft, UserPlus } from "lucide-react";
 import { C, SHADOW, FM, FS } from "@/lib/core";
 
 // same build-time flag app/signup/page.jsx checks — kept in sync so the
@@ -78,6 +78,13 @@ export default function LoginPage() {
     setMsg("");
   };
 
+  // the "check your email" screen used to be a dead end — nothing on it
+  // could get back to the form, only a hard refresh. This is that way back.
+  const backToForm = () => {
+    setState("idle");
+    setMsg("");
+  };
+
   return (
     <div className="login-shell" style={{
       minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
@@ -85,9 +92,10 @@ export default function LoginPage() {
       backgroundImage: `radial-gradient(560px 420px at 50% 18%, rgba(255,176,32,0.10), transparent 65%)`,
     }}>
       <style>{`
-        .login-shell input, .login-shell button { font-family: ${FS}; }
+        .login-shell input, .login-shell button, .login-shell a { font-family: ${FS}; }
         .login-shell .login-field:focus-within{ border-color: ${C.brand}99 !important; box-shadow: 0 0 0 3px rgba(255,176,32,0.12); }
         .login-shell .login-submit:hover:not(:disabled){ filter: brightness(1.08); }
+        .login-shell .login-signup-btn:hover{ background: ${C.brand}14 !important; border-color: ${C.brand} !important; }
         .login-shell .login-link:hover{ color: ${C.brand}; }
         .login-shell button{ transition: filter .12s, color .12s, box-shadow .15s, border-color .15s; }
       `}</style>
@@ -102,8 +110,14 @@ export default function LoginPage() {
         <div style={{ fontSize: 11.5, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 20 }}>IUPAT LOCAL 831</div>
 
         {state === "sent" ? (
-          <div style={{ fontSize: 13.5, color: C.hi, lineHeight: 1.5 }}>
-            Check <strong>{email.trim()}</strong> for a sign-in link. It expires shortly — request a new one if it's been a while.
+          <div>
+            <div style={{ fontSize: 13.5, color: C.hi, lineHeight: 1.5 }}>
+              Check <strong>{email.trim()}</strong> for a sign-in link. It expires shortly — request a new one if it's been a while.
+            </div>
+            <button className="login-link" type="button" onClick={backToForm}
+              style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 18, background: "transparent", border: "none", color: C.gc, fontSize: 12.5, fontWeight: 700, padding: 0 }}>
+              <ArrowLeft size={14} /> Back
+            </button>
           </div>
         ) : mode === "password" ? (
           <form onSubmit={submitPassword}>
@@ -150,10 +164,17 @@ export default function LoginPage() {
               Email me a sign-in link instead
             </button>
             {SIGNUP_ENABLED && (
-              <a className="login-link" href="/signup"
-                style={{ display: "block", textAlign: "center", width: "100%", marginTop: 10, background: "transparent", border: "none", color: C.lo, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-                New here? Create an account
-              </a>
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0 14px" }}>
+                  <span style={{ flex: 1, height: 1, background: C.line }} />
+                  <span style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>NEW APPRENTICE</span>
+                  <span style={{ flex: 1, height: 1, background: C.line }} />
+                </div>
+                <a href="/signup" className="login-signup-btn foc"
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7, width: "100%", padding: "10px", borderRadius: 9, background: "transparent", border: "1px solid " + C.brand + "55", color: C.brand, fontSize: 13, fontWeight: 800, textDecoration: "none" }}>
+                  <UserPlus size={15} /> Create an account
+                </a>
+              </>
             )}
           </form>
         ) : (
