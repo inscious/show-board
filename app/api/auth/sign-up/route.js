@@ -10,11 +10,17 @@ import { checkRateLimit, clientIp } from "@/lib/rateLimit";
    validation here, no guardedRoute.
 
    Doesn't touch profiles directly: handle_new_user() (supabase/schema.sql)
-   reads name out of the signUp() metadata at row-creation time, since email
-   confirmation being required means there's no active session — and so no
-   RLS-scoped moment — right after this call returns. approved_at is left
-   null by that same trigger; that's the whole point of this account existing
-   in a not-yet-real state until an admin approves it. */
+   reads name out of the signUp() metadata at row-creation time instead.
+   approved_at is left null by that same trigger; that's the whole point of
+   this account existing in a not-yet-real state until an admin approves it.
+
+   Confirmed live (2026-07): this project's Supabase Auth has "Confirm
+   email" OFF, so signUp() returns an active session immediately — the
+   emailRedirectTo below and app/auth/callback/route.js exist for if that
+   ever gets turned on, but right now they're unused. app/signup/page.jsx
+   navigates straight to "/" after this call for that reason. If you flip
+   confirmation on in the Supabase dashboard, that page needs a "check your
+   email" step instead, or new signups will silently bounce to /login. */
 const MAX_BODY_BYTES = 2_000;
 const bodySchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
@@ -50,8 +56,10 @@ export async function POST(request) {
 
   // tighter than sign-in/request-link on purpose — this is the one
   // unauthenticated route that creates real, durable state (an account),
-  // not just sends an email.
-  const ok = await checkRateLimit(supabase, `auth:sign-up:${ip}`, 5, 60 * 60);
+  // not just sends an email. Still needs enough headroom for a group of
+  // apprentices signing up from the same union-hall/house wifi within the
+  // same hour, so this isn't per-person.
+  const ok = await checkRateLimit(supabase, `auth:sign-up:${ip}`, 15, 60 * 60);
   if (!ok) {
     return Response.json({ error: "Too many attempts. Try again later." }, { status: 429 });
   }

@@ -15,7 +15,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
-  const [state, setState] = useState("idle"); // idle | sending | sent | error
+  const [state, setState] = useState("idle"); // idle | sending | error
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
@@ -50,10 +50,13 @@ export default function SignupPage() {
         setMsg(body.error || "Couldn't create that account.");
         return;
       }
-      // no email confirmation step — signUp() already returned an active
-      // session, the route's cookie-backed client set it on this response.
-      // Full navigation (not client-side) so middleware re-reads it and
-      // routes to /pending.
+      // Confirmed live: this Supabase project has email confirmation OFF,
+      // so signUp() already returned an active session — the route's
+      // cookie-backed client set it on this response. Full navigation
+      // (not client-side) so middleware re-reads it and routes to
+      // /pending. (If that ever changes in the Supabase dashboard, this
+      // will start silently bouncing to /login instead — the fix then is
+      // a "check your email" step here, not this comment.)
       window.location.href = "/";
     } catch {
       setState("error");
