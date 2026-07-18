@@ -781,6 +781,249 @@ export const MON_FULL = [
 export const JATC = {
     office: "11366 Markon Dr., Garden Grove, CA 92841",
 };
+
+/* Static reference content from the JATC Rules & Regulations packet —
+   program rules, not per-apprentice data, so this lives here the same way
+   CATS_META/LEVELS do rather than in Supabase. No real staff names or
+   direct phone numbers are stored here on purpose (see jatc_contacts,
+   surfaced via DirectoryContext) — the DAS line/address is a public state
+   agency, not a person, so it's fine to include. */
+export type JatcRuleSection = { id: string; title: string; points: string[] };
+export const JATC_RULES: JatcRuleSection[] = [
+    {
+        id: "program",
+        title: "Program structure",
+        points: [
+            "3-year apprenticeship — 3,600 total OJT hours, 480 total RSI hours.",
+            "The JATC may change program content or term at its sole discretion, without notice.",
+        ],
+    },
+    {
+        id: "probation",
+        title: "Probationary period",
+        points: [
+            "The first 6 months and the first 600 OJT hours both count as probation.",
+            "During probation: the full Tool Checklist, OJT hour targets, and related-instruction attendance are all required.",
+            "Falling short during probation can cancel the Apprentice Agreement with no formal hearing and no right of appeal — those protections only start once probation is complete.",
+        ],
+    },
+    {
+        id: "wage",
+        title: "Wage advancement",
+        points: [
+            "A level increase needs all three: 600 OJT hours since the last increase, a satisfactory OJT performance rating, and 80 RSI hours completed at the current level.",
+            "Hours alone don't trigger an increase — RSI at that level is a separate gate. Meeting the hours without the RSI hours holds you at your current level.",
+        ],
+    },
+    {
+        id: "ojt-deadline",
+        title: "OJT slip deadlines & discipline",
+        points: [
+            "Due monthly, worked or not — by 4:00 PM on the 1st of the following month (the next workday if that date lands on a weekend/holiday).",
+            "Needs your employer's or supervisor's signature. Your own signature is accepted only if you were unemployed or on disability that month.",
+            "Email submissions need a confirmation reply back or they're marked late; slips can also be turned in at related-instruction classes. Handing the slip to your employer to sign doesn't end your responsibility to get it to the JATC office.",
+            "First offense: a warning letter is mailed — the delinquent slip is due within 1 week of that letter's date, or you risk being cited before the Committee.",
+            "Each additional offense: immediate placement on the Do Not Hire List. Once the slip is received you're eligible for work again starting that Friday, but you're still cited to the next JATC meeting — missing that meeting's deadline too can mean being dropped from the program.",
+        ],
+    },
+    {
+        id: "rsi",
+        title: "Related & Supplemental Instruction (RSI)",
+        points: [
+            "480 hours total over 3 years — 160 hours per year, split into 4 quarters of 40 hours each.",
+            "80 hours completed at your current level makes you eligible to advance to the next period.",
+            "Semesters typically start early February and early August. If the schedule hasn't reached you before the first class day, it's on you to contact the JATC office.",
+        ],
+    },
+    {
+        id: "attendance",
+        title: "Attendance & grading",
+        points: [
+            "Classes start 8:00 AM. Tardy after 8:00; sent home (and rescheduled) if later than 8:05.",
+            "2 tardies allowed per semester — a 3rd counts as an absence and can get you asked to leave.",
+            "1st unexcused absence (class or OJT) may be cited before the Committee. A 2nd may be cited again.",
+            "An excused absence needs a makeup arranged with the Coordinator.",
+            "Passing grade is a C or better plus 70%+ on the final, each semester. Failing pushes your next advancement back 6 months and the class must be retaken.",
+            "Missing the final without a valid excuse counts as absent; a makeup is scheduled on a regular workday (M–F, 7:30am–4pm) — missing that too is an automatic F for the entire semester.",
+        ],
+    },
+    {
+        id: "journey-out",
+        title: "Journey Out evaluation",
+        points: [
+            "Must be signed up for and completed within 90 days of finishing your last class.",
+            "Missing that 90-day window means being cited before the Committee.",
+        ],
+    },
+    {
+        id: "leave",
+        title: "Leave of absence",
+        points: [
+            "Up to 6 months, any reason — full credit for prior OJT hours and school credits is retained.",
+            "Re-entry must happen before the Committee-set deadline, or you risk being dropped from the program (with the option to petition the Committee for reinstatement and level).",
+        ],
+    },
+    {
+        id: "out-of-area",
+        title: "Out-of-jurisdiction work",
+        points: [
+            "Sent out of the area and can't make an RSI class? Notify the Coordinator before you leave town so a makeup class can be arranged.",
+        ],
+    },
+    {
+        id: "prior-credit",
+        title: "Credit for prior trade experience",
+        points: [
+            "Submit in person at a regular JATC meeting: an employer letter on letterhead stating dates and type of work performed, or prior JATC records if you were indentured elsewhere before.",
+        ],
+    },
+    {
+        id: "dispatch",
+        title: "Work status / dispatch",
+        points: [
+            "A monthly Show Schedule lists every show for the month with the employer list on the back — you call to get scheduled.",
+            "JATC sends a weekly out-of-work list to every employer. Getting on it while unemployed, and telling JATC once you're scheduled to get off it, is on you — staying current on it improves your odds of getting called.",
+            "Once on the list you can open an unemployment claim with EDD and collect for weeks you attend training.",
+        ],
+    },
+    {
+        id: "mileage",
+        title: "Class mileage reimbursement",
+        points: [
+            "Live outside a 75-mile radius of the training office? You're eligible for mileage beyond that first 75 each way, per class attended.",
+            "A mileage form is required per class, verified by JATC staff, based on the drive from your residence to the training center.",
+        ],
+    },
+    {
+        id: "conduct",
+        title: "Conduct & discipline",
+        points: [
+            "Once probation is done, you can't be terminated without a hearing, written notice by mail, and the right to appear before the Committee.",
+            "If your Agreement is canceled: up to a 6-month wait to reapply, possibly needing Committee permission and re-passing current application/probation requirements. Prior hours/credits may be restored at the JATC's discretion.",
+        ],
+    },
+    {
+        id: "appeals",
+        title: "Appeal rights",
+        points: [
+            "1. Contact the program Coordinator immediately.",
+            "2. Still unresolved? Ask to be put on the agenda for the next JATC meeting.",
+            "3. To appeal a JATC decision, contact your Local's Coordinator within 30 days — see the JATC office contacts below for current numbers.",
+            "4. Still unsatisfied? File a written grievance with the CA Division of Apprenticeship Standards within 30 days — (213) 576-7750, or 525 Golden Gate Ave, 5th Floor, P.O. Box 603, San Francisco, CA 94102.",
+            "Filing an appeal does not pause any disciplinary action already in motion.",
+        ],
+    },
+    {
+        id: "safety",
+        title: "Safety & conduct basics",
+        points: [
+            "CPR/First-Aid and OSHA training are required within 6 months of your indenture date.",
+            "No drugs or alcohol on premises or while impaired. No cell phones/radios during class hours.",
+            "Dress code: no sandals, skirts/dresses, scarves, neckties, hair ornaments (except to secure hair), or jewelry. Full PPE compliance at all times.",
+            "Report every accident or unsafe condition to the Coordinator immediately.",
+        ],
+    },
+];
+
+/* The full 3-year, 61-class curriculum — a static reference, not tied to
+   the classes table (that's admin-assigned sessions with real dates; this
+   is "which classes exist," no per-apprentice completion state yet since
+   there's no reliable link between classNumber and a scheduled class's
+   free-text name). */
+export type CurriculumClass = {
+    classNumber: number;
+    description: string;
+    courseId: number;
+    category: string;
+};
+export const JATC_CURRICULUM: { years: Record<"1" | "2" | "3", CurriculumClass[]> } = {
+    years: {
+        "1": [
+            { classNumber: 1, description: "Basics I", courseId: 100, category: "Basics" },
+            { classNumber: 2, description: "Basics II", courseId: 101, category: "Basics" },
+            { classNumber: 3, description: "Basics III", courseId: 102, category: "Basics" },
+            { classNumber: 4, description: "Union History", courseId: 55, category: "Union/Orientation" },
+            { classNumber: 5, description: "Carpet", courseId: 110, category: "Trade Skills" },
+            { classNumber: 6, description: "Forklift/Scissor Lift extra drive", courseId: 25, category: "Equipment Certification" },
+            { classNumber: 7, description: "Forklift/Genie-Lift", courseId: 140, category: "Equipment Certification" },
+            { classNumber: 8, description: "CPR/First-Aid", courseId: 135, category: "Safety Certification" },
+            { classNumber: 9, description: "OSHA I", courseId: 130, category: "Safety Certification" },
+            { classNumber: 10, description: "OSHA II", courseId: 230, category: "Safety Certification" },
+            { classNumber: 11, description: "Customer Service/Sexual Harassment", courseId: 120, category: "Soft Skills" },
+            { classNumber: 12, description: "Team Building/Leadership", courseId: 150, category: "Soft Skills" },
+            { classNumber: 13, description: "Communications (CTA)", courseId: 151, category: "Soft Skills" },
+            { classNumber: 14, description: "Intro To Rigging", courseId: 450, category: "Rigging" },
+            { classNumber: 15, description: "Lift Training", courseId: 175, category: "Equipment Certification" },
+            { classNumber: 16, description: "Custom Booth I", courseId: 350, category: "Custom Booth" },
+            { classNumber: 17, description: "Custom Booth II", courseId: 360, category: "Custom Booth" },
+            { classNumber: 18, description: "Custom Booth III", courseId: 365, category: "Custom Booth" },
+            { classNumber: 19, description: "Custom Booth IV", courseId: 145, category: "Custom Booth" },
+            { classNumber: 20, description: "Custom Booth V", courseId: 180, category: "Custom Booth" },
+            { classNumber: 21, description: "Custom Booth VI", courseId: 185, category: "Custom Booth" },
+            { classNumber: 22, description: "Custom Booth VII", courseId: 195, category: "Custom Booth" },
+            { classNumber: 23, description: "Custom Booth VIII", courseId: 240, category: "Custom Booth" },
+        ],
+        "2": [
+            { classNumber: 24, description: "Graphics I", courseId: 250, category: "Graphics" },
+            { classNumber: 25, description: "Graphics II", courseId: 255, category: "Graphics" },
+            { classNumber: 26, description: "Graphics III", courseId: 260, category: "Graphics" },
+            { classNumber: 27, description: "Graphics IV", courseId: 265, category: "Graphics" },
+            { classNumber: 28, description: "Graphics V", courseId: 115, category: "Graphics" },
+            { classNumber: 29, description: "Power Tools I", courseId: 300, category: "Power Tools" },
+            { classNumber: 30, description: "Power Tools II", courseId: 305, category: "Power Tools" },
+            { classNumber: 31, description: "Power Tools III", courseId: 310, category: "Power Tools" },
+            { classNumber: 32, description: "Power Tools IV", courseId: 315, category: "Power Tools" },
+            { classNumber: 33, description: "Power Tools V", courseId: 320, category: "Power Tools" },
+            { classNumber: 34, description: "Power Tools VI", courseId: 325, category: "Power Tools" },
+            { classNumber: 35, description: "Power Tools VII", courseId: 330, category: "Power Tools" },
+            { classNumber: 36, description: "Power Tools VIII", courseId: 340, category: "Power Tools" },
+            { classNumber: 37, description: "Power Tools IX", courseId: 345, category: "Power Tools" },
+            { classNumber: 38, description: "Power Tools X", courseId: 355, category: "Power Tools" },
+            { classNumber: 39, description: "Custom Booth IX", courseId: 370, category: "Custom Booth" },
+            { classNumber: 40, description: "Custom Booth X", courseId: 375, category: "Custom Booth" },
+            { classNumber: 41, description: "Custom Booth XI", courseId: 380, category: "Custom Booth" },
+            { classNumber: 42, description: "Custom Booth XII", courseId: 385, category: "Custom Booth" },
+            { classNumber: 43, description: "Custom Booth XIII", courseId: 390, category: "Custom Booth" },
+        ],
+        "3": [
+            { classNumber: 44, description: "CPR/First-Aid Re Cert", courseId: 435, category: "Safety Certification" },
+            { classNumber: 45, description: "Graphics VI", courseId: 155, category: "Graphics" },
+            { classNumber: 46, description: "Graphics VII", courseId: 160, category: "Graphics" },
+            { classNumber: 47, description: "Graphics VIII", courseId: 165, category: "Graphics" },
+            { classNumber: 48, description: "Graphics IX", courseId: 170, category: "Graphics" },
+            { classNumber: 49, description: "Graphics X", courseId: 200, category: "Graphics" },
+            { classNumber: 50, description: "Custom Booth XIV", courseId: 395, category: "Custom Booth" },
+            { classNumber: 51, description: "Custom Booth XV", courseId: 400, category: "Custom Booth" },
+            { classNumber: 52, description: "Custom Booth XVI", courseId: 405, category: "Custom Booth" },
+            { classNumber: 53, description: "Custom Booth XVII", courseId: 410, category: "Custom Booth" },
+            { classNumber: 54, description: "Rigging II", courseId: 460, category: "Rigging" },
+            { classNumber: 55, description: "Rigging III", courseId: 465, category: "Rigging" },
+            { classNumber: 56, description: "Rigging IV", courseId: 470, category: "Rigging" },
+            { classNumber: 57, description: "Rigging V", courseId: 475, category: "Rigging" },
+            { classNumber: 58, description: "Rigging VI", courseId: 480, category: "Rigging" },
+            { classNumber: 59, description: "Rigging VII", courseId: 495, category: "Rigging" },
+            { classNumber: 60, description: "Rigging VIII", courseId: 500, category: "Rigging" },
+            { classNumber: 61, description: "Journey Out Exam", courseId: 505, category: "Exam" },
+        ],
+    },
+};
+
+/* Fixed per-category assignment, never hashed/cycled — same convention as
+   CATS_META.color/PAY_COLOR elsewhere in this file. */
+export const CURRICULUM_CATEGORY_COLOR: Record<string, string> = {
+    "Basics": "#8DA3C4",
+    "Union/Orientation": "#FFB020",
+    "Trade Skills": "#4FC1A6",
+    "Equipment Certification": "#5FA8FF",
+    "Safety Certification": "#E8927C",
+    "Soft Skills": "#C58AF2",
+    "Rigging": "#F2789B",
+    "Custom Booth": "#E0B84F",
+    "Power Tools": "#FF9354",
+    "Graphics": "#6FD48A",
+    "Exam": "#F26E6E",
+};
+
 /* an OJT slip is due the 1st of the following month, 4:00 PM. every month, worked or not. */
 export function ojtDue(monthKey: string): string {
     return mAdd(monthKey, 1) + "-01";
@@ -925,7 +1168,11 @@ export const CATS_META: Record<
 };
 export const CAT_TOTAL = 1350 + 900 + 600 + 750;
 
-/* hrsEst / payEst flag what is assumed vs. confirmed on paper */
+/* Treated as the confirmed scale throughout the app — see LevelList's
+   footer in ShowBoard.jsx for the one-line explanation shown to apprentices.
+   hrsEst/payEst are kept on the type and left false everywhere; a future
+   level whose numbers are genuinely still in question can flip one back on
+   without touching every render site that reads it. */
 export const LEVELS: Level[] = [
     {
         k: "L1",
@@ -949,7 +1196,7 @@ export const LEVELS: Level[] = [
         label: "Level 3",
         hrs: 1200,
         pay: 33.4,
-        hrsEst: true,
+        hrsEst: false,
         payEst: false,
     },
     {
@@ -957,7 +1204,7 @@ export const LEVELS: Level[] = [
         label: "Level 4",
         hrs: 1800,
         pay: 36.56,
-        hrsEst: true,
+        hrsEst: false,
         payEst: false,
         src: "Willwork paystub",
     },
@@ -966,25 +1213,25 @@ export const LEVELS: Level[] = [
         label: "Level 5",
         hrs: 2400,
         pay: 39.72,
-        hrsEst: true,
-        payEst: true,
+        hrsEst: false,
+        payEst: false,
     },
     {
         k: "L6",
         label: "Level 6",
         hrs: 3000,
         pay: 42.88,
-        hrsEst: true,
-        payEst: true,
+        hrsEst: false,
+        payEst: false,
     },
-    { k: "EJ", label: "EJ", hrs: 3600, pay: 45.3, hrsEst: true, payEst: true },
+    { k: "EJ", label: "EJ", hrs: 3600, pay: 45.3, hrsEst: false, payEst: false },
     {
         k: "CJ",
         label: "CJ",
         hrs: 4200,
         pay: 48.46,
-        hrsEst: true,
-        payEst: true,
+        hrsEst: false,
+        payEst: false,
         goal: true,
     },
 ];

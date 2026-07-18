@@ -120,6 +120,8 @@ import {
     todayMid,
 } from "@/lib/core";
 import { OjtImportFlow } from "@/components/ojt/OjtImportFlow";
+import { ClassCurriculum } from "@/components/ojt/ClassCurriculum";
+import { JatcRulesModal } from "@/components/ojt/JatcRulesModal";
 
 // same build-time flag app/pending/page.jsx checks — kept in sync so both
 // "upload OJT slips" entry points turn on/off together.
@@ -4756,16 +4758,6 @@ function LevelList({ total, avg, lastMonth }) {
                 >
                     LEVEL PROGRESSION
                 </div>
-                <div
-                    style={{
-                        marginLeft: "auto",
-                        fontFamily: FM,
-                        fontSize: 9.5,
-                        color: C.lo,
-                    }}
-                >
-                    ~ = ESTIMATE
-                </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
@@ -4880,9 +4872,7 @@ function LevelList({ total, avg, lastMonth }) {
                                             marginTop: 2,
                                         }}
                                     >
-                                        {(lv.hrsEst ? "~" : "") +
-                                            lv.hrs.toLocaleString()}{" "}
-                                        HRS
+                                        {lv.hrs.toLocaleString()} HRS
                                         {proj ? " · " + mMed(proj) : ""}
                                     </div>
                                 </div>
@@ -4898,10 +4888,10 @@ function LevelList({ total, avg, lastMonth }) {
                                             fontFamily: FM,
                                             fontSize: 13,
                                             fontWeight: 800,
-                                            color: lv.payEst ? C.lo : C.hi,
+                                            color: C.hi,
                                         }}
                                     >
-                                        {(lv.payEst ? "~" : "") + money(lv.pay)}
+                                        {money(lv.pay)}
                                     </div>
                                     <div
                                         style={{
@@ -4911,21 +4901,6 @@ function LevelList({ total, avg, lastMonth }) {
                                             marginTop: 3,
                                         }}
                                     >
-                                        {!lv.payEst && (
-                                            <span
-                                                style={{
-                                                    fontFamily: FM,
-                                                    fontSize: 8.5,
-                                                    fontWeight: 800,
-                                                    color: C.working,
-                                                    border: "1px solid rgba(47,176,122,0.4)",
-                                                    borderRadius: 4,
-                                                    padding: "1px 3px",
-                                                }}
-                                            >
-                                                CONF
-                                            </span>
-                                        )}
                                         <span
                                             style={{
                                                 fontFamily: FM,
@@ -4977,8 +4952,7 @@ function LevelList({ total, avg, lastMonth }) {
                                     >
                                         <span>
                                             {hrsFmt(total)} /{" "}
-                                            {(nxt.hrsEst ? "~" : "") +
-                                                nxt.hrs.toLocaleString()}
+                                            {nxt.hrs.toLocaleString()}
                                         </span>
                                         <span
                                             style={{
@@ -5005,10 +4979,9 @@ function LevelList({ total, avg, lastMonth }) {
                     lineHeight: 1.5,
                 }}
             >
-                L1–L4 pay is confirmed — an exact {money(3.16)} step per level.
-                L5 and up are extrapolated off that step, and every threshold
-                past 600 hrs is assumed at 600-hr increments. Treat those as a
-                guide, not scale.
+                Scale pay steps up {money(3.16)} per level, every 600 OJT hours.
+                Your level updates automatically as admin-approved hours cross
+                each threshold.
             </div>
         </div>
     );
@@ -6715,6 +6688,7 @@ function OjtTab({
     onAddMonth,
     onEditMonth,
     onImportMonths,
+    onOpenRules,
     rates,
     onSetRate,
     onRemoveRate,
@@ -6726,11 +6700,21 @@ function OjtTab({
     profile,
     onPasswordSet,
     certs,
+    pwIntent,
+    onPwIntentConsumed,
 }) {
     const { jatcContacts } = useContext(DirectoryContext);
     const [signingOut, setSigningOut] = useState(false);
     const [pwModal, setPwModal] = useState(false);
     const [classInfo, setClassInfo] = useState(null);
+    // Home's "no password on file" nudge sends us here wanting the modal
+    // open, not just the tab switched to — consume the one-shot signal.
+    useEffect(() => {
+        if (pwIntent) {
+            setPwModal(true);
+            onPwIntentConsumed?.();
+        }
+    }, [pwIntent, onPwIntentConsumed]);
     const months = ojt.months || [];
     // only admin-approved months count toward level/total — a submitted month
     // sits as "pending" until an admin signs off (see ojt_months.status).
@@ -6970,6 +6954,11 @@ function OjtTab({
                         {lateSt.k === "late" ? "LATE" : openSt.t}
                     </span>
                 </div>
+                {lateSt.k === "late" && (
+                    <div style={{ fontSize: 11, color: C.mid, lineHeight: 1.5, marginTop: 8, paddingTop: 8, borderTop: "1px solid " + C.danger + "33" }}>
+                        First late slip: a warning letter, with 1 week to turn it in. Any slip after that: straight to the Do Not Hire List until it's received — you're back to work that Friday, but still cited to the next JATC meeting.
+                    </div>
+                )}
             </div>
 
             {/* metrics */}
@@ -6990,7 +6979,7 @@ function OjtTab({
                 <Stat
                     label="LEVEL"
                     value={lv.k}
-                    sub={(lv.payEst ? "~" : "") + money(lv.pay) + "/hr scale"}
+                    sub={money(lv.pay) + "/hr scale"}
                     color={C.brand}
                 />
                 <Stat
@@ -7137,6 +7126,11 @@ function OjtTab({
 
             {/* right column: category progress, then anything shorter — stacked to keep pace with the level ladder */}
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {/* a level-up needs hours AND RSI — the ladder above only shows hours */}
+                <div style={{ fontSize: 11, color: C.lo, lineHeight: 1.5, padding: "0 2px" }}>
+                    A level increase needs all three: 600 OJT hours since your last increase, a satisfactory OJT rating, and 80 RSI hours completed at your current level — hours alone don't move you up.
+                </div>
+
                 <CatBars t={t} />
 
                 {/* months logged but never turned in */}
@@ -7520,6 +7514,11 @@ function OjtTab({
                     >
                         Mandatory and unpaid — time off the floor, not hours
                         toward OJT. Make-ups exist but count against you.
+                    </div>
+                    <div style={{ fontSize: 10.5, color: C.lo, marginTop: 6, lineHeight: 1.5 }}>
+                        RSI requirement: 480 hours over 3 years — 160/year, 4
+                        quarters of 40. 80 hours at your current level clears
+                        you to advance.
                     </div>
                 </div>
             </div>
@@ -8061,13 +8060,10 @@ function OjtTab({
                     <div style={{ display: "flex", fontSize: 12.5 }}>
                         <span style={{ color: C.mid }}>Base rate</span>
                         <span style={{ marginLeft: "auto", fontFamily: FM, color: C.hi, fontWeight: 700 }}>
-                            {(lv.payEst ? "~" : "") + money(lv.pay)}
+                            {money(lv.pay)}
                         </span>
                     </div>
                     <div style={{ fontSize: 11, color: C.lo, marginTop: 2, lineHeight: 1.5 }}>
-                        {lv.payEst
-                            ? "This rate isn't confirmed on paper yet — treat it as a rough estimate."
-                            : "Confirmed base scale rate."}{" "}
                         The full benefits breakdown (H&W, pension, vacation, etc.) is only on file for Level 2 right now — this will fill in for other levels as that paperwork comes in.
                     </div>
                 </div>
@@ -8154,6 +8150,30 @@ function OjtTab({
                     })}
                 </div>
             </Fold>
+
+            <Fold icon={GraduationCap} title="Class curriculum" color={KLASS}>
+                <ClassCurriculum />
+            </Fold>
+
+            <button
+                className="foc"
+                onClick={onOpenRules}
+                style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: C.panel,
+                    border: "1px solid " + C.line,
+                    borderRadius: 10,
+                    padding: "15px 16px",
+                    color: C.hi,
+                }}
+            >
+                <ShieldAlert size={15} color={C.brand} />
+                <span style={{ fontWeight: 700, fontSize: 13 }}>JATC Rules & Regulations — full reference</span>
+                <ChevronRight size={16} color={C.lo} style={{ marginLeft: "auto" }} />
+            </button>
 
             {/* data */}
             <Fold icon={Check} title="Account" color={C.mid}>
@@ -9232,7 +9252,7 @@ function HomeTab({
             {!hasPassword && (
                 <button
                     className="foc dspan"
-                    onClick={() => onGoto("ojt")}
+                    onClick={() => onGoto("ojt", null, { openPassword: true })}
                     style={{
                         width: "100%",
                         textAlign: "left",
@@ -10059,8 +10079,7 @@ function HomeTab({
                             >
                                 <span>
                                     {hrsFmt(t.total)} /{" "}
-                                    {(nxt.hrsEst ? "~" : "") +
-                                        nxt.hrs.toLocaleString()}
+                                    {nxt.hrs.toLocaleString()}
                                 </span>
                                 <span
                                     style={{
@@ -10503,6 +10522,9 @@ function Seg({ value, onChange, options }) {
 /* ---------- main app ---------- */
 export default function App() {
     const [tab, setTab] = useState("home");
+    // set by the "no password on file" nudge on Home so it can jump to the
+    // OJT tab AND pop the Change Password modal open, not just switch tabs.
+    const [pwIntent, setPwIntent] = useState(false);
     const [shows, setShows] = useState([]);
     const [pins, setPins] = useState(DEFAULT_PINS);
     const [entries, setEntries] = useState({});
@@ -10670,12 +10692,13 @@ export default function App() {
        expanded — boardFocusId is a one-shot signal separate from expandedId
        so the scroll/filter-clearing effect below only fires on this kind of
        cross-tab jump, never on an ordinary manual card toggle. */
-    const goto = (tabName, showId) => {
+    const goto = (tabName, showId, opts) => {
         setTab(tabName);
         if (showId) {
             setExpandedId(showId);
             setBoardFocusId(showId);
         }
+        if (opts?.openPassword) setPwIntent(true);
     };
 
     useEffect(() => {
@@ -11267,11 +11290,16 @@ export default function App() {
                         onImportMonths={() =>
                             setModal({ type: "ojt-import" })
                         }
+                        onOpenRules={() =>
+                            setModal({ type: "jatc-rules" })
+                        }
                         email={email}
                         isAdmin={isAdmin}
                         profile={profile}
                         certs={certs}
                         onPasswordSet={() => setHasPassword(true)}
+                        pwIntent={pwIntent}
+                        onPwIntentConsumed={() => setPwIntent(false)}
                         onSignOut={() =>
                             store.signOut().then(() => {
                                 window.location.href = "/login";
@@ -11975,6 +12003,15 @@ export default function App() {
                         }}
                         onCancel={() => setModal(null)}
                     />
+                </Modal>
+            )}
+            {modal?.type === "jatc-rules" && (
+                <Modal
+                    title="JATC Rules & Regulations"
+                    sub="The complete reference"
+                    onClose={() => setModal(null)}
+                >
+                    <JatcRulesModal />
                 </Modal>
             )}
             {modal?.type === "ojtform" && (
