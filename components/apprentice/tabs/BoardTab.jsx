@@ -1074,7 +1074,7 @@ export function BoardTab({
                                 })}
                             </div>
                         </div>
-                    <div>
+                    <div style={{ marginTop: 8 }}>
                         {/* union dates & dues */}
                         <div style={{ marginBottom: 10 }}>
                             <button
