@@ -1144,8 +1144,7 @@ function BulkDnhForm({ apprentices, onDone, onClose }) {
     setState("saving");
     setMsg("");
     try {
-      await Promise.all(Array.from(selected).map((userId) =>
-        req("POST", "/api/admin/do-not-hire", { userId, onList: true, reason: reason.trim() })));
+      await req("POST", "/api/admin/do-not-hire", { userIds: Array.from(selected), onList: true, reason: reason.trim() });
       setState("done");
       onDone();
       setTimeout(onClose, 900);
@@ -1206,8 +1205,7 @@ function BulkArchiveForm({ apprentices, onDone, onClose }) {
     setState("saving");
     setMsg("");
     try {
-      await Promise.all(Array.from(selected).map((userId) =>
-        req("PATCH", "/api/admin/apprentices", { userId, archived: true })));
+      await req("PATCH", "/api/admin/apprentices", { userIds: Array.from(selected), archived: true });
       setState("done");
       onDone();
       setTimeout(onClose, 900);

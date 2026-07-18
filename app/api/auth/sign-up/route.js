@@ -58,8 +58,10 @@ export async function POST(request) {
   // unauthenticated route that creates real, durable state (an account),
   // not just sends an email. Still needs enough headroom for a group of
   // apprentices signing up from the same union-hall/house wifi within the
-  // same hour, so this isn't per-person.
-  const ok = await checkRateLimit(supabase, `auth:sign-up:${ip}`, 15, 60 * 60);
+  // same hour, so this isn't per-person. Local 831's roster is finite, not
+  // a public app, so a generous ceiling here doesn't meaningfully open the
+  // door to abuse the way it might for a public-signup product.
+  const ok = await checkRateLimit(supabase, `auth:sign-up:${ip}`, 30, 60 * 60);
   if (!ok) {
     return Response.json({ error: "Too many attempts. Try again later." }, { status: 429 });
   }

@@ -30,20 +30,30 @@ export async function POST(request) {
 /* archive = soft-remove from the active roster (hidden from Roster/class-
    assignment lists, everything else stays on file, reversible). This is a
    plain profiles column, so it goes through the normal RLS-scoped client
-   (the "admin update all" policy already covers it) — no Admin API needed. */
+   (the "admin update all" policy already covers it) — no Admin API needed.
+
+   Accepts userId (single) or userIds (batch) — one request either way, so
+   BulkArchiveForm doing 20 apprentices at once spends 1 unit of the rate
+   limit instead of 20. */
 export async function PATCH(request) {
   return guardedRoute(request, "admin:apprentices:patch", { schema: adminArchiveApprenticeSchema, requireAdmin: true }, async ({ supabase, user, data }) => {
-    const { data: target } = await supabase.from("profiles").select("email").eq("id", data.userId).single();
+    const ids = data.userIds || [data.userId];
+
+    const { data: targets } = await supabase.from("profiles").select("id, email").in("id", ids);
+    const emailById = Object.fromEntries((targets || []).map((t) => [t.id, t.email]));
+
     const { error } = await supabase.from("profiles")
       .update({ archived_at: data.archived ? new Date().toISOString() : null })
-      .eq("id", data.userId);
+      .in("id", ids);
     if (error) return Response.json({ error: "Could not update" }, { status: 400 });
 
-    await logAudit(supabase, {
-      actorEmail: user.email, targetEmail: target?.email,
-      action: data.archived ? "archive" : "restore",
-      message: (data.archived ? "Archived " : "Restored ") + (target?.email || data.userId),
-    });
+    for (const id of ids) {
+      await logAudit(supabase, {
+        actorEmail: user.email, targetEmail: emailById[id],
+        action: data.archived ? "archive" : "restore",
+        message: (data.archived ? "Archived " : "Restored ") + (emailById[id] || id),
+      });
+    }
 
     return Response.json({ ok: true });
   });
