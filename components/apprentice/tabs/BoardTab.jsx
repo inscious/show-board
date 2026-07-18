@@ -51,6 +51,7 @@ import {
     matchCo,
     monthKey,
     monthKeyNow,
+    myCompanyTokens,
     showSpan,
     sortDate,
 } from "@/lib/core";
@@ -818,6 +819,7 @@ export function BoardTab({
     onOpenDir,
     onOpenBooking,
 }) {
+    const mine = useMemo(() => myCompanyTokens(entries), [entries]);
     const counts = useMemo(
         () => ({
             upcoming: shows.filter((s) => !isPast(s)).length,
