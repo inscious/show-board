@@ -21,6 +21,7 @@ import {
     LEVELS,
     MONTHS,
     PAY,
+    RELIABLE_PAYROLL_TAX_RATE,
     SHADOW,
     STATUS,
     UNION_LINE,
@@ -1074,6 +1075,25 @@ export function HomeTab({
                         fields on the day sheet instead, or this OT/DT split — and the gross above — will be off.
                     </div>
                 </div>
+                {gross > 0 && (
+                    <div
+                        style={{
+                            marginTop: 10,
+                            paddingTop: 10,
+                            borderTop: "1px solid " + C.line,
+                            fontSize: 10.5,
+                            color: C.mid,
+                            lineHeight: 1.5,
+                        }}
+                    >
+                        <span style={{ fontWeight: 800, color: C.hi }}>
+                            After SS, Medicare &amp; CA SDI only:{" "}
+                            {"$" + (gross * (1 - RELIABLE_PAYROLL_TAX_RATE)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>{" "}
+                        — a partial number. Doesn't include federal/state withholding or union dues yet
+                        (both vary by paycheck and level), so your real take-home will be lower than this.
+                    </div>
+                )}
             </div>
 
             <MonthlyHoursChart series={monthlySeries} />

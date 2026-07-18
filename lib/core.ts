@@ -31,6 +31,16 @@ export const YEAR = 2026;
 export const RSI_REQUIRED = 10;
 export const UNION_LINE = "6262968075";
 export const UNION_LINE_PRETTY = "(626) 296-8075";
+/* the only payroll deductions confirmed flat/reliable so far — federal law,
+   not company- or level-specific. Verified exact (to the cent) against 4 real
+   pay stubs across 3 different companies as of 2026-07-18: Social Security
+   6.2%, Medicare 1.45%, CA SDI 1.3%. Federal/CA state income tax withholding
+   is genuinely progressive (climbs with gross-per-period, confirmed across
+   the same stubs) and union dues scale by apprentice level — neither is
+   pinned down well enough yet to hardcode, so this is deliberately a partial
+   number, not a real net-pay estimate. See the paycheck-net-pay-project
+   memory for the ongoing derivation. */
+export const RELIABLE_PAYROLL_TAX_RATE = 0.062 + 0.0145 + 0.013;
 /* no shared default — which I&D houses call an apprentice is entirely
    personal, so a brand-new account starts with nothing pinned and nothing
    highlighted as "mine" rather than guessing at one specific apprentice's
