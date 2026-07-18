@@ -1032,16 +1032,24 @@ export function ojtState(
     monthKey: string,
     months: OjtMonth[] | null | undefined,
 ): {
-    k: "in" | "late" | "open";
+    k: "in" | "rejected" | "late" | "open";
     t: string;
     c: string;
     due?: Date;
     days?: number;
 } {
-    const submitted = (months || []).some((m) => m.m === monthKey);
+    const row = (months || []).find((m) => m.m === monthKey);
     const due = fromKey(ojtDue(monthKey));
     const t = todayMid();
-    if (submitted) return { k: "in", t: "SUBMITTED", c: C.working };
+    if (row) {
+        // a submitted-then-declined month still has a row on file — the
+        // "SUBMITTED" badge is wrong once an admin has bounced it back, so
+        // status (not just existence) decides what the badge says.
+        if (row.status === "rejected") {
+            return { k: "rejected", t: "DECLINED", c: C.danger };
+        }
+        return { k: "in", t: "SUBMITTED", c: C.working };
+    }
     if (t > due) return { k: "late", t: "LATE", c: C.danger, due };
     const n = Math.round((due.getTime() - t.getTime()) / 86400000);
     return {

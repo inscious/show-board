@@ -1254,81 +1254,100 @@ export function HomeTab({
                 use the time fields on the day sheet to get the real DT/OT.
             </div>
 
-            {/* OJT status */}
-            <button
-                className="foc dspan"
-                onClick={() => onGoto("ojt")}
-                style={{
-                    width: "100%",
-                    textAlign: "left",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 9,
-                    background:
-                        lateSt.k === "late"
-                            ? "rgba(232,146,124,0.09)"
-                            : C.panel,
-                    border:
-                        "1px solid " +
-                        (lateSt.k === "late" ? C.danger + "66" : C.edge),
-                    borderRadius: 12,
-                    padding: "11px 13px",
-                    boxShadow: SHADOW,
-                }}
-            >
-                <GraduationCap
-                    size={15}
-                    color={lateSt.k === "late" ? C.danger : C.brand}
-                    style={{ flexShrink: 0 }}
-                />
-                <div style={{ minWidth: 0, flex: 1 }}>
-                    {lateSt.k === "late" ? (
-                        <div
+            {/* OJT status — urgent styling covers both "never turned in" (late)
+                and "turned in, bounced back" (rejected), since both need the
+                apprentice to act, not just an FYI badge. */}
+            {(() => {
+                const urgent = lateSt.k === "late" || openSt.k === "rejected";
+                return (
+                    <button
+                        className="foc dspan"
+                        onClick={() => onGoto("ojt")}
+                        style={{
+                            width: "100%",
+                            textAlign: "left",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 9,
+                            background: urgent
+                                ? "rgba(232,146,124,0.09)"
+                                : C.panel,
+                            border:
+                                "1px solid " +
+                                (urgent ? C.danger + "66" : C.edge),
+                            borderRadius: 12,
+                            padding: "11px 13px",
+                            boxShadow: SHADOW,
+                        }}
+                    >
+                        <GraduationCap
+                            size={15}
+                            color={urgent ? C.danger : C.brand}
+                            style={{ flexShrink: 0 }}
+                        />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                            {lateSt.k === "late" ? (
+                                <div
+                                    style={{
+                                        fontSize: 12.5,
+                                        color: C.hi,
+                                        lineHeight: 1.45,
+                                    }}
+                                >
+                                    <span style={{ fontWeight: 800, color: C.danger }}>
+                                        {mMed(lastMk)} OJT is late.
+                                    </span>{" "}
+                                    Due the 1st by 4 PM — that's the do-not-hire list.
+                                </div>
+                            ) : openSt.k === "rejected" ? (
+                                <div
+                                    style={{
+                                        fontSize: 12.5,
+                                        color: C.hi,
+                                        lineHeight: 1.45,
+                                    }}
+                                >
+                                    <span style={{ fontWeight: 800, color: C.danger }}>
+                                        {mMed(mk)} OJT was declined.
+                                    </span>{" "}
+                                    Check the hours and resubmit.
+                                </div>
+                            ) : (
+                                <div
+                                    style={{
+                                        fontSize: 12.5,
+                                        color: C.mid,
+                                        lineHeight: 1.45,
+                                    }}
+                                >
+                                    <span style={{ fontWeight: 700, color: C.hi }}>
+                                        {mMed(mk)} OJT
+                                    </span>{" "}
+                                    due {MONTHS[fromKey(ojtDue(mk)).getMonth()]} 1, 4 PM
+                                    · {hrsFmt(r1(m.total))} hrs logged so far
+                                </div>
+                            )}
+                        </div>
+                        <span
                             style={{
-                                fontSize: 12.5,
-                                color: C.hi,
-                                lineHeight: 1.45,
+                                flexShrink: 0,
+                                fontFamily: FM,
+                                fontSize: 9.5,
+                                fontWeight: 800,
+                                color: lateSt.k === "late" ? C.danger : openSt.c,
+                                border:
+                                    "1px solid " +
+                                    (lateSt.k === "late" ? C.danger : openSt.c) +
+                                    "55",
+                                borderRadius: 5,
+                                padding: "2px 5px",
                             }}
                         >
-                            <span style={{ fontWeight: 800, color: C.danger }}>
-                                {mMed(lastMk)} OJT is late.
-                            </span>{" "}
-                            Due the 1st by 4 PM — that's the do-not-hire list.
-                        </div>
-                    ) : (
-                        <div
-                            style={{
-                                fontSize: 12.5,
-                                color: C.mid,
-                                lineHeight: 1.45,
-                            }}
-                        >
-                            <span style={{ fontWeight: 700, color: C.hi }}>
-                                {mMed(mk)} OJT
-                            </span>{" "}
-                            due {MONTHS[fromKey(ojtDue(mk)).getMonth()]} 1, 4 PM
-                            · {hrsFmt(r1(m.total))} hrs logged so far
-                        </div>
-                    )}
-                </div>
-                <span
-                    style={{
-                        flexShrink: 0,
-                        fontFamily: FM,
-                        fontSize: 9.5,
-                        fontWeight: 800,
-                        color: lateSt.k === "late" ? C.danger : openSt.c,
-                        border:
-                            "1px solid " +
-                            (lateSt.k === "late" ? C.danger : openSt.c) +
-                            "55",
-                        borderRadius: 5,
-                        padding: "2px 5px",
-                    }}
-                >
-                    {lateSt.k === "late" ? "LATE" : openSt.t}
-                </span>
-            </button>
+                            {lateSt.k === "late" ? "LATE" : openSt.t}
+                        </span>
+                    </button>
+                );
+            })()}
 
             {/* nothing booked — get on the list */}
             {idle && (

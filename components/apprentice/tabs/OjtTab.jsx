@@ -1007,86 +1007,107 @@ export function OjtTab({
                 </div>
             )}
 
-            {/* the slip that puts you on the do-not-hire list if it's late */}
-            <div
-                className="dspan"
-                style={{
-                    background:
-                        lateSt.k === "late"
-                            ? "rgba(232,146,124,0.09)"
-                            : C.panel,
-                    border:
-                        "1px solid " +
-                        (lateSt.k === "late" ? C.danger + "66" : C.edge),
-                    borderRadius: 12,
-                    padding: "11px 13px",
-                    boxShadow: SHADOW,
-                }}
-            >
-                <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                    <CalendarDays
-                        size={14}
-                        color={lateSt.k === "late" ? C.danger : C.brand}
-                        style={{ flexShrink: 0 }}
-                    />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                        {lateSt.k === "late" ? (
-                            <div
-                                style={{
-                                    fontSize: 12.5,
-                                    color: C.hi,
-                                    lineHeight: 1.45,
-                                }}
-                            >
-                                <span
-                                    style={{ fontWeight: 800, color: C.danger }}
-                                >
-                                    {mMed(lastMonthKey)} OJT is late.
-                                </span>{" "}
-                                It was due the 1st by 4:00 PM — that's the
-                                do-not-hire list.
+            {/* the slip that puts you on the do-not-hire list if it's late —
+                same urgent styling for "turned in, bounced back" (rejected)
+                as for "never turned in" (late), since both need action. */}
+            {(() => {
+                const urgent = lateSt.k === "late" || openSt.k === "rejected";
+                return (
+                    <div
+                        className="dspan"
+                        style={{
+                            background: urgent
+                                ? "rgba(232,146,124,0.09)"
+                                : C.panel,
+                            border:
+                                "1px solid " +
+                                (urgent ? C.danger + "66" : C.edge),
+                            borderRadius: 12,
+                            padding: "11px 13px",
+                            boxShadow: SHADOW,
+                        }}
+                    >
+                        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                            <CalendarDays
+                                size={14}
+                                color={urgent ? C.danger : C.brand}
+                                style={{ flexShrink: 0 }}
+                            />
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                                {lateSt.k === "late" ? (
+                                    <div
+                                        style={{
+                                            fontSize: 12.5,
+                                            color: C.hi,
+                                            lineHeight: 1.45,
+                                        }}
+                                    >
+                                        <span
+                                            style={{ fontWeight: 800, color: C.danger }}
+                                        >
+                                            {mMed(lastMonthKey)} OJT is late.
+                                        </span>{" "}
+                                        It was due the 1st by 4:00 PM — that's the
+                                        do-not-hire list.
+                                    </div>
+                                ) : openSt.k === "rejected" ? (
+                                    <div
+                                        style={{
+                                            fontSize: 12.5,
+                                            color: C.hi,
+                                            lineHeight: 1.45,
+                                        }}
+                                    >
+                                        <span
+                                            style={{ fontWeight: 800, color: C.danger }}
+                                        >
+                                            {mMed(thisMonth)} OJT was declined.
+                                        </span>{" "}
+                                        Check the hours below and resubmit.
+                                    </div>
+                                ) : (
+                                    <div
+                                        style={{
+                                            fontSize: 12.5,
+                                            color: C.mid,
+                                            lineHeight: 1.45,
+                                        }}
+                                    >
+                                        <span style={{ fontWeight: 700, color: C.hi }}>
+                                            {mMed(thisMonth)} OJT
+                                        </span>{" "}
+                                        is due{" "}
+                                        {MONTHS[fromKey(ojtDue(thisMonth)).getMonth()]}{" "}
+                                        1 by 4:00 PM. Every month — worked or not.
+                                    </div>
+                                )}
                             </div>
-                        ) : (
-                            <div
+                            <span
                                 style={{
-                                    fontSize: 12.5,
-                                    color: C.mid,
-                                    lineHeight: 1.45,
+                                    flexShrink: 0,
+                                    fontFamily: FM,
+                                    fontSize: 9.5,
+                                    fontWeight: 800,
+                                    color: lateSt.k === "late" ? C.danger : openSt.c,
+                                    border:
+                                        "1px solid " +
+                                        (lateSt.k === "late" ? C.danger : openSt.c) +
+                                        "55",
+                                    borderRadius: 5,
+                                    padding: "2px 5px",
                                 }}
                             >
-                                <span style={{ fontWeight: 700, color: C.hi }}>
-                                    {mMed(thisMonth)} OJT
-                                </span>{" "}
-                                is due{" "}
-                                {MONTHS[fromKey(ojtDue(thisMonth)).getMonth()]}{" "}
-                                1 by 4:00 PM. Every month — worked or not.
+                                {lateSt.k === "late" ? "LATE" : openSt.t}
+                            </span>
+                        </div>
+                        {lateSt.k === "late" && (
+                            <div style={{ fontSize: 11, color: C.mid, lineHeight: 1.5, marginTop: 8, paddingTop: 8, borderTop: "1px solid " + C.danger + "33" }}>
+                                First late slip: a warning letter, with 1 week to turn it in. Any slip after that: straight to the Do Not Hire List until it's received — you're back to work that Friday, but still cited to the next JATC meeting.
                             </div>
                         )}
                     </div>
-                    <span
-                        style={{
-                            flexShrink: 0,
-                            fontFamily: FM,
-                            fontSize: 9.5,
-                            fontWeight: 800,
-                            color: lateSt.k === "late" ? C.danger : openSt.c,
-                            border:
-                                "1px solid " +
-                                (lateSt.k === "late" ? C.danger : openSt.c) +
-                                "55",
-                            borderRadius: 5,
-                            padding: "2px 5px",
-                        }}
-                    >
-                        {lateSt.k === "late" ? "LATE" : openSt.t}
-                    </span>
-                </div>
-                {lateSt.k === "late" && (
-                    <div style={{ fontSize: 11, color: C.mid, lineHeight: 1.5, marginTop: 8, paddingTop: 8, borderTop: "1px solid " + C.danger + "33" }}>
-                        First late slip: a warning letter, with 1 week to turn it in. Any slip after that: straight to the Do Not Hire List until it's received — you're back to work that Friday, but still cited to the next JATC meeting.
-                    </div>
-                )}
-            </div>
+                );
+            })()}
 
             {/* metrics */}
             <div
