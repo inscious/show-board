@@ -36,6 +36,7 @@ import {
     todayMid,
 } from "@/lib/core";
 import { hexRgb } from "@/components/hexRgb";
+import { r1 } from "@/components/r1";
 
 // not lib/core exports — tiny locals also defined (separately) in
 // ShowBoard.jsx; duplicating a few lines here beats adding exports just for
@@ -44,7 +45,6 @@ const CATS = ["A", "B", "C", "D"];
 function money(n) {
     return "$" + num(n).toFixed(2);
 }
-const r1 = (v) => Math.round(num(v) * 10) / 10;
 
 export function CalTab({
     shows,
