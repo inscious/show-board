@@ -174,6 +174,7 @@ import {
     todayMid,
 } from "@/lib/core";
 import { OjtImportFlow } from "@/components/ojt/OjtImportFlow";
+import { WelcomeModal } from "@/components/apprentice/WelcomeModal";
 import { ClassCurriculum } from "@/components/ojt/ClassCurriculum";
 import { JatcRulesModal } from "@/components/ojt/JatcRulesModal";
 
@@ -4115,6 +4116,7 @@ export default function App() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [email, setEmail] = useState(null);
     const [hasPassword, setHasPassword] = useState(true); // assume set until load() says otherwise — avoids a flash of the nudge
+    const [needsWelcome, setNeedsWelcome] = useState(false); // load() flips this true for a genuinely new apprentice, false by default so it never flashes for existing users
     const [profile, setProfile] = useState({
         name: "",
         memberId: "",
@@ -4172,6 +4174,7 @@ export default function App() {
             setIsAdmin(!!(data && data.isAdmin));
             setEmail((data && data.email) || null);
             setHasPassword(!!(data && data.hasPassword));
+            setNeedsWelcome(!!(data && data.needsWelcome));
             setProfile(
                 data && data.profile
                     ? data.profile
@@ -5014,6 +5017,19 @@ export default function App() {
                         onCancel={() => setModal(null)}
                     />
                 </Modal>
+            )}
+            {needsWelcome && !modal && (
+                <WelcomeModal
+                    onOpenOjtImport={() => {
+                        setNeedsWelcome(false);
+                        store.markWelcomed();
+                        setModal({ type: "ojt-import" });
+                    }}
+                    onClose={() => {
+                        setNeedsWelcome(false);
+                        store.markWelcomed();
+                    }}
+                />
             )}
             {modal?.type === "jatc-rules" && (
                 <Modal

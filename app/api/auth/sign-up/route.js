@@ -67,7 +67,7 @@ export async function POST(request) {
   }
 
   const origin = new URL(request.url).origin;
-  const { error } = await supabase.auth.signUp({
+  const { data: signUpData, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -78,6 +78,16 @@ export async function POST(request) {
 
   if (error) {
     return Response.json({ error: error.message || "Couldn't create that account" }, { status: 400 });
+  }
+
+  // self-signup already collects a real password as part of this same form —
+  // handle_new_user() doesn't know that, so it leaves has_password at its
+  // default false, which would wrongly show the "set a password" nudge to
+  // someone who already has one. Admin-created accounts set this themselves
+  // (see app/api/admin/apprentices/route.js) since admin hands out that
+  // password directly; this is the self-signup equivalent of that same stamp.
+  if (signUpData?.user) {
+    await supabase.from("profiles").update({ has_password: true }).eq("id", signUpData.user.id);
   }
 
   return Response.json({ ok: true });

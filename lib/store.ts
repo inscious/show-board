@@ -137,6 +137,8 @@ type ProfileSelectRow = {
     joined_on: string | null;
     do_not_hire_at: string | null;
     do_not_hire_reason: string | null;
+    approved_at: string | null;
+    welcomed_at: string | null;
 };
 
 export type Blob = {
@@ -166,6 +168,7 @@ export type Blob = {
     }>;
     isAdmin?: boolean;
     hasPassword?: boolean;
+    needsWelcome?: boolean;
     email?: string | null;
     profile?: {
         name: string;
@@ -634,7 +637,7 @@ export const store = {
                 supabase
                     .from("profiles")
                     .select(
-                        "is_admin, has_password, custom_companies, name, member_id, ssn_last4, local, rsi_credits, joined_on, do_not_hire_at, do_not_hire_reason",
+                        "is_admin, has_password, custom_companies, name, member_id, ssn_last4, local, rsi_credits, joined_on, do_not_hire_at, do_not_hire_reason, approved_at, welcomed_at",
                     )
                     .eq("id", user.id)
                     .single(),
@@ -770,6 +773,12 @@ export const store = {
                     reason: profile?.do_not_hire_reason || "",
                     since: profile?.do_not_hire_at || null,
                 },
+                // every apprentice's first login shows this once, whether
+                // they arrived via self-signup+approval or were admin-
+                // created directly — welcomed_at was backfilled for every
+                // account that existed before this feature shipped, so this
+                // only fires for genuinely new apprentices going forward.
+                needsWelcome: !profile?.welcomed_at,
             };
 
             store.backend = "supabase";
@@ -825,6 +834,22 @@ export const store = {
                 method: "DELETE",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id }),
+            });
+            return { ok: res.ok };
+        } catch {
+            return { ok: false };
+        }
+    },
+
+    /* marks the welcome modal seen — same direct-to-server reasoning as
+     clearNotification, not part of the diffed save() blob. */
+    async markWelcomed(): Promise<{ ok: boolean }> {
+        if (typeof window === "undefined") return { ok: false };
+        try {
+            const res = await fetch("/api/profile/welcomed", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: "{}",
             });
             return { ok: res.ok };
         } catch {

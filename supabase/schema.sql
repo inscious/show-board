@@ -79,7 +79,10 @@ create table profiles (
   -- Self-signup (when SELF_SIGNUP_ENABLED) is the only path that leaves
   -- it null on arrival. Same nullable-timestamp shape as archived_at /
   -- do_not_hire_at above, not a boolean, so "when" is on file for free.
-  approved_at       timestamptz
+  approved_at       timestamptz,
+  -- set once the first-login welcome modal has been shown/dismissed;
+  -- null means show it next time this apprentice loads Home.
+  welcomed_at       timestamptz
 );
 
 -- one row per (user, show): "my status/note on this show" — never touches the
