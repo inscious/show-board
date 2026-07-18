@@ -739,6 +739,7 @@ function DaySheet({
     const [hrs, setHrs] = useState(8);
     const [cat, setCat] = useState("");
     const [note, setNote] = useState("");
+    const [travel, setTravel] = useState("");
     const [editId, setEditId] = useState(null);
     const [mode, setMode] = useState("hrs");
     const [tin, setTin] = useState(PAY.stStart);
@@ -801,6 +802,7 @@ function DaySheet({
         setHrs(8);
         setCat("");
         setNote("");
+        setTravel("");
         setEditId(null);
         setMode("hrs");
         setTin(PAY.stStart);
@@ -834,6 +836,7 @@ function DaySheet({
             co,
             cat,
             note: note.trim(),
+            travel: travel ? num(travel) : undefined,
         };
         const row =
             mode === "time"
@@ -853,6 +856,7 @@ function DaySheet({
         setHrs(e.hrs);
         setCat(e.cat || "");
         setNote(e.note || "");
+        setTravel(e.travel ? String(e.travel) : "");
         setTouched(false);
         if (e.in != null && e.out != null) {
             setMode("time");
@@ -2194,6 +2198,50 @@ function DaySheet({
                         in one day? Save this one, then add a second entry —
                         Eagle 8:00–12:00, Freeman 12:30 on. They land as two
                         rows on the same date, the way the office wants them.
+                    </div>
+
+                    <div
+                        style={{
+                            fontSize: 10,
+                            letterSpacing: 0.6,
+                            color: C.lo,
+                            fontFamily: FM,
+                            margin: "14px 0 6px",
+                        }}
+                    >
+                        TRAVEL PAY — OPTIONAL
+                    </div>
+                    <input
+                        className="foc"
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.01"
+                        value={travel}
+                        onChange={(e) => setTravel(e.target.value)}
+                        placeholder="e.g. 20.00"
+                        style={{
+                            width: "100%",
+                            background: C.sunk,
+                            color: C.hi,
+                            border: "1px solid " + C.line,
+                            borderRadius: 9,
+                            padding: "11px",
+                            fontSize: 13.5,
+                            fontFamily: FS,
+                        }}
+                    />
+                    <div
+                        style={{
+                            fontSize: 10.5,
+                            color: C.lo,
+                            marginTop: 6,
+                            lineHeight: 1.45,
+                        }}
+                    >
+                        A flat stipend, not part of your ST/OT/DT hours — whatever
+                        shows up as its own line on your check. Adds straight to
+                        gross below.
                     </div>
 
                     {touched && !ok && (

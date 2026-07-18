@@ -25,6 +25,7 @@ export async function POST(request) {
       break_min: data.brk ?? 0,
       pay_rate: data.payRate ?? null,
       show_id: data.showId ?? null,
+      travel_pay: data.travel ?? null,
     });
     if (error) return Response.json({ error: "Could not save" }, { status: 400 });
     return Response.json({ ok: true });

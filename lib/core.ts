@@ -91,6 +91,10 @@ export type Entry = {
     in?: number | null;
     out?: number | null;
     brk?: number | null;
+    // a flat dollar stipend, not rate x hours — every pay stub analyzed shows
+    // it as its own line, inconsistent even by hours worked, so it's a
+    // straight add to gross rather than folded into the ST/OT/DT split.
+    travel?: number | null;
 };
 
 export type EntriesByDay = Record<string, Entry[]>;
@@ -1114,13 +1118,15 @@ export function entryPay(
     const sp = entrySplit(dayKey, e);
     const r = rateFor(e.co, lvIdx, rates);
     const paid = paidHours(sp);
+    const travel = e.travel || 0;
     return {
         sp,
         paid,
         rate: r.rate,
         level: r.level,
         over: r.over,
-        gross: paid * r.rate,
+        travel,
+        gross: paid * r.rate + travel,
     };
 }
 /* a bucket of days -> blended gross, plus the per-company detail */
@@ -1132,6 +1138,7 @@ export function rangePay(
 ) {
     let gross = 0,
         paid = 0,
+        travel = 0,
         split: SplitLike = ZERO_SPLIT;
     const byCo: Record<
         string,
@@ -1149,6 +1156,7 @@ export function rangePay(
             const p = entryPay(k, e, lvIdx, rates);
             gross += p.gross;
             paid += p.paid;
+            travel += p.travel;
             split = splitAdd(split, p.sp);
             const b =
                 byCo[e.co] ||
@@ -1165,7 +1173,7 @@ export function rangePay(
             b.gross += p.gross;
         }),
     );
-    return { gross, paid, split, byCo };
+    return { gross, paid, travel, split, byCo };
 }
 
 /* the four apprentice work processes, straight off the JATC sheet.

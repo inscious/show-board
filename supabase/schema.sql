@@ -149,6 +149,7 @@ create table work_entries (
   category   char(1) check (category in ('A','B','C','D')),
   note       text,
   show_id    text references shows on delete set null,
+  travel_pay numeric(6,2) default 0,       -- flat stipend, not rate x hours — see Entry type in lib/core.ts
   created_at timestamptz default now()
 );
 create index on work_entries (user_id, worked_on);

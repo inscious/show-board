@@ -56,6 +56,8 @@ export const entrySchema = z.object({
     ot: z.number().min(0).max(24),
     dt: z.number().min(0).max(24),
     payRate: z.number().min(0).max(200).optional().nullable(),
+    // flat stipend, not rate x hours — see the Entry type comment in lib/core.ts
+    travel: z.number().min(0).max(500).optional().nullable(),
 });
 export const entryDeleteSchema = z.object({ id });
 
