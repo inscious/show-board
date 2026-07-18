@@ -33,6 +33,7 @@ import {
     ShieldAlert,
     Bell,
     CloudOff,
+    TriangleAlert,
 } from "lucide-react";
 import { store, subscribeSyncStatus } from "@/lib/store";
 import {
@@ -118,6 +119,11 @@ import {
     statusOn,
     todayMid,
 } from "@/lib/core";
+import { OjtImportFlow } from "@/components/ojt/OjtImportFlow";
+
+// same build-time flag app/pending/page.jsx checks — kept in sync so both
+// "upload OJT slips" entry points turn on/off together.
+const OJT_IMPORT_ENABLED = process.env.NEXT_PUBLIC_OJT_IMPORT_ENABLED === "true";
 
 /* the labor/I&D directory and JATC office contacts — real third-party names
    and phone numbers, so they live in Supabase (lib/store.js), not committed
@@ -6708,6 +6714,7 @@ function OjtTab({
     entries,
     onAddMonth,
     onEditMonth,
+    onImportMonths,
     rates,
     onSetRate,
     onRemoveRate,
@@ -6848,6 +6855,46 @@ function OjtTab({
                     </div>
                 )}
             </div>
+
+            {/* no OJT history at all yet — nudge toward backfilling it, don't require it */}
+            {months.length === 0 && (
+                <div
+                    className="dspan"
+                    style={{
+                        background: "rgba(255,176,32,0.07)",
+                        border: "1px solid rgba(255,176,32,0.3)",
+                        borderRadius: 12,
+                        padding: "13px 15px",
+                        boxShadow: SHADOW,
+                    }}
+                >
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                        <TriangleAlert size={15} color={C.brand} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <div style={{ fontSize: 12.5, color: C.hi, lineHeight: 1.5 }}>
+                            No OJT history yet — your level and pay scale won't track until you add some.{" "}
+                            {OJT_IMPORT_ENABLED ? (
+                                <button
+                                    type="button"
+                                    className="foc"
+                                    onClick={onImportMonths}
+                                    style={{ background: "transparent", border: "none", color: C.brand, fontWeight: 800, fontSize: 12.5, padding: 0, textDecoration: "underline" }}
+                                >
+                                    Upload old slips
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    className="foc"
+                                    onClick={() => onAddMonth()}
+                                    style={{ background: "transparent", border: "none", color: C.brand, fontWeight: 800, fontSize: 12.5, padding: 0, textDecoration: "underline" }}
+                                >
+                                    Add a month
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* the slip that puts you on the do-not-hire list if it's late */}
             <div
@@ -7869,7 +7916,14 @@ function OjtTab({
                 </div>
             </Fold>
 
-            {/* pay package */}
+            {/* pay package — the full base/benefits breakdown only exists for
+                Level 2 (straight off a real JATC letter, see L2_PACKAGE in
+                lib/core.ts). Showing those numbers to an apprentice at any
+                other level would be flat-out wrong, not just imprecise — so
+                this only renders the full breakdown at L2, and falls back to
+                just the confirmed base scale rate (still per-level, from
+                LEVELS) everywhere else, honest about what isn't known yet. */}
+            {lv.k === "L2" ? (
             <Fold icon={Hammer} title="Level 2 pay package" color={C.brand}>
                 <div
                     style={{ display: "flex", flexDirection: "column", gap: 7 }}
@@ -8001,6 +8055,24 @@ function OjtTab({
                     </div>
                 </div>
             </Fold>
+            ) : (
+            <Fold icon={Hammer} title={lv.label + " pay"} color={C.brand}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    <div style={{ display: "flex", fontSize: 12.5 }}>
+                        <span style={{ color: C.mid }}>Base rate</span>
+                        <span style={{ marginLeft: "auto", fontFamily: FM, color: C.hi, fontWeight: 700 }}>
+                            {(lv.payEst ? "~" : "") + money(lv.pay)}
+                        </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.lo, marginTop: 2, lineHeight: 1.5 }}>
+                        {lv.payEst
+                            ? "This rate isn't confirmed on paper yet — treat it as a rough estimate."
+                            : "Confirmed base scale rate."}{" "}
+                        The full benefits breakdown (H&W, pension, vacation, etc.) is only on file for Level 2 right now — this will fill in for other levels as that paperwork comes in.
+                    </div>
+                </div>
+            </Fold>
+            )}
 
             {/* certs — admin-entered, from Supabase, not a hardcoded list */}
             <Fold icon={Check} title="Certifications" color={C.gc}>
@@ -11192,6 +11264,9 @@ export default function App() {
                         onEditMonth={(row) =>
                             setModal({ type: "month", month: row })
                         }
+                        onImportMonths={() =>
+                            setModal({ type: "ojt-import" })
+                        }
                         email={email}
                         isAdmin={isAdmin}
                         profile={profile}
@@ -11664,6 +11739,31 @@ export default function App() {
                                 >
                                     <Plus size={17} /> Add month
                                 </button>
+                                {OJT_IMPORT_ENABLED && (
+                                    <button
+                                        className="foc"
+                                        onClick={() =>
+                                            setModal({ type: "ojt-import" })
+                                        }
+                                        style={{
+                                            flex: 1,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            gap: 7,
+                                            padding: "13px",
+                                            borderRadius: 12,
+                                            background: C.panel,
+                                            color: C.hi,
+                                            border: "1px solid " + C.edge,
+                                            fontWeight: 700,
+                                            fontSize: 14,
+                                            boxShadow: SHADOW,
+                                        }}
+                                    >
+                                        <Upload size={17} /> Upload
+                                    </button>
+                                )}
                                 <button
                                     className="foc"
                                     onClick={() =>
@@ -11859,6 +11959,21 @@ export default function App() {
                             setModal(null);
                         }}
                         onClose={() => setModal(null)}
+                    />
+                </Modal>
+            )}
+            {modal?.type === "ojt-import" && (
+                <Modal
+                    title="Upload OJT slips"
+                    sub="Scan old slips instead of retyping them"
+                    onClose={() => setModal(null)}
+                >
+                    <OjtImportFlow
+                        onSubmit={async (rows) => {
+                            rows.forEach(saveMonth);
+                            setModal(null);
+                        }}
+                        onCancel={() => setModal(null)}
                     />
                 </Modal>
             )}

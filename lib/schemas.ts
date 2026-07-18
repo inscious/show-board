@@ -62,6 +62,7 @@ export const ojtMonthSchema = z.object({
   d: z.number().min(0).max(1000),
 });
 export const ojtMonthDeleteSchema = z.object({ m: monthStr });
+export const ojtMonthBulkSchema = z.array(ojtMonthSchema).min(1).max(36);
 
 export const bookingSchema = z.object({
   id,

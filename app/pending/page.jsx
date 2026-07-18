@@ -9,11 +9,16 @@
    like it would from inside the app. Nothing else — no schedule, no company
    directory, no new hour-logging. */
 import { useEffect, useState } from "react";
-import { HardHat, Plus, Trash2 } from "lucide-react";
+import { HardHat, Plus, Trash2, Upload, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM, FS, mKey, mAdd, mMed, todayMid, CATS_META, num } from "@/lib/core";
+import { OjtImportFlow } from "@/components/ojt/OjtImportFlow";
 
 const fieldStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13.5 };
+
+// same build-time flag ShowBoard.jsx checks for the in-app OJT tab — kept in
+// sync so both entry points turn on/off together.
+const IMPORT_ENABLED = process.env.NEXT_PUBLIC_OJT_IMPORT_ENABLED === "true";
 
 function monthOptions() {
   const t = todayMid();
@@ -30,6 +35,8 @@ export default function PendingPage() {
   const [state, setState] = useState("idle");
   const [msg, setMsg] = useState("");
   const [signingOut, setSigningOut] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const [showManual, setShowManual] = useState(!IMPORT_ENABLED); // manual form starts open if there's no upload option to prefer
 
   const load = async () => {
     const supabase = createClient();
@@ -64,6 +71,20 @@ export default function PendingPage() {
       setState("error");
       setMsg("Network error — check your connection and try again.");
     }
+  };
+
+  const bulkSubmit = async (rows) => {
+    const res = await fetch("/api/ojt-months/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rows),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || "Could not save");
+    }
+    setShowImport(false);
+    load();
   };
 
   const removeMonth = async (m) => {
@@ -104,10 +125,37 @@ export default function PendingPage() {
           <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6, marginTop: 8 }}>
             While you wait, you can add any OJT hours you've already turned in to the union below. They'll be reviewed the same way any logged month is once you're approved.
           </div>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 7, marginTop: 12, paddingTop: 12, borderTop: "1px solid " + C.line, fontSize: 12, color: C.brand, lineHeight: 1.5 }}>
+            <TriangleAlert size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>This part is optional — you can skip it and come back anytime. But your progress and pay-scale level won't be tracked until you add your OJT history.</span>
+          </div>
         </div>
 
+        {IMPORT_ENABLED && (
+          <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 14, padding: "18px 20px", boxShadow: SHADOW, marginBottom: 16 }}>
+            <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 12 }}>UPLOAD OJT SLIPS</div>
+            {showImport ? (
+              <OjtImportFlow onSubmit={bulkSubmit} onCancel={() => setShowImport(false)} />
+            ) : (
+              <button type="button" onClick={() => setShowImport(true)}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px", borderRadius: 10, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+                <Upload size={16} /> Upload old OJT slips (fastest)
+              </button>
+            )}
+          </div>
+        )}
+
         <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 14, padding: "18px 20px", boxShadow: SHADOW, marginBottom: 16 }}>
-          <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 12 }}>ADD A MONTH</div>
+          {IMPORT_ENABLED ? (
+            <button type="button" onClick={() => setShowManual((v) => !v)}
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", background: "transparent", border: "none", padding: 0, marginBottom: showManual ? 12 : 0, cursor: "pointer" }}>
+              <span style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>OR ADD A MONTH MANUALLY</span>
+              <span style={{ fontSize: 11, color: C.brand, fontWeight: 700 }}>{showManual ? "Hide" : "Show"}</span>
+            </button>
+          ) : (
+            <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 12 }}>ADD A MONTH</div>
+          )}
+          {showManual && (
           <form onSubmit={submit}>
             <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>MONTH</div>
             <select value={form.m} onChange={(e) => setForm((f) => ({ ...f, m: e.target.value }))}
@@ -131,6 +179,7 @@ export default function PendingPage() {
             </button>
             {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
           </form>
+          )}
         </div>
 
         <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 14, padding: "18px 20px", boxShadow: SHADOW }}>
