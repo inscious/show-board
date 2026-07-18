@@ -8582,31 +8582,33 @@ function OjtTab({
                                 >
                                     {c.n}
                                 </span>
-                                <a
-                                    className="foc"
-                                    href={
-                                        "tel:" +
-                                        c.tel +
-                                        (c.ext ? "," + c.ext : "")
-                                    }
-                                    style={{
-                                        flexShrink: 0,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 5,
-                                        background: "rgba(47,176,122,0.14)",
-                                        color: C.working,
-                                        textDecoration: "none",
-                                        padding: "6px 8px",
-                                        borderRadius: 7,
-                                        fontWeight: 800,
-                                        fontSize: 11,
-                                        border: "1px solid rgba(47,176,122,0.3)",
-                                    }}
-                                >
-                                    <Phone size={11} />
-                                    {fmtTel(c.tel)} x{c.ext}
-                                </a>
+                                {c.tel && (
+                                    <a
+                                        className="foc"
+                                        href={
+                                            "tel:" +
+                                            c.tel +
+                                            (c.ext ? "," + c.ext : "")
+                                        }
+                                        style={{
+                                            flexShrink: 0,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 5,
+                                            background: "rgba(47,176,122,0.14)",
+                                            color: C.working,
+                                            textDecoration: "none",
+                                            padding: "6px 8px",
+                                            borderRadius: 7,
+                                            fontWeight: 800,
+                                            fontSize: 11,
+                                            border: "1px solid rgba(47,176,122,0.3)",
+                                        }}
+                                    >
+                                        <Phone size={11} />
+                                        {fmtTel(c.tel)}{c.ext ? " x" + c.ext : ""}
+                                    </a>
+                                )}
                             </div>
                             <div
                                 style={{
@@ -8616,18 +8618,20 @@ function OjtTab({
                                     marginTop: 6,
                                 }}
                             >
-                                <a
-                                    className="foc"
-                                    href={"mailto:" + c.email}
-                                    style={{
-                                        fontFamily: FM,
-                                        fontSize: 10.5,
-                                        color: C.gc,
-                                        textDecoration: "none",
-                                    }}
-                                >
-                                    {c.email}
-                                </a>
+                                {c.email && (
+                                    <a
+                                        className="foc"
+                                        href={"mailto:" + c.email}
+                                        style={{
+                                            fontFamily: FM,
+                                            fontSize: 10.5,
+                                            color: C.gc,
+                                            textDecoration: "none",
+                                        }}
+                                    >
+                                        {c.email}
+                                    </a>
+                                )}
                                 {c.sms && (
                                     <a
                                         className="foc"
@@ -9858,6 +9862,14 @@ function HomeTab({
                     sub="base, no travel"
                     color={C.working}
                 />
+            </div>
+
+            <div className="dspan" style={{ fontSize: 10.5, color: C.lo, lineHeight: 1.5, padding: "0 2px" }}>
+                Gross figures are only as accurate as how a day was logged.
+                Weekends and holidays are caught either way, but a flat hours
+                entry (no clock in/out) assumes a standard {fmtClock(PAY.stStart)} start —
+                if you actually clocked in before {fmtClock(PAY.stStart)} or out after {fmtClock(PAY.otEnd)},
+                use the time fields on the day sheet to get the real DT/OT.
             </div>
 
             {/* OJT status */}
