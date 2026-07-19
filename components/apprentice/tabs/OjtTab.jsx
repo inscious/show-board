@@ -2501,8 +2501,7 @@ export function OjtTab({
                         lineHeight: 1.5,
                     }}
                 >
-                    Hours sync to your own account — your brother can't see or
-                    edit them, and you can't see his. The schedule (Board tab)
+                    Hours sync to your own account. The schedule (Board tab)
                     is shared; only an admin can add or change it.
                 </div>
                 <button
