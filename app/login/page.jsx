@@ -1,12 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Mail, HardHat, Lock, Eye, EyeOff, ArrowLeft, UserPlus } from "lucide-react";
 import { C, SHADOW, FM, FS } from "@/lib/core";
-
-// same build-time flag app/signup/page.jsx checks — kept in sync so the
-// entry point and the destination turn on/off together.
-const SIGNUP_ENABLED = process.env.NEXT_PUBLIC_SELF_SIGNUP_ENABLED === "true";
 
 export default function LoginPage() {
   const [mode, setMode] = useState("password"); // password | magiclink
@@ -15,6 +11,15 @@ export default function LoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [state, setState] = useState("idle"); // idle | sending | sent | error
   const [msg, setMsg] = useState("");
+  // live admin toggle (Settings → Apprentice Sign-Up), fetched at runtime —
+  // was a build-time env var, but that needed a redeploy to change.
+  const [signupEnabled, setSignupEnabled] = useState(false);
+  useEffect(() => {
+    fetch("/api/settings/self-signup")
+      .then((r) => r.json())
+      .then((d) => setSignupEnabled(!!d.enabled))
+      .catch(() => {});
+  }, []);
 
   const submitPassword = async (e) => {
     e.preventDefault();
@@ -163,7 +168,7 @@ export default function LoginPage() {
               style={{ width: "100%", marginTop: 16, background: "transparent", border: "none", color: C.gc, fontSize: 12.5, fontWeight: 700, padding: 0 }}>
               Email me a sign-in link instead
             </button>
-            {SIGNUP_ENABLED && (
+            {signupEnabled && (
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0 14px" }}>
                   <span style={{ flex: 1, height: 1, background: C.line }} />

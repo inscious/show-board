@@ -2,8 +2,9 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
 
-/* Self-signup — gated behind SELF_SIGNUP_ENABLED so this whole surface can be
-   turned off with one env var and the app reverts to admin-provisioned-only
+/* Self-signup — gated behind app_settings.self_signup_enabled (a live admin
+   toggle, Settings → Apprentice Sign-Up) so this whole surface can be turned
+   off without a redeploy and the app reverts to admin-provisioned-only
    accounts (see app/api/admin/apprentices/route.js), exactly as it worked
    before this route existed. Unauthenticated by definition (nobody has a
    session yet), same category as request-link/sign-in — own rate limit and
@@ -25,14 +26,15 @@ const MAX_BODY_BYTES = 2_000;
 const bodySchema = z.object({
   email: z.string().trim().toLowerCase().email().max(254),
   password: z.string().min(8).max(200),
-  name: z.string().trim().max(200).optional(),
+  // first AND last name required — a bare single word doesn't pass, since
+  // the union roster and OJT paperwork both expect a full name on file.
+  name: z.string().trim().max(200).refine(
+    (v) => v.split(/\s+/).filter(Boolean).length >= 2,
+    { message: "Enter your first and last name" },
+  ),
 });
 
 export async function POST(request) {
-  if (!process.env.SELF_SIGNUP_ENABLED) {
-    return Response.json({ error: "Self-signup isn't open right now." }, { status: 403 });
-  }
-
   const len = Number(request.headers.get("content-length") || 0);
   if (len > MAX_BODY_BYTES) {
     return Response.json({ error: "Request too large" }, { status: 413 });
@@ -47,11 +49,18 @@ export async function POST(request) {
 
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return Response.json({ error: "Enter a valid email and an 8+ character password" }, { status: 400 });
+    const nameIssue = parsed.error.issues.find((i) => i.path[0] === "name");
+    return Response.json({ error: nameIssue?.message || "Enter a valid email and an 8+ character password" }, { status: 400 });
   }
   const { email, password, name } = parsed.data;
 
   const supabase = createClient();
+
+  const { data: settings } = await supabase.from("app_settings").select("self_signup_enabled").eq("id", 1).single();
+  if (!settings?.self_signup_enabled) {
+    return Response.json({ error: "Self-signup isn't open right now." }, { status: 403 });
+  }
+
   const ip = clientIp(request);
 
   // tighter than sign-in/request-link on purpose — this is the one
@@ -72,7 +81,7 @@ export async function POST(request) {
     password,
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
-      data: name ? { name } : undefined,
+      data: { name },
     },
   });
 

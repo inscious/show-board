@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Mail, HardHat, Lock, User, Eye, EyeOff } from "lucide-react";
 import { C, SHADOW, FM, FS } from "@/lib/core";
 
-// build-time flag, same convention as every other optional feature in this
-// app (CRON_SECRET, RESEND_API_KEY) — off means this page (and the API
-// route behind it) don't exist as far as anyone can tell from the outside.
-const SIGNUP_ENABLED = process.env.NEXT_PUBLIC_SELF_SIGNUP_ENABLED === "true";
+// live admin toggle (Settings → Apprentice Sign-Up), not a build-time flag —
+// middleware.js already fully gates this route server-side against
+// app_settings before this page ever renders, so there's nothing to check
+// here client-side anymore.
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -18,14 +18,13 @@ export default function SignupPage() {
   const [state, setState] = useState("idle"); // idle | sending | error
   const [msg, setMsg] = useState("");
 
-  useEffect(() => {
-    if (!SIGNUP_ENABLED) window.location.href = "/login";
-  }, []);
-
-  if (!SIGNUP_ENABLED) return null;
-
   const submit = async (e) => {
     e.preventDefault();
+    if (name.trim().split(/\s+/).filter(Boolean).length < 2) {
+      setState("error");
+      setMsg("Enter your first and last name.");
+      return;
+    }
     if (password !== confirm) {
       setState("error");
       setMsg("Passwords don't match.");

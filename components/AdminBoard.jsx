@@ -19,6 +19,7 @@ import { AuditLogPanel } from "@/components/admin/AuditLogPanel";
 import { CompanyDirectoryPanel } from "@/components/admin/CompanyDirectoryPanel";
 import { JatcContactsPanel } from "@/components/admin/JatcContactsPanel";
 import { PendingSignupsPanel } from "@/components/admin/PendingSignupsPanel";
+import { SelfSignupPanel } from "@/components/admin/SelfSignupPanel";
 import { ClassCurriculum } from "@/components/ojt/ClassCurriculum";
 import { Avatar, Modal, ConfirmModal, req } from "@/components/admin/shared";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
@@ -2622,10 +2623,16 @@ export default function AdminBoard() {
 
         {tab === "settings" && (
           <>
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, marginBottom: 8 }}>ACCESS</div>
+            <SelfSignupPanel />
             <NewAdminForm onCreated={load} />
             <AdminAccountsPanel currentEmail={email} />
+
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, margin: "8px 0 8px" }}>DIRECTORY</div>
             <CompanyDirectoryPanel />
             <JatcContactsPanel />
+
+            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, margin: "8px 0 8px" }}>ACTIVITY</div>
             <AuditLogPanel />
           </>
         )}

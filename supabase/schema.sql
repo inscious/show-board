@@ -385,6 +385,24 @@ create policy "admin insert" on admin_audit_log for insert to authenticated with
 -- no update/delete policy at all — the log is append-only by design.
 
 -- ============================================================================
+-- Single-row app-wide settings — currently just the self-signup toggle.
+-- Read needs to be public (unauthenticated): /signup and /login both need to
+-- know this before a session exists, and /api/auth/sign-up is itself an
+-- unauthenticated route. The "id = 1" check enforces there's ever only the
+-- one row — every reader/writer always targets id=1, never inserts more.
+-- ============================================================================
+create table app_settings (
+  id                  int primary key default 1,
+  self_signup_enabled boolean not null default true,
+  constraint app_settings_singleton check (id = 1)
+);
+insert into app_settings (id, self_signup_enabled) values (1, true);
+
+alter table app_settings enable row level security;
+create policy "anyone can read" on app_settings for select using (true);
+create policy "admin can update" on app_settings for update using (is_admin_user()) with check (is_admin_user());
+
+-- ============================================================================
 -- Column-level guards. RLS's `with check` only sees whether id/user_id
 -- matches the caller — it can't say "this column, but not that one" — so
 -- "own profile" / "own rows" above are wide enough that an apprentice could

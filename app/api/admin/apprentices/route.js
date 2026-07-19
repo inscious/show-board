@@ -6,9 +6,10 @@ import { logAudit } from "@/lib/auditLog";
 /* creating an account this way is an Admin API operation (auth.admin.createUser),
    admin hands out the first password directly (see app/login and
    lib/store.js setPassword). Self-signup (app/api/auth/sign-up, gated behind
-   SELF_SIGNUP_ENABLED) is the other way an account can appear — accounts
-   created here are approved on arrival since admin already vetted them by
-   creating the account directly; self-signups start unapproved. */
+   the live app_settings.self_signup_enabled toggle) is the other way an
+   account can appear — accounts created here are approved on arrival since
+   admin already vetted them by creating the account directly; self-signups
+   start unapproved. */
 export async function POST(request) {
   return guardedRoute(request, "admin:apprentices:post", { schema: createApprenticeSchema, requireAdmin: true }, async ({ data }) => {
     const admin = createAdminClient();

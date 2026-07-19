@@ -4,8 +4,10 @@ import { NextResponse } from "next/server";
 /* Single choke point: refreshes the Supabase session cookie on every request
    and sends anyone without a session to /login. Nothing else in the app is
    reachable unauthenticated. /signup is public too, but only actually usable
-   when SELF_SIGNUP_ENABLED — see the dedicated check below, kept separate
-   from this list since it needs an extra condition the others don't. */
+   when app_settings.self_signup_enabled is true — see the dedicated check
+   below, kept separate from this list since it needs an extra condition the
+   others don't, and specifically scoped to /signup requests only so this
+   doesn't add a DB read to every single navigation. */
 const PUBLIC_PATHS = ["/login", "/auth/callback", "/signup"];
 
 export async function middleware(request) {
@@ -38,13 +40,16 @@ export async function middleware(request) {
   // cron invocation gets redirected to /login before the route ever runs.
   const isCron = request.nextUrl.pathname.startsWith("/api/cron/");
 
-  // self-signup is a feature that can be switched off entirely — bounce the
-  // page server-side so a disabled flag never even flashes the form before
-  // the client-side check (app/signup/page.jsx) would otherwise redirect it.
-  if (request.nextUrl.pathname.startsWith("/signup") && !process.env.SELF_SIGNUP_ENABLED) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+  // self-signup is a live admin toggle (Settings → Apprentice Sign-Up), not
+  // a build-time flag — bounce the page server-side, before it ever renders,
+  // so a disabled flag never flashes the form first.
+  if (request.nextUrl.pathname.startsWith("/signup")) {
+    const { data: settings } = await supabase.from("app_settings").select("self_signup_enabled").eq("id", 1).single();
+    if (!settings?.self_signup_enabled) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
   }
 
   if (!user && !isPublic && !isApiAuth && !isCron) {
