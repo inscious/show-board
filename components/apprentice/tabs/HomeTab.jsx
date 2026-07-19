@@ -1299,7 +1299,17 @@ export function HomeTab({
                 and "turned in, bounced back" (rejected), since both need the
                 apprentice to act, not just an FYI badge. */}
             {(() => {
-                const urgent = lateSt.k === "late" || openSt.k === "rejected";
+                // once the apprentice has cleared the "declined" bell
+                // notification (see notifications.jsx / lib/store.ts
+                // clearNotification), treat it as acknowledged — the card
+                // still says DECLINED and still links to OJT to fix it, it
+                // just stops repainting itself urgent-red on every visit.
+                // The status itself (openSt.k) stays "rejected" until they
+                // actually resubmit; only the alarm styling backs off.
+                const rejectedUnacknowledged =
+                    openSt.k === "rejected" &&
+                    notifications.some((n) => n.id.endsWith("-" + mk + "-rejected"));
+                const urgent = lateSt.k === "late" || rejectedUnacknowledged;
                 return (
                     <button
                         className="foc dspan"
