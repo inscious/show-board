@@ -1328,13 +1328,20 @@ export const PAY_COLOR: Record<"st" | "ot" | "dt", string> = {
     ot: "#FFB020",
     dt: "#2FB07A",
 };
-export const BOOKED = "#B49BF0"; /* scheduled to work, not logged yet */
-// was #E8927C — the exact same hex as C.danger, which is why it read as
-// "delete/bad" rather than just "mandatory." Indigo doesn't collide with
-// anything else in the palette (BOOKED's lavender is lighter/less
-// saturated, C.gc's blue leans cyan) and isn't already carrying a
-// success/danger meaning anywhere else.
-export const KLASS = "#6C6FD9"; /* union class — mandatory, unpaid */
+// was #B49BF0 (lavender) — moved off purple on request. This burnt-orange
+// only clears ~10-15° of hue from brand/PAY_COLOR.ot/danger, tighter than
+// the ~40° margin used elsewhere in this file; leaning hard on saturation
+// and lightness contrast instead since hue is the only axis that survives
+// this app's alpha-blended calendar fills (see KLASS below).
+export const BOOKED = "#DD5D0E"; /* scheduled to work, not logged yet */
+// was #E8927C (identical to C.danger), then #6C6FD9 (indigo — too close to
+// BOOKED's lavender, only ~20° apart on the hue wheel, so "class" and
+// "scheduled" read as the same purple on the calendar). Fuchsia sits in the
+// one open gap in the palette — 40°+ from every other color in use,
+// including BOOKED — with nothing between it and the neighbors on either
+// side (orange is already spoken for twice over: PAY_COLOR.ot and C.brand
+// both sit there, plus C.danger next door).
+export const KLASS = "#E07BE0"; /* union class — mandatory, unpaid */
 
 /* ---------- federal holidays (observed) ---------- */
 export function nthDow(y: number, m: number, dow: number, n: number): Date {
