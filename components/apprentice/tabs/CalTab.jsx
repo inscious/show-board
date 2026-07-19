@@ -526,31 +526,35 @@ export function CalTab({
                                         </span>
                                     )}
                                     {hrs > 0 && (
-                                        <span
+                                        <div
                                             style={{
-                                                fontFamily: FM,
-                                                fontSize: 9,
-                                                fontWeight: 800,
-                                                color: C.working,
-                                                lineHeight: 1,
+                                                display: "flex",
+                                                flexDirection: "column",
                                             }}
                                         >
-                                            WORKED
-                                        </span>
-                                    )}
-                                    {hrs > 0 && (
-                                        <span
-                                            style={{
-                                                marginLeft: "auto",
-                                                fontFamily: FM,
-                                                fontSize: 14,
-                                                fontWeight: 800,
-                                                color: C.hi,
-                                                lineHeight: 1,
-                                            }}
-                                        >
-                                            {hrsFmt(hrs)}
-                                        </span>
+                                            <span
+                                                style={{
+                                                    fontFamily: FM,
+                                                    fontSize: 14,
+                                                    fontWeight: 800,
+                                                    color: C.hi,
+                                                    lineHeight: 1.15,
+                                                }}
+                                            >
+                                                {hrsFmt(hrs)}
+                                            </span>
+                                            <span
+                                                style={{
+                                                    fontFamily: FM,
+                                                    fontSize: 9,
+                                                    fontWeight: 800,
+                                                    color: C.working,
+                                                    lineHeight: 1.15,
+                                                }}
+                                            >
+                                                LOGGED
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                             </button>

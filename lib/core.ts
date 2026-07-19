@@ -1328,12 +1328,13 @@ export const PAY_COLOR: Record<"st" | "ot" | "dt", string> = {
     ot: "#FFB020",
     dt: "#2FB07A",
 };
-// was #B49BF0 (lavender) — moved off purple on request. This burnt-orange
-// only clears ~10-15° of hue from brand/PAY_COLOR.ot/danger, tighter than
-// the ~40° margin used elsewhere in this file; leaning hard on saturation
-// and lightness contrast instead since hue is the only axis that survives
-// this app's alpha-blended calendar fills (see KLASS below).
-export const BOOKED = "#DD5D0E"; /* scheduled to work, not logged yet */
+// was #B49BF0 (lavender), then #DD5D0E (burnt orange) — the orange only
+// cleared ~10-15° of hue from brand/PAY_COLOR.ot/danger, tighter than the
+// ~40° margin used elsewhere in this file, and read as too close to that
+// whole warm cluster once actually alpha-blended. Cornflower/indigo clears
+// 70°+ from working-green and KLASS-fuchsia, the two colors it actually
+// shares a screen with.
+export const BOOKED = "#7089EB"; /* scheduled to work, not logged yet */
 // was #E8927C (identical to C.danger), then #6C6FD9 (indigo — too close to
 // BOOKED's lavender, only ~20° apart on the hue wheel, so "class" and
 // "scheduled" read as the same purple on the calendar). Fuchsia sits in the
