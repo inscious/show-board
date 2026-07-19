@@ -50,8 +50,10 @@ export async function middleware(request) {
   // a build-time flag — bounce the page server-side, before it ever renders,
   // so a disabled flag never flashes the form first.
   if (request.nextUrl.pathname.startsWith("/signup")) {
-    const { data: settings } = await supabase.from("app_settings").select("self_signup_enabled").eq("id", 1).single();
-    if (!settings?.self_signup_enabled) {
+    const { data: settings, error: settingsError } = await supabase.from("app_settings").select("self_signup_enabled").eq("id", 1).single();
+    // same reasoning as the profile read below: a transient error isn't
+    // "the toggle is off," so don't bounce a real signup on a network blip.
+    if (!settingsError && !settings?.self_signup_enabled) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       return NextResponse.redirect(url);
@@ -80,7 +82,14 @@ export async function middleware(request) {
   const isApprenticeHome = request.nextUrl.pathname === "/";
   const isPendingPage = request.nextUrl.pathname === "/pending";
   if (user && (isAdminPath || isApprenticeHome || isPendingPage)) {
-    const { data: profile } = await supabase.from("profiles").select("is_admin, approved_at").eq("id", user.id).single();
+    const { data: profile, error: profileError } = await supabase.from("profiles").select("is_admin, approved_at").eq("id", user.id).single();
+    // a transient read failure here (network blip, connection timeout) used
+    // to silently read as "no profile" -> not admin, not approved -> bounce
+    // a real admin to /pending. Every signed-in user has a profile row, so
+    // an error is infra, not a real "unapproved" account — skip the
+    // redirect decision entirely rather than guess wrong in either
+    // direction; the page's own client-side fetches still enforce auth.
+    if (profileError) return response;
     const isAdmin = !!profile?.is_admin;
     // admins are never subject to this gate regardless of approved_at —
     // belt-and-suspenders alongside create-admin/apprentices always
