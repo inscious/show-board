@@ -628,9 +628,12 @@ export function HomeTab({
                 </button>
             )}
 
-            {/* the month, in money and hours */}
+            {/* the month, in money and hours — sits beside the chart on
+                desktop now (paired via lib/core's dgrid/.dspan convention,
+                same as everywhere else this session); stacks above it on
+                mobile same as before, since dgrid is a single flex column
+                there. */}
             <div
-                className="dspan"
                 style={{
                     background: C.panel,
                     border: "1px solid " + C.edge,
