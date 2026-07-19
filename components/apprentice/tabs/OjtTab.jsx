@@ -25,6 +25,7 @@ import {
     TriangleAlert,
     Eye,
     EyeOff,
+    FileDown,
 } from "lucide-react";
 import {
     C,
@@ -2435,6 +2436,58 @@ export function OjtTab({
                 <span style={{ fontWeight: 700, fontSize: 13 }}>JATC Rules & Regulations — full reference</span>
                 <ChevronRight size={16} color={C.lo} style={{ marginLeft: "auto" }} />
             </button>
+
+            <Fold icon={FileDown} title="Blank OJT form" color={C.gc}>
+                <div style={{ fontSize: 12, color: C.mid, lineHeight: 1.5, marginBottom: 12 }}>
+                    A blank copy of the union's monthly OJT slip — fill it out by hand, then scan it back in with Upload above when it's done.
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                    <a
+                        href="/ojt-form-blank.pdf"
+                        download
+                        className="foc"
+                        style={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                            padding: "10px",
+                            borderRadius: 9,
+                            background: C.sunk,
+                            border: "1px solid " + C.line,
+                            color: C.hi,
+                            fontWeight: 700,
+                            fontSize: 12.5,
+                            textDecoration: "none",
+                        }}
+                    >
+                        <FileDown size={14} /> PDF
+                    </a>
+                    <a
+                        href="/ojt-form-blank.xlsx"
+                        download
+                        className="foc"
+                        style={{
+                            flex: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 6,
+                            padding: "10px",
+                            borderRadius: 9,
+                            background: C.sunk,
+                            border: "1px solid " + C.line,
+                            color: C.hi,
+                            fontWeight: 700,
+                            fontSize: 12.5,
+                            textDecoration: "none",
+                        }}
+                    >
+                        <FileDown size={14} /> Excel
+                    </a>
+                </div>
+            </Fold>
 
             {/* data */}
             <Fold icon={Check} title="Account" color={C.mid}>
