@@ -1329,7 +1329,12 @@ export const PAY_COLOR: Record<"st" | "ot" | "dt", string> = {
     dt: "#2FB07A",
 };
 export const BOOKED = "#B49BF0"; /* scheduled to work, not logged yet */
-export const KLASS = "#E8927C"; /* union class — mandatory, unpaid */
+// was #E8927C — the exact same hex as C.danger, which is why it read as
+// "delete/bad" rather than just "mandatory." Indigo doesn't collide with
+// anything else in the palette (BOOKED's lavender is lighter/less
+// saturated, C.gc's blue leans cyan) and isn't already carrying a
+// success/danger meaning anywhere else.
+export const KLASS = "#6C6FD9"; /* union class — mandatory, unpaid */
 
 /* ---------- federal holidays (observed) ---------- */
 export function nthDow(y: number, m: number, dow: number, n: number): Date {

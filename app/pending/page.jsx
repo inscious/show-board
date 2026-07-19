@@ -104,8 +104,8 @@ export default function PendingPage() {
   const availableMonths = monthOptions().filter((k) => !usedMonths.has(k));
 
   return (
-    <div style={{ minHeight: "100dvh", background: C.bg, fontFamily: FS, padding: "24px 16px 60px" }}>
-      <div style={{ maxWidth: 520, margin: "0 auto" }}>
+    <div style={{ minHeight: "100dvh", background: C.bg, fontFamily: FS, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px 60px" }}>
+      <div style={{ width: "100%", maxWidth: 520 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 20 }}>
           <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 9, background: "rgba(255,176,32,0.14)", border: "1px solid rgba(255,176,32,0.35)", flexShrink: 0 }}>
             <HardHat size={18} color={C.brand} />
