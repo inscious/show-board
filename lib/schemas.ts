@@ -190,6 +190,9 @@ export const adminJatcContactSchema = z.object({
 });
 export const adminJatcContactDeleteSchema = z.object({ id });
 
+export const adminDc36ContactSchema = adminJatcContactSchema;
+export const adminDc36ContactDeleteSchema = z.object({ id });
+
 export const adminRevokeAdminSchema = z.object({ userId });
 
 export const adminProfileSchema = z.object({

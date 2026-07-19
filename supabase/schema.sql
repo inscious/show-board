@@ -21,10 +21,26 @@ create table companies (
   foreman    text
 );
 
--- JATC office staff — same "shared, everyone reads, only admin writes" shape
--- as companies. Kept out of lib/core.js on purpose: real names and a
--- personal cell number have no business being in a public git repo.
+-- JATC training center staff — same "shared, everyone reads, only admin
+-- writes" shape as companies. Kept out of lib/core.js on purpose: real
+-- names and a personal cell number have no business being in a public git
+-- repo.
 create table jatc_contacts (
+  id    text primary key,
+  name  text not null,
+  tel   text,
+  ext   text,
+  email text,
+  sms   text
+);
+
+-- District Council 36 (the union office above the local, not the training
+-- center) — a genuinely separate contact list, not the same rows relabeled.
+-- Same shape as jatc_contacts; most DC36 rows are a department line (Union
+-- Dues, Membership Services, ...) rather than a named person, so ext/email/
+-- sms are usually blank here, but the columns stay for whichever ones do
+-- have them.
+create table dc36_contacts (
   id    text primary key,
   name  text not null,
   tel   text,
@@ -349,6 +365,16 @@ create policy "admin update" on jatc_contacts for update to authenticated
   using (exists (select 1 from profiles where id = auth.uid() and is_admin))
   with check (exists (select 1 from profiles where id = auth.uid() and is_admin));
 create policy "admin delete" on jatc_contacts for delete to authenticated
+  using (exists (select 1 from profiles where id = auth.uid() and is_admin));
+
+alter table dc36_contacts enable row level security;
+create policy "read" on dc36_contacts for select to authenticated using (true);
+create policy "admin write" on dc36_contacts for insert to authenticated
+  with check (exists (select 1 from profiles where id = auth.uid() and is_admin));
+create policy "admin update" on dc36_contacts for update to authenticated
+  using (exists (select 1 from profiles where id = auth.uid() and is_admin))
+  with check (exists (select 1 from profiles where id = auth.uid() and is_admin));
+create policy "admin delete" on dc36_contacts for delete to authenticated
   using (exists (select 1 from profiles where id = auth.uid() and is_admin));
 
 -- ============================================================================

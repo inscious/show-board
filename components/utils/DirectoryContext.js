@@ -5,4 +5,4 @@
    (ShowBoard renders the tabs, the tabs need the same context instance). */
 import { createContext } from "react";
 
-export const DirectoryContext = createContext({ companies: [], jatcContacts: [] });
+export const DirectoryContext = createContext({ companies: [], jatcContacts: [], dc36Contacts: [] });

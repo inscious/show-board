@@ -6,6 +6,7 @@ import { AdminAccountsPanel } from "@/components/admin/AdminAccountsPanel";
 import { AuditLogPanel } from "@/components/admin/AuditLogPanel";
 import { CompanyDirectoryPanel } from "@/components/admin/CompanyDirectoryPanel";
 import { JatcContactsPanel } from "@/components/admin/JatcContactsPanel";
+import { Dc36ContactsPanel } from "@/components/admin/Dc36ContactsPanel";
 import { SelfSignupPanel } from "@/components/admin/SelfSignupPanel";
 import { NewAdminForm } from "@/components/admin/NewAdminForm";
 
@@ -21,6 +22,7 @@ export default function AdminSettingsPage() {
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, margin: "8px 0 8px" }}>DIRECTORY</div>
       <CompanyDirectoryPanel />
       <JatcContactsPanel />
+      <Dc36ContactsPanel />
 
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, margin: "8px 0 8px" }}>ACTIVITY</div>
       <AuditLogPanel />

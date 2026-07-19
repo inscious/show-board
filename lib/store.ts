@@ -166,6 +166,13 @@ export type Blob = {
         email: string;
         sms: string;
     }>;
+    dc36Contacts?: Array<{
+        n: string;
+        tel: string;
+        ext: string;
+        email: string;
+        sms: string;
+    }>;
     isAdmin?: boolean;
     hasPassword?: boolean;
     needsWelcome?: boolean;
@@ -632,6 +639,7 @@ export const store = {
                 notifsRes,
                 companiesRes,
                 jatcRes,
+                dc36Res,
                 completedClassesRes,
             ] = await Promise.all([
                 supabase
@@ -669,6 +677,7 @@ export const store = {
                     .order("created_at", { ascending: false }),
                 supabase.from("companies").select("*"),
                 supabase.from("jatc_contacts").select("*"),
+                supabase.from("dc36_contacts").select("*"),
                 supabase
                     .from("completed_classes")
                     .select("course_id")
@@ -690,6 +699,7 @@ export const store = {
             const notifRows = (notifsRes.data || []) as NotificationRow[];
             const companyRows = (companiesRes.data || []) as CompanyRow[];
             const jatcRows = (jatcRes.data || []) as JatcContactRow[];
+            const dc36Rows = (dc36Res.data || []) as JatcContactRow[];
             const completedClassRows = (completedClassesRes.data || []) as {
                 course_id: number;
             }[];
@@ -751,6 +761,13 @@ export const store = {
                     fm: c.foreman || "",
                 })),
                 jatcContacts: jatcRows.map((c) => ({
+                    n: c.name,
+                    tel: c.tel || "",
+                    ext: c.ext || "",
+                    email: c.email || "",
+                    sms: c.sms || "",
+                })),
+                dc36Contacts: dc36Rows.map((c) => ({
                     n: c.name,
                     tel: c.tel || "",
                     ext: c.ext || "",

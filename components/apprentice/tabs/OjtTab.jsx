@@ -840,7 +840,7 @@ export function OjtTab({
     pwIntent,
     onPwIntentConsumed,
 }) {
-    const { jatcContacts } = useContext(DirectoryContext);
+    const { jatcContacts, dc36Contacts } = useContext(DirectoryContext);
     const [signingOut, setSigningOut] = useState(false);
     const [pwModal, setPwModal] = useState(false);
     const [classInfo, setClassInfo] = useState(null);
@@ -2877,6 +2877,118 @@ export function OjtTab({
                     you get scheduled.
                 </div>
             </Fold>
+
+            {/* District Council 36 — a separate office from the training
+                center above, not a relabeled version of it. Dues, membership
+                services, the trust fund, the credit union — department
+                lines, not a person's desk, so most rows here are just a
+                name and a number. */}
+            {dc36Contacts.length > 0 && (
+                <Fold icon={Building2} title="District Council (DC36)" color={C.gc}>
+                    <div
+                        style={{ display: "flex", flexDirection: "column", gap: 6 }}
+                    >
+                        {dc36Contacts.map((c) => (
+                            <div
+                                key={c.n}
+                                style={{
+                                    background: C.sunk,
+                                    border: "1px solid " + C.line,
+                                    borderRadius: 9,
+                                    padding: "10px 11px",
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 8,
+                                    }}
+                                >
+                                    <span
+                                        className="truncate"
+                                        style={{
+                                            flex: 1,
+                                            minWidth: 0,
+                                            fontSize: 12.5,
+                                            fontWeight: 700,
+                                            color: C.hi,
+                                        }}
+                                    >
+                                        {c.n}
+                                    </span>
+                                    {c.tel && (
+                                        <a
+                                            className="foc"
+                                            href={
+                                                "tel:" +
+                                                c.tel +
+                                                (c.ext ? "," + c.ext : "")
+                                            }
+                                            style={{
+                                                flexShrink: 0,
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 5,
+                                                background: "rgba(127,178,255,0.14)",
+                                                color: C.gc,
+                                                textDecoration: "none",
+                                                padding: "6px 8px",
+                                                borderRadius: 7,
+                                                fontWeight: 800,
+                                                fontSize: 11,
+                                                border: "1px solid rgba(127,178,255,0.3)",
+                                            }}
+                                        >
+                                            <Phone size={11} />
+                                            {fmtTel(c.tel)}{c.ext ? " x" + c.ext : ""}
+                                        </a>
+                                    )}
+                                </div>
+                                {(c.email || c.sms) && (
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            flexWrap: "wrap",
+                                            gap: 10,
+                                            marginTop: 6,
+                                        }}
+                                    >
+                                        {c.email && (
+                                            <a
+                                                className="foc"
+                                                href={"mailto:" + c.email}
+                                                style={{
+                                                    fontFamily: FM,
+                                                    fontSize: 10.5,
+                                                    color: C.gc,
+                                                    textDecoration: "none",
+                                                }}
+                                            >
+                                                {c.email}
+                                            </a>
+                                        )}
+                                        {c.sms && (
+                                            <a
+                                                className="foc"
+                                                href={"sms:" + c.sms}
+                                                style={{
+                                                    fontFamily: FM,
+                                                    fontSize: 10.5,
+                                                    color: C.lo,
+                                                    textDecoration: "none",
+                                                }}
+                                            >
+                                                text {fmtTel(c.sms)}
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </Fold>
+            )}
         </div>
     );
 }

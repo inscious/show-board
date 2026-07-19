@@ -1,16 +1,18 @@
 "use client";
 
-/* JATC training center contacts — same shared/admin-write shape as the
-   company directory (components/admin/CompanyDirectoryPanel.jsx). District
-   Council 36 is a separate office with its own table/panel
-   (Dc36ContactsPanel.jsx) — not the same list with a label on it. */
+/* District Council 36 contacts — the union office above the local, a
+   genuinely separate directory from jatc_contacts (the training center),
+   not the same rows relabeled. Same shared/admin-write shape, mirrored
+   from JatcContactsPanel.jsx on purpose since this app doesn't share
+   panel components across tables (see incremental-component-split memory
+   — file size/separation over DRY here). */
 import { useState, useEffect } from "react";
 import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM } from "@/lib/core";
 import { Modal, ConfirmModal, Avatar, req } from "@/components/admin/shared";
 
-function JatcContactForm({ onSaved, onClose, initial }) {
+function Dc36ContactForm({ onSaved, onClose, initial }) {
   const [form, setForm] = useState(() => initial
     ? { name: initial.name || "", tel: initial.tel || "", ext: initial.ext || "", email: initial.email || "", sms: initial.sms || "" }
     : { name: "", tel: "", ext: "", email: "", sms: "" });
@@ -24,7 +26,7 @@ function JatcContactForm({ onSaved, onClose, initial }) {
     setState("saving");
     setMsg("");
     try {
-      await req("POST", "/api/admin/jatc-contacts", { ...form, id: initial?.id || "jc" + Date.now().toString(36) });
+      await req("POST", "/api/admin/dc36-contacts", { ...form, id: initial?.id || "dc" + Date.now().toString(36) });
       setState("done");
       onSaved();
       setTimeout(onClose, 900);
@@ -36,7 +38,7 @@ function JatcContactForm({ onSaved, onClose, initial }) {
 
   return (
     <form onSubmit={submit}>
-      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NAME</div>
+      <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NAME — a person, or a department line like "Union Dues"</div>
       <input required autoFocus value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
         style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
@@ -64,7 +66,7 @@ function JatcContactForm({ onSaved, onClose, initial }) {
   );
 }
 
-export function JatcContactsPanel() {
+export function Dc36ContactsPanel() {
   const [rows, setRows] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
@@ -72,13 +74,13 @@ export function JatcContactsPanel() {
 
   const load = async () => {
     const supabase = createClient();
-    const { data } = await supabase.from("jatc_contacts").select("*").order("name");
+    const { data } = await supabase.from("dc36_contacts").select("*").order("name");
     setRows(data || []);
   };
   useEffect(() => { load(); }, []);
 
   const remove = async (id) => {
-    await req("DELETE", "/api/admin/jatc-contacts", { id });
+    await req("DELETE", "/api/admin/dc36-contacts", { id });
     load();
   };
   const openAdd = () => { setEditingRow(null); setFormOpen(true); };
@@ -87,7 +89,7 @@ export function JatcContactsPanel() {
   return (
     <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", marginBottom: 9 }}>
-        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>JATC OFFICE CONTACTS{rows ? " — " + rows.length : ""}</div>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>DISTRICT COUNCIL (DC36) CONTACTS{rows ? " — " + rows.length : ""}</div>
         <button className="foc" onClick={openAdd} style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.gc, fontSize: 11.5, fontWeight: 700, padding: 0 }}>+ Add</button>
       </div>
       {rows === null ? (
@@ -113,14 +115,14 @@ export function JatcContactsPanel() {
         </div>
       )}
       {formOpen && (
-        <Modal title={editingRow ? "Edit JATC contact" : "Add JATC contact"} onClose={() => setFormOpen(false)}>
-          <JatcContactForm initial={editingRow} onSaved={load} onClose={() => setFormOpen(false)} />
+        <Modal title={editingRow ? "Edit DC36 contact" : "Add DC36 contact"} onClose={() => setFormOpen(false)}>
+          <Dc36ContactForm initial={editingRow} onSaved={load} onClose={() => setFormOpen(false)} />
         </Modal>
       )}
       {removing && (
         <ConfirmModal
           title="Remove this contact?"
-          message={<>This permanently deletes <strong style={{ color: C.hi }}>{removing.name}</strong> from the JATC office directory apprentices see. It's not recoverable — you'd need to re-enter their info from scratch.</>}
+          message={<>This permanently deletes <strong style={{ color: C.hi }}>{removing.name}</strong> from the District Council directory apprentices see. It's not recoverable — you'd need to re-enter their info from scratch.</>}
           confirmLabel="Remove contact"
           onClose={() => setRemoving(null)}
           onConfirm={async () => { await remove(removing.id); setRemoving(null); }}
