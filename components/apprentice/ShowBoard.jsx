@@ -860,6 +860,9 @@ export default function App() {
                         onOpenRules={() =>
                             setModal({ type: "jatc-rules" })
                         }
+                        onOpenWelcome={() =>
+                            setModal({ type: "welcome" })
+                        }
                         email={email}
                         isAdmin={isAdmin}
                         profile={profile}
@@ -1226,7 +1229,7 @@ export default function App() {
                     />
                 </Modal>
             )}
-            {needsWelcome && !modal && (
+            {((needsWelcome && !modal) || modal?.type === "welcome") && (
                 <WelcomeModal
                     onOpenOjtImport={() => {
                         setNeedsWelcome(false);
@@ -1236,6 +1239,7 @@ export default function App() {
                     onClose={() => {
                         setNeedsWelcome(false);
                         store.markWelcomed();
+                        setModal(null);
                     }}
                 />
             )}

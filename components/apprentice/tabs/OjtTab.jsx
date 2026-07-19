@@ -22,6 +22,7 @@ import {
     Eye,
     EyeOff,
     FileDown,
+    HelpCircle,
 } from "lucide-react";
 import {
     C,
@@ -86,6 +87,7 @@ export function OjtTab({
     onEditMonth,
     onImportMonths,
     onOpenRules,
+    onOpenWelcome,
     rates,
     onSetRate,
     onRemoveRate,
@@ -1319,6 +1321,28 @@ export function OjtTab({
                     }}
                 >
                     Change password
+                </button>
+                <button
+                    className="foc"
+                    onClick={onOpenWelcome}
+                    style={{
+                        width: "100%",
+                        marginTop: 8,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        background: "transparent",
+                        color: C.mid,
+                        border: "1px solid " + C.line,
+                        borderRadius: 9,
+                        padding: "10px",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                    }}
+                >
+                    <HelpCircle size={14} />
+                    Welcome message &amp; help
                 </button>
             </Fold>
 

@@ -9,10 +9,26 @@ import { Modal } from "@/components/ui/Modal";
 import { C } from "@/lib/core";
 
 const TABS = [
-    { Icon: LayoutGrid, name: "Home", desc: "Your hours, est. pay, and what's on the floor today." },
-    { Icon: HardHat, name: "Board", desc: "The full show schedule — who's calling, when, and where." },
-    { Icon: CalendarIcon, name: "Calendar", desc: "Every day you've logged, laid out by month." },
-    { Icon: GraduationCap, name: "OJT", desc: "Your level, pay scale, and the paperwork the union sees." },
+    {
+        Icon: LayoutGrid,
+        name: "Home",
+        desc: "Your hours, estimated pay, and what's on the floor today — plus a monthly chart broken out by work process (A/B/C/D).",
+    },
+    {
+        Icon: HardHat,
+        name: "Board",
+        desc: "The full show schedule — who's calling, when, and where. Mark a show Working or Target, and tap in for GC contact info, notes, and your booked days.",
+    },
+    {
+        Icon: CalendarIcon,
+        name: "Calendar",
+        desc: "Every day you've logged, laid out by month. Tap any day to add or edit an entry — clock in/out gets your overtime and double-time right.",
+    },
+    {
+        Icon: GraduationCap,
+        name: "OJT",
+        desc: "Your level, pay scale, certifications, and classes — plus the monthly slip paperwork the union has on file for you.",
+    },
 ];
 
 export function WelcomeModal({ onOpenOjtImport, onClose }) {
