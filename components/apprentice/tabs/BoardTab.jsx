@@ -636,8 +636,9 @@ export function BoardTab({
                                                     {g.shows.length}
                                                 </span>
                                             </button>
-                                            {open &&
-                                                g.shows.map((s) => (
+                                            {open && (
+                                                <div className="bgrid">
+                                                {g.shows.map((s) => (
                                                     <ShowCard
                                                         key={s.id}
                                                         show={s}
@@ -725,6 +726,8 @@ export function BoardTab({
                                                         onOpenDir={onOpenDir}
                                                     />
                                                 ))}
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
