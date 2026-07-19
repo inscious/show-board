@@ -1789,12 +1789,13 @@ export function OjtTab({
                 <OjtLog rows={rows} roll={roll} onEdit={onEditMonth} />
             </div>
 
-            {/* per-company rate */}
-            <Fold
-                icon={Building2}
-                title="What each company pays you"
-                color={C.brand}
-            >
+            {/* per-company rate, OT/DT rules, and level pay package —
+                consolidated into one Fold so the reference list below isn't
+                three near-identical full-width rows back to back. */}
+            <Fold icon={Building2} title="Pay & rates" color={C.brand}>
+                <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 8 }}>
+                    WHAT EACH COMPANY PAYS YOU
+                </div>
                 <div
                     style={{
                         fontSize: 11.5,
@@ -1974,105 +1975,9 @@ export function OjtTab({
                     Add a shop before you ever log an hour with them — Eagle,
                     Freeman, whoever calls you next.
                 </div>
-            </Fold>
-
-            {/* the four work processes */}
-            <Fold
-                icon={GraduationCap}
-                title="The four work processes"
-                color={CATS_META.A.color}
-            >
-                <div
-                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                >
-                    {["A", "B", "C", "D"].map((k) => {
-                        const m = CATS_META[k];
-                        const v = t[k.toLowerCase()];
-                        return (
-                            <div
-                                key={k}
-                                style={{
-                                    display: "flex",
-                                    gap: 9,
-                                    background: C.sunk,
-                                    border: "1px solid " + C.line,
-                                    borderRadius: 9,
-                                    padding: "10px 11px",
-                                }}
-                            >
-                                <span
-                                    style={{
-                                        flexShrink: 0,
-                                        width: 20,
-                                        height: 20,
-                                        borderRadius: 5,
-                                        background: m.color + "22",
-                                        border: "1px solid " + m.color + "66",
-                                        color: m.color,
-                                        fontFamily: FM,
-                                        fontSize: 11,
-                                        fontWeight: 800,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                    }}
-                                >
-                                    {k}
-                                </span>
-                                <div style={{ minWidth: 0, flex: 1 }}>
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 6,
-                                        }}
-                                    >
-                                        <span
-                                            className="truncate"
-                                            style={{
-                                                fontSize: 12.5,
-                                                fontWeight: 700,
-                                                color: C.hi,
-                                            }}
-                                        >
-                                            {m.name}
-                                        </span>
-                                        <span
-                                            style={{
-                                                marginLeft: "auto",
-                                                flexShrink: 0,
-                                                fontFamily: FM,
-                                                fontSize: 10.5,
-                                                color: C.lo,
-                                            }}
-                                        >
-                                            {hrsFmt(v)} /{" "}
-                                            {m.target.toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <div
-                                        style={{
-                                            fontSize: 11,
-                                            color: C.mid,
-                                            marginTop: 4,
-                                            lineHeight: 1.45,
-                                        }}
-                                    >
-                                        {m.desc}
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
+                <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, margin: "18px 0 8px", paddingTop: 14, borderTop: "1px solid " + C.line }}>
+                    TIME & A HALF / DOUBLE TIME
                 </div>
-            </Fold>
-
-            {/* pay rules */}
-            <Fold
-                icon={Clock}
-                title="Time & a half / double time rules"
-                color={PAY_COLOR.ot}
-            >
                 <div
                     style={{ display: "flex", flexDirection: "column", gap: 6 }}
                 >
@@ -2175,17 +2080,11 @@ export function OjtTab({
                     day's rule. Everything rounds to the half hour. OT pays{" "}
                     <span style={{ fontFamily: FM, color: C.brand }}>×1.5</span>.
                 </div>
-            </Fold>
-
-            {/* pay package — the full base/benefits breakdown only exists for
-                Level 2 (straight off a real JATC letter, see L2_PACKAGE in
-                lib/core.ts). Showing those numbers to an apprentice at any
-                other level would be flat-out wrong, not just imprecise — so
-                this only renders the full breakdown at L2, and falls back to
-                just the confirmed base scale rate (still per-level, from
-                LEVELS) everywhere else, honest about what isn't known yet. */}
-            {lv.k === "L2" ? (
-            <Fold icon={Hammer} title="Level 2 pay package" color={C.brand}>
+                <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, margin: "18px 0 8px", paddingTop: 14, borderTop: "1px solid " + C.line }}>
+                    {lv.k === "L2" ? "LEVEL 2 PAY PACKAGE" : (lv.label + " PAY").toUpperCase()}
+                </div>
+                {lv.k === "L2" ? (
+                <>
                 <div
                     style={{ display: "flex", flexDirection: "column", gap: 7 }}
                 >
@@ -2315,9 +2214,9 @@ export function OjtTab({
                         it.
                     </div>
                 </div>
-            </Fold>
-            ) : (
-            <Fold icon={Hammer} title={lv.label + " pay"} color={C.brand}>
+                </>
+                ) : (
+                <>
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                     <div style={{ display: "flex", fontSize: 12.5 }}>
                         <span style={{ color: C.mid }}>Base rate</span>
@@ -2329,8 +2228,101 @@ export function OjtTab({
                         The full benefits breakdown (H&W, pension, vacation, etc.) is only on file for Level 2 right now — this will fill in for other levels as that paperwork comes in.
                     </div>
                 </div>
+                </>
+                )}
             </Fold>
-            )}
+
+            {/* the four work processes */}
+            <Fold
+                icon={GraduationCap}
+                title="The four work processes"
+                color={CATS_META.A.color}
+            >
+                <div
+                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                >
+                    {["A", "B", "C", "D"].map((k) => {
+                        const m = CATS_META[k];
+                        const v = t[k.toLowerCase()];
+                        return (
+                            <div
+                                key={k}
+                                style={{
+                                    display: "flex",
+                                    gap: 9,
+                                    background: C.sunk,
+                                    border: "1px solid " + C.line,
+                                    borderRadius: 9,
+                                    padding: "10px 11px",
+                                }}
+                            >
+                                <span
+                                    style={{
+                                        flexShrink: 0,
+                                        width: 20,
+                                        height: 20,
+                                        borderRadius: 5,
+                                        background: m.color + "22",
+                                        border: "1px solid " + m.color + "66",
+                                        color: m.color,
+                                        fontFamily: FM,
+                                        fontSize: 11,
+                                        fontWeight: 800,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    {k}
+                                </span>
+                                <div style={{ minWidth: 0, flex: 1 }}>
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 6,
+                                        }}
+                                    >
+                                        <span
+                                            className="truncate"
+                                            style={{
+                                                fontSize: 12.5,
+                                                fontWeight: 700,
+                                                color: C.hi,
+                                            }}
+                                        >
+                                            {m.name}
+                                        </span>
+                                        <span
+                                            style={{
+                                                marginLeft: "auto",
+                                                flexShrink: 0,
+                                                fontFamily: FM,
+                                                fontSize: 10.5,
+                                                color: C.lo,
+                                            }}
+                                        >
+                                            {hrsFmt(v)} /{" "}
+                                            {m.target.toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <div
+                                        style={{
+                                            fontSize: 11,
+                                            color: C.mid,
+                                            marginTop: 4,
+                                            lineHeight: 1.45,
+                                        }}
+                                    >
+                                        {m.desc}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </Fold>
+
 
             {/* certs — admin-entered, from Supabase, not a hardcoded list */}
             <Fold icon={Check} title="Certifications" color={C.gc}>
@@ -2724,8 +2716,13 @@ export function OjtTab({
                 </Modal>
             )}
 
-            {/* JATC office */}
-            <Fold icon={Phone} title="JATC office" color={C.working}>
+            {/* JATC office (training center) + District Council 36 — two
+                separate tables (jatc_contacts, dc36_contacts), one Fold, so
+                apprentices see one "Contacts" row instead of two. */}
+            <Fold icon={Phone} title="Contacts" color={C.working}>
+                <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 8 }}>
+                    JATC OFFICE
+                </div>
                 <div
                     style={{ display: "flex", flexDirection: "column", gap: 6 }}
                 >
@@ -2876,15 +2873,11 @@ export function OjtTab({
                     you to tell the office when you're off a job, and again when
                     you get scheduled.
                 </div>
-            </Fold>
-
-            {/* District Council 36 — a separate office from the training
-                center above, not a relabeled version of it. Dues, membership
-                services, the trust fund, the credit union — department
-                lines, not a person's desk, so most rows here are just a
-                name and a number. */}
-            {dc36Contacts.length > 0 && (
-                <Fold icon={Building2} title="District Council (DC36)" color={C.gc}>
+                {dc36Contacts.length > 0 && (
+                <>
+                <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, margin: "18px 0 8px", paddingTop: 14, borderTop: "1px solid " + C.line }}>
+                    DISTRICT COUNCIL (DC36)
+                </div>
                     <div
                         style={{ display: "flex", flexDirection: "column", gap: 6 }}
                     >
@@ -2987,8 +2980,9 @@ export function OjtTab({
                             </div>
                         ))}
                     </div>
-                </Fold>
-            )}
+                </>
+                )}
+            </Fold>
         </div>
     );
 }
