@@ -42,7 +42,7 @@ export function NewApprenticeForm({ onCreated, onClose }) {
         <PwField value={pw} onChange={(e) => setPw(e.target.value)} placeholder="8+ characters — tell them this directly" />
       </div>
       <button type="submit" disabled={state === "saving" || !email.trim() || !pw}
-        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>
         {state === "saving" ? "Creating…" : state === "done" ? "Created" : "Create account"}
       </button>
       {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
@@ -136,7 +136,7 @@ export function AssignClassForm({ apprentices, preselected, onAssigned, onClose 
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 14 }} />
 
       <button type="submit" disabled={state === "saving"}
-        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>
         {state === "saving" ? "Assigning…" : state === "done" ? "Assigned" : "Assign class to " + selected.size + " apprentice" + (selected.size === 1 ? "" : "s")}
       </button>
       {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
@@ -183,12 +183,12 @@ export function BulkDnhForm({ apprentices, onDone, onClose }) {
       ) : (
         <>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>APPRENTICES</div>
-          <ApprenticePicker apprentices={apprentices} selected={selected} onToggle={toggle} maxHeight={220} selectedColor={C.danger} checkColor="#2A0E0A" />
+          <ApprenticePicker apprentices={apprentices} selected={selected} onToggle={toggle} maxHeight={220} selectedColor={C.danger} checkColor={C.inkBad} />
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>REASON (required, applies to everyone selected)</div>
           <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. OJT turned in late for June" rows={2}
             style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, fontFamily: FS, resize: "vertical", marginBottom: 14 }} />
           <button type="submit" disabled={state === "saving"}
-            style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.danger, color: "#2A0E0A", border: "none", fontWeight: 800, fontSize: 14 }}>
+            style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.danger, color: C.inkBad, border: "none", fontWeight: 800, fontSize: 14 }}>
             {state === "saving" ? "Adding…" : state === "done" ? "Added" : "Add " + selected.size + " to do-not-hire list"}
           </button>
         </>
@@ -239,7 +239,7 @@ export function BulkArchiveForm({ apprentices, onDone, onClose }) {
             Everyone selected drops off the active roster — everything on file stays put, and each can be restored anytime from the archive.
           </div>
           <button type="submit" disabled={state === "saving"}
-            style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+            style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>
             {state === "saving" ? "Archiving…" : state === "done" ? "Archived" : "Archive " + selected.size + " apprentice" + (selected.size === 1 ? "" : "s")}
           </button>
         </>
@@ -314,11 +314,11 @@ function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssign
             {levelsPresent.map((lv) => <option key={lv.k} value={lv.k}>{lv.k} — {lv.label}</option>)}
           </select>
           <button className="foc" onClick={() => setPendingOnly((v) => !v)}
-            style={{ flexShrink: 0, fontFamily: FM, fontSize: 11.5, fontWeight: 800, padding: "8px 12px", borderRadius: 9, background: pendingOnly ? C.brand : "transparent", color: pendingOnly ? "#1A1206" : C.mid, border: "1px solid " + (pendingOnly ? C.brand : C.line) }}>
+            style={{ flexShrink: 0, fontFamily: FM, fontSize: 11.5, fontWeight: 800, padding: "8px 12px", borderRadius: 9, background: pendingOnly ? C.brand : "transparent", color: pendingOnly ? C.ink : C.mid, border: "1px solid " + (pendingOnly ? C.brand : C.line) }}>
             Pending only
           </button>
           <button className="foc" onClick={() => setDnhOnly((v) => !v)}
-            style={{ flexShrink: 0, fontFamily: FM, fontSize: 11.5, fontWeight: 800, padding: "8px 12px", borderRadius: 9, background: dnhOnly ? C.danger : "transparent", color: dnhOnly ? "#2A0E0A" : C.mid, border: "1px solid " + (dnhOnly ? C.danger : C.line) }}>
+            style={{ flexShrink: 0, fontFamily: FM, fontSize: 11.5, fontWeight: 800, padding: "8px 12px", borderRadius: 9, background: dnhOnly ? C.danger : "transparent", color: dnhOnly ? C.inkBad : C.mid, border: "1px solid " + (dnhOnly ? C.danger : C.line) }}>
             Do not hire
           </button>
           {anyFilterActive && (

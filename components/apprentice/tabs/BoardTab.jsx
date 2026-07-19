@@ -461,7 +461,7 @@ function Card({
                                                 alignItems: "center",
                                                 gap: 6,
                                                 background: C.working,
-                                                color: "#06120C",
+                                                color: C.inkGood,
                                                 textDecoration: "none",
                                                 padding: "8px 11px",
                                                 borderRadius: 8,
@@ -562,8 +562,8 @@ function Card({
                                                 : C.raise,
                                             color: active
                                                 ? k === "target"
-                                                    ? "#1A1206"
-                                                    : "#06120C"
+                                                    ? C.ink
+                                                    : C.inkGood
                                                 : C.mid,
                                             border:
                                                 "1px solid " +

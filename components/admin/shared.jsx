@@ -74,7 +74,7 @@ export function ConfirmModal({ title, message, confirmLabel = "Confirm", danger 
           Cancel
         </button>
         <button className="foc" onClick={go} disabled={busy}
-          style={{ flex: 1, padding: "10px", borderRadius: 9, background: danger ? C.danger : C.brand, color: danger ? "#2A0E0A" : "#1A1206", border: "none", fontWeight: 800, fontSize: 13, opacity: busy ? 0.7 : 1 }}>
+          style={{ flex: 1, padding: "10px", borderRadius: 9, background: danger ? C.danger : C.brand, color: danger ? C.inkBad : C.ink, border: "none", fontWeight: 800, fontSize: 13, opacity: busy ? 0.7 : 1 }}>
           {busy ? "Working…" : confirmLabel}
         </button>
       </div>
@@ -158,7 +158,7 @@ export function RosterCatTooltip({ active, payload, label }) {
 /* ---------- multi-select apprentice list — assign-class, bulk-DNH, bulk-
    archive (Roster tab), and add-to-class-session (Dashboard tab's Upcoming
    Classes) all pick from the same roster the same way. ---------- */
-export function ApprenticePicker({ apprentices, selected, onToggle, maxHeight = 260, selectedColor = C.brand, checkColor = "#1A1206" }) {
+export function ApprenticePicker({ apprentices, selected, onToggle, maxHeight = 260, selectedColor = C.brand, checkColor = C.ink }) {
   const [q, setQ] = useState("");
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();

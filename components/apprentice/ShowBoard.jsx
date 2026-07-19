@@ -185,7 +185,7 @@ const OJT_IMPORT_ENABLED = process.env.NEXT_PUBLIC_OJT_IMPORT_ENABLED === "true"
 /* the labor/I&D directory and JATC office contacts — real third-party names
    and phone numbers, so they live in Supabase (lib/store.js), not committed
    here. Context instead of prop-drilling: they're needed several layers
-   deep (DaySheet -> CoPicker, OjtExport, ...) and change once per app load.
+   deep (DaySheet -> CoPicker, ...) and change once per app load.
    Lives in its own module (components/DirectoryContext.js) so the split-out
    tab files can import the same instance without a circular import. */
 
@@ -209,7 +209,7 @@ function ConfirmModal({ title, message, confirmLabel = "Delete", onConfirm, onCl
                 <button
                     className="foc"
                     onClick={onConfirm}
-                    style={{ flex: 1, padding: "13px", borderRadius: 10, background: C.danger, color: "#2A0E0A", border: "none", fontWeight: 800, fontSize: 14 }}
+                    style={{ flex: 1, padding: "13px", borderRadius: 10, background: C.danger, color: C.inkBad, border: "none", fontWeight: 800, fontSize: 14 }}
                 >
                     {confirmLabel}
                 </button>
@@ -1856,7 +1856,7 @@ function DaySheet({
                                                     : C.raise,
                                             color:
                                                 Number(hrs) === h
-                                                    ? "#1A1206"
+                                                    ? C.ink
                                                     : C.mid,
                                             border:
                                                 "1px solid " +
@@ -2318,7 +2318,7 @@ function DaySheet({
                                 padding: "13px",
                                 borderRadius: 10,
                                 background: ok ? C.working : C.raise,
-                                color: ok ? "#06120C" : C.lo,
+                                color: ok ? C.inkGood : C.lo,
                                 border:
                                     "1px solid " + (ok ? C.working : C.line),
                                 fontWeight: 800,
@@ -3187,7 +3187,7 @@ function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }) {
                         padding: "13px",
                         borderRadius: 10,
                         background: C.brand,
-                        color: "#1A1206",
+                        color: C.ink,
                         border: "none",
                         fontWeight: 800,
                         fontSize: 14,
@@ -3216,757 +3216,6 @@ function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }) {
         </div>
     );
 }
-
-/* ---------- OJT form as a real PDF ----------
-   no library — a one-page PDF is just text, lines and an xref table.
-   this reproduces the JATC master form so the only thing left is a signature. */
-function pdfEsc(v) {
-    return String(v == null ? "" : v)
-        .replace(/[\u2013\u2014]/g, "-")
-        .replace(/[\u2018\u2019]/g, "'")
-        .replace(/[\u201C\u201D]/g, '"')
-        .replace(/[^\x20-\x7E]/g, "")
-        .replace(/\\/g, "\\\\")
-        .replace(/\(/g, "\\(")
-        .replace(/\)/g, "\\)");
-}
-/* Helvetica is close enough to these ratios for a form */
-function textW(v, size, bold) {
-    const s = String(v == null ? "" : v);
-    return s.length * size * (bold ? 0.55 : 0.5);
-}
-
-function buildOjtPdf(opt) {
-    const W = 612,
-        H = 792;
-    const L = 32,
-        R = W - 32;
-    const ops = [];
-    const num = (v) => (Math.round(v * 100) / 100).toFixed(2);
-    const txt = (x, y, v, size, bold) =>
-        ops.push(
-            "BT /" +
-                (bold ? "F2" : "F1") +
-                " " +
-                size +
-                " Tf 1 0 0 1 " +
-                num(x) +
-                " " +
-                num(y) +
-                " Tm (" +
-                pdfEsc(v) +
-                ") Tj ET",
-        );
-    const ctr = (cx, y, v, size, bold) =>
-        txt(cx - textW(v, size, bold) / 2, y, v, size, bold);
-    const rgt = (rx, y, v, size, bold) =>
-        txt(rx - textW(v, size, bold), y, v, size, bold);
-    const line = (x1, y1, x2, y2, w) =>
-        ops.push(
-            num(w || 0.7) +
-                " w " +
-                num(x1) +
-                " " +
-                num(y1) +
-                " m " +
-                num(x2) +
-                " " +
-                num(y2) +
-                " l S",
-        );
-    const box = (x, y, w, h, lw) =>
-        ops.push(
-            num(lw || 0.7) +
-                " w " +
-                num(x) +
-                " " +
-                num(y) +
-                " " +
-                num(w) +
-                " " +
-                num(h) +
-                " re S",
-        );
-
-    /* ---- title ---- */
-    let y = H - 44;
-    ctr(
-        W / 2,
-        y,
-        "CA TRADESHOW & SIGN CRAFTS APPRENTICE ON-THE-JOB-TRAINING FORM",
-        10.5,
-        true,
-    );
-
-    /* ---- month / year ---- */
-    y -= 26;
-    box(L, y - 4, 150, 18);
-    box(L + 158, y - 4, 110, 18);
-    txt(L + 5, y + 2, "MONTH", 7.5, true);
-    txt(L + 50, y + 2, String(opt.monthName).toUpperCase(), 10, true);
-    txt(L + 163, y + 2, "YEAR", 7.5, true);
-    txt(L + 200, y + 2, String(opt.year), 10, true);
-
-    /* ---- table ---- */
-    const cols = [
-        { k: "date", label: "DATE", x: L, w: 40 },
-        { k: "a", label: "A", x: L + 40, w: 30 },
-        { k: "b", label: "B", x: L + 70, w: 30 },
-        { k: "c", label: "C", x: L + 100, w: 30 },
-        { k: "d", label: "D", x: L + 130, w: 30 },
-        { k: "co", label: "COMPANY NAME", x: L + 160, w: 190 },
-        { k: "show", label: "SHOW NAME", x: L + 350, w: R - (L + 350) },
-    ];
-    const tableTop = y - 16;
-    const headH = 15;
-    const rowH = 15.2;
-    const nRows = 31;
-    const tableBot = tableTop - headH - nRows * rowH;
-
-    /* header */
-    box(L, tableTop - headH, R - L, headH);
-    cols.forEach((c) =>
-        ctr(c.x + c.w / 2, tableTop - headH + 4.5, c.label, 7.5, true),
-    );
-
-    /* rows */
-    for (let i = 1; i <= nRows; i++) {
-        const top = tableTop - headH - (i - 1) * rowH;
-        const bot = top - rowH;
-        box(L, bot, R - L, rowH);
-        const list = (opt.byDate[i] || []).slice(0, 2);
-        if (list.length <= 1) {
-            const e = list[0];
-            ctr(L + 20, bot + 4.8, String(i), 8, !!e);
-            if (e) {
-                ["a", "b", "c", "d"].forEach((k, j) => {
-                    if (e[k])
-                        ctr(
-                            cols[j + 1].x + 15,
-                            bot + 4.8,
-                            hrsFmt(e[k]),
-                            8,
-                            true,
-                        );
-                });
-                txt(cols[5].x + 4, bot + 4.8, e.co, 7.5);
-                txt(cols[6].x + 4, bot + 4.8, e.show, 7.5);
-            }
-        } else {
-            /* two companies in one day — the union wants them split out, not merged */
-            ctr(L + 20, bot + rowH / 2 - 2.6, String(i), 8, true);
-            line(L + 40, bot + rowH / 2, R, bot + rowH / 2, 0.4);
-            list.forEach((e, r) => {
-                const yy = r === 0 ? bot + rowH / 2 + 2.4 : bot + 2.4;
-                ["a", "b", "c", "d"].forEach((k, j) => {
-                    if (e[k])
-                        ctr(cols[j + 1].x + 15, yy, hrsFmt(e[k]), 6.6, true);
-                });
-                txt(cols[5].x + 4, yy, e.co, 6.4);
-                txt(cols[6].x + 4, yy, e.show, 6.4);
-            });
-        }
-    }
-    /* column rules */
-    cols.forEach((c, i) => {
-        if (i) line(c.x, tableTop, c.x, tableBot, 0.7);
-    });
-
-    /* ---- totals ---- */
-    let ty = tableBot - rowH;
-    box(L, ty, R - L, rowH);
-    txt(L + 4, ty + 4.8, "TOTAL OF EACH CATEGORY", 7.5, true);
-    ["a", "b", "c", "d"].forEach((k, j) =>
-        ctr(cols[j + 1].x + 15, ty + 4.8, hrsFmt(opt.totals[k]), 8.5, true),
-    );
-    cols.forEach((c, i) => {
-        if (i) line(c.x, ty + rowH, c.x, ty, 0.7);
-    });
-
-    ty -= rowH;
-    box(L, ty, R - L, rowH);
-    txt(L + 4, ty + 4.8, "END OF MONTH TOTAL/", 7.5, true);
-    txt(cols[1].x + 6, ty + 4.5, hrsFmt(opt.totals.total), 10, true);
-    line(cols[1].x, ty + rowH, cols[1].x, ty, 0.7);
-    txt(cols[5].x + 4, ty + 4.8, "REASON FOR 0 HOURS", 7, true);
-    line(cols[5].x, ty + rowH, cols[5].x, ty, 0.7);
-    if (opt.reason) txt(cols[5].x + 96, ty + 4.8, opt.reason, 7);
-
-    /* ---- apprentice block ---- */
-    let by = ty - 20;
-    const bh = 58;
-    box(L, by - bh, R - L, bh);
-    line(L, by - 14, R, by - 14, 0.7);
-    ctr(W / 2, by - 10.5, "APPRENTICE INFORMATION", 8, true);
-
-    txt(L + 6, by - 30, "NAME:", 8, true);
-    txt(L + 42, by - 30, String(opt.name).toUpperCase(), 9);
-    txt(L + 6, by - 48, "LAST 4 SSN:", 8, true);
-    txt(L + 66, by - 48, String(opt.last4 || ""), 9);
-
-    const sx = L + 300;
-    line(sx, by - bh, sx, by - 14, 0.7);
-    txt(sx + 6, by - 30, "APPRENTICE SIGNATURE", 8, true);
-    line(sx + 6, by - 50, R - 10, by - 50, 0.7);
-
-    /* ---- declaration ---- */
-    const dy = by - bh - 16;
-    const decl = [
-        "I declare that the above hours submitted are true and accurate. I understand that if I turn in my OJT after 4pm on the",
-        "1st day of the month it is due, I will be placed on the do not hire list. I understand that working while on the DO NOT",
-        "HIRE list is also a violation of the Rules and Regs.",
-    ];
-    decl.forEach((l, i) => txt(L, dy - i * 10, l, 7.2));
-    txt(
-        L,
-        dy - 3 * 10 - 6,
-        "Turn in to the JATC office by the 1st: " +
-            JATC.office +
-            " or by email.",
-        7.2,
-        true,
-    );
-
-    /* ---- assemble ---- */
-    const content = ops.join("\n");
-    const objs = [
-        "<< /Type /Catalog /Pages 2 0 R >>",
-        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " +
-            W +
-            " " +
-            H +
-            "] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>",
-        "<< /Length " +
-            content.length +
-            " >>\nstream\n" +
-            content +
-            "\nendstream",
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
-        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
-    ];
-    let pdf = "%PDF-1.4\n";
-    const offs = [];
-    objs.forEach((o, i) => {
-        offs.push(pdf.length);
-        pdf += i + 1 + " 0 obj\n" + o + "\nendobj\n";
-    });
-    const xref = pdf.length;
-    pdf += "xref\n0 " + (objs.length + 1) + "\n0000000000 65535 f \n";
-    offs.forEach((o) => {
-        pdf += String(o).padStart(10, "0") + " 00000 n \n";
-    });
-    pdf +=
-        "trailer\n<< /Size " +
-        (objs.length + 1) +
-        " /Root 1 0 R >>\nstartxref\n" +
-        xref +
-        "\n%%EOF";
-    return pdf;
-}
-
-/* pull a month of calendar entries into the shape the form wants */
-function ojtFormRows(entries, monthKey) {
-    const byDate = {};
-    const totals = { a: 0, b: 0, c: 0, d: 0, total: 0, uncat: 0 };
-    Object.keys(entries || {})
-        .filter((k) => k.slice(0, 7) === monthKey)
-        .sort()
-        .forEach((dk) => {
-            const day = fromKey(dk).getDate();
-            (entries[dk] || []).forEach((e) => {
-                const cat = String(e.cat || "").toLowerCase();
-                const h = num(e.hrs);
-                const row = {
-                    a: 0,
-                    b: 0,
-                    c: 0,
-                    d: 0,
-                    co: e.co || "",
-                    show: e.note || "",
-                    hrs: h,
-                };
-                if (cat === "a" || cat === "b" || cat === "c" || cat === "d") {
-                    row[cat] = h;
-                    totals[cat] += h;
-                } else totals.uncat += h;
-                totals.total += h;
-                (byDate[day] = byDate[day] || []).push(row);
-            });
-        });
-    return { byDate, totals };
-}
-
-function downloadPdf(name, data) {
-    try {
-        const bytes = new Uint8Array(data.length);
-        for (let i = 0; i < data.length; i++)
-            bytes[i] = data.charCodeAt(i) & 0xff;
-        const url = URL.createObjectURL(
-            new Blob([bytes], { type: "application/pdf" }),
-        );
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = name;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            URL.revokeObjectURL(url);
-            a.remove();
-        }, 100);
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-/* ---------- OJT: paper-form export ---------- */
-function padR(v, n) {
-    const s = String(v == null ? "" : v);
-    return s.length >= n
-        ? s.slice(0, n - 1) + " "
-        : s + " ".repeat(n - s.length);
-}
-function padL(v, n) {
-    const s = String(v == null ? "" : v);
-    return s.length > n ? s.slice(0, n) : " ".repeat(n - s.length) + s;
-}
-
-function OjtExport({ entries, months, roll, profile }) {
-    const t0 = todayMid();
-    const withHours = Object.keys(roll).sort();
-    const [mk, setMk] = useState(
-        withHours.length
-            ? withHours[withHours.length - 1]
-            : mKey(t0.getFullYear(), t0.getMonth()),
-    );
-    const [reason, setReason] = useState("");
-    const [done, setDone] = useState("");
-
-    const form = useMemo(() => ojtFormRows(entries, mk), [entries, mk]);
-    const p = mParse(mk);
-    const prior = ojtTotals(months.filter((x) => x.m < mk)).total;
-    const sub = months.find((x) => x.m === mk);
-    const st = ojtState(mk, months);
-    const dayCount = Object.keys(form.byDate).length;
-    const splitDays = Object.keys(form.byDate).filter(
-        (d) => form.byDate[d].length > 1,
-    );
-
-    const savePdf = () => {
-        const pdf = buildOjtPdf({
-            monthName: MON_FULL[p.m],
-            year: p.y,
-            byDate: form.byDate,
-            totals: form.totals,
-            name: profile.name,
-            last4: profile.last4,
-            reason: form.totals.total === 0 ? reason : "",
-        });
-        setDone(
-            downloadPdf("OJT_" + MON_FULL[p.m] + "_" + p.y + ".pdf", pdf)
-                ? "pdf"
-                : "fail",
-        );
-        setTimeout(() => setDone(""), 2200);
-    };
-
-    const text = useMemo(() => {
-        const L = [];
-        L.push("CA TRADESHOW & SIGN CRAFTS JATC — ON-THE-JOB TRAINING");
-        L.push(mLong(mk).toUpperCase());
-        L.push("");
-        L.push(
-            "APPRENTICE  " + profile.name + "   LAST 4 SSN  " + profile.last4,
-        );
-        L.push("");
-        L.push(
-            padR("DATE", 6) +
-                padL("A", 6) +
-                padL("B", 6) +
-                padL("C", 6) +
-                padL("D", 6) +
-                "  " +
-                padR("COMPANY", 24) +
-                "SHOW",
-        );
-        L.push("-".repeat(76));
-        Object.keys(form.byDate)
-            .map(Number)
-            .sort((a, b) => a - b)
-            .forEach((d) => {
-                form.byDate[d].forEach((r, i) => {
-                    const cell = (v) => padL(v ? num(v).toFixed(1) : "-", 6);
-                    L.push(
-                        padR(i === 0 ? String(d) : "", 6) +
-                            cell(r.a) +
-                            cell(r.b) +
-                            cell(r.c) +
-                            cell(r.d) +
-                            "  " +
-                            padR(r.co, 24) +
-                            r.show,
-                    );
-                });
-            });
-        L.push("-".repeat(76));
-        L.push(
-            padR("TOTAL", 6) +
-                padL(form.totals.a.toFixed(1), 6) +
-                padL(form.totals.b.toFixed(1), 6) +
-                padL(form.totals.c.toFixed(1), 6) +
-                padL(form.totals.d.toFixed(1), 6),
-        );
-        L.push("END OF MONTH TOTAL  " + form.totals.total.toFixed(1));
-        L.push("");
-        L.push("Cumulative before this month: " + prior.toFixed(1) + " hrs");
-        if (sub)
-            L.push(
-                "Already submitted for this month: " +
-                    monthTotal(sub).toFixed(1) +
-                    " hrs",
-            );
-        if (form.totals.uncat > 0)
-            L.push(
-                "WARNING: " +
-                    form.totals.uncat.toFixed(1) +
-                    " hrs are not tagged A/B/C/D.",
-            );
-        return L.join("\n");
-    }, [form, mk, months, prior, sub, profile]);
-
-    const [copied, setCopied] = useState(false);
-    const copy = () => {
-        try {
-            if (navigator.clipboard) navigator.clipboard.writeText(text);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1600);
-        } catch (e) {
-            setCopied(false);
-        }
-    };
-
-    return (
-        <div>
-            <div
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    marginBottom: 12,
-                }}
-            >
-                <button
-                    className="foc"
-                    onClick={() => setMk((k) => mAdd(k, -1))}
-                    aria-label="Previous month"
-                    style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 9,
-                        background: C.raise,
-                        border: "1px solid " + C.line,
-                        color: C.hi,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                    }}
-                >
-                    <ChevronLeft size={17} />
-                </button>
-                <div style={{ flex: 1, textAlign: "center" }}>
-                    <div
-                        style={{
-                            fontFamily: FM,
-                            fontSize: 14,
-                            fontWeight: 800,
-                            letterSpacing: 1.5,
-                            color: C.hi,
-                        }}
-                    >
-                        {mMed(mk)}
-                    </div>
-                    <div
-                        style={{
-                            fontFamily: FM,
-                            fontSize: 9.5,
-                            fontWeight: 800,
-                            color: st.c,
-                            marginTop: 2,
-                        }}
-                    >
-                        {st.t}
-                    </div>
-                </div>
-                <button
-                    className="foc"
-                    onClick={() => setMk((k) => mAdd(k, 1))}
-                    aria-label="Next month"
-                    style={{
-                        width: 38,
-                        height: 38,
-                        borderRadius: 9,
-                        background: C.raise,
-                        border: "1px solid " + C.line,
-                        color: C.hi,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                    }}
-                >
-                    <ChevronRight size={17} />
-                </button>
-            </div>
-
-            {/* what the form will say */}
-            <div
-                style={{
-                    background: C.sunk,
-                    border: "1px solid " + C.line,
-                    borderRadius: 11,
-                    padding: "16px 17px",
-                    marginBottom: 12,
-                }}
-            >
-                <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
-                    {["A", "B", "C", "D"].map((k) => {
-                        const v = form.totals[k.toLowerCase()];
-                        const meta = CATS_META[k];
-                        return (
-                            <div
-                                key={k}
-                                style={{
-                                    flex: 1,
-                                    textAlign: "center",
-                                    background: v
-                                        ? meta.color + "1C"
-                                        : "transparent",
-                                    border:
-                                        "1px solid " +
-                                        (v ? meta.color + "66" : C.line),
-                                    borderRadius: 8,
-                                    padding: "7px 2px",
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        fontFamily: FM,
-                                        fontSize: 10,
-                                        fontWeight: 800,
-                                        color: v ? meta.color : C.lo,
-                                    }}
-                                >
-                                    {k}
-                                </div>
-                                <div
-                                    style={{
-                                        fontFamily: FM,
-                                        fontSize: 15,
-                                        fontWeight: 800,
-                                        color: v ? C.hi : C.lo,
-                                        marginTop: 2,
-                                    }}
-                                >
-                                    {hrsFmt(v)}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-                <div style={{ display: "flex", alignItems: "center" }}>
-                    <span style={{ fontSize: 11.5, color: C.mid }}>
-                        {dayCount} day{dayCount === 1 ? "" : "s"}
-                        {splitDays.length
-                            ? " · " +
-                              splitDays.length +
-                              " split between two shops"
-                            : ""}
-                    </span>
-                    <span
-                        style={{
-                            marginLeft: "auto",
-                            fontFamily: FM,
-                            fontSize: 17,
-                            fontWeight: 800,
-                            color: form.totals.total ? C.working : C.lo,
-                        }}
-                    >
-                        {hrsFmt(form.totals.total)} hrs
-                    </span>
-                </div>
-                {form.totals.uncat > 0 && (
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 7,
-                            marginTop: 9,
-                            background: "rgba(232,146,124,0.1)",
-                            border: "1px solid " + C.danger + "55",
-                            borderRadius: 8,
-                            padding: "8px 10px",
-                        }}
-                    >
-                        <Ban
-                            size={12}
-                            color={C.danger}
-                            style={{ flexShrink: 0 }}
-                        />
-                        <span style={{ fontSize: 11.5, color: C.mid }}>
-                            {hrsFmt(form.totals.uncat)} hrs have no category.
-                            The office sends those back.
-                        </span>
-                    </div>
-                )}
-            </div>
-
-            {form.totals.total === 0 && (
-                <div style={{ marginBottom: 12 }}>
-                    <div
-                        style={{
-                            fontSize: 10,
-                            letterSpacing: 0.5,
-                            color: C.lo,
-                            fontFamily: FM,
-                            marginBottom: 5,
-                        }}
-                    >
-                        REASON FOR 0 HOURS
-                    </div>
-                    <input
-                        className="foc"
-                        value={reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        placeholder="medical, out of town…"
-                        style={{
-                            width: "100%",
-                            background: C.sunk,
-                            color: C.hi,
-                            border: "1px solid " + C.line,
-                            borderRadius: 9,
-                            padding: "10px 11px",
-                            fontSize: 13.5,
-                            fontFamily: FS,
-                        }}
-                    />
-                    <div
-                        style={{
-                            fontSize: 10.5,
-                            color: C.lo,
-                            marginTop: 6,
-                            lineHeight: 1.45,
-                        }}
-                    >
-                        You still turn one in every month, worked or not — and
-                        "lack of work" isn't an accepted reason if work was
-                        available.
-                    </div>
-                </div>
-            )}
-
-            <button
-                className="foc"
-                onClick={savePdf}
-                style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 7,
-                    padding: "14px",
-                    borderRadius: 11,
-                    background: done === "pdf" ? C.working : C.brand,
-                    color: done === "pdf" ? "#06120C" : "#1A1206",
-                    border: "none",
-                    fontWeight: 800,
-                    fontSize: 14.5,
-                }}
-            >
-                {done === "pdf" ? <Check size={17} /> : <Upload size={17} />}
-                {done === "pdf"
-                    ? "Downloaded"
-                    : done === "fail"
-                      ? "Couldn't save — try the text below"
-                      : "Download the OJT form (PDF)"}
-            </button>
-            <div
-                style={{
-                    fontSize: 11,
-                    color: C.lo,
-                    marginTop: 8,
-                    lineHeight: 1.5,
-                    textAlign: "center",
-                }}
-            >
-                Filled out and ready to email — sign it and send it to the JATC
-                by the 1st, 4:00 PM.
-            </div>
-
-            <div
-                style={{
-                    marginTop: 16,
-                    paddingTop: 14,
-                    borderTop: "1px solid " + C.line,
-                }}
-            >
-                <div
-                    style={{
-                        fontSize: 10,
-                        letterSpacing: 0.5,
-                        color: C.lo,
-                        fontFamily: FM,
-                        marginBottom: 8,
-                    }}
-                >
-                    PLAIN TEXT — IF YOU'D RATHER PASTE IT
-                </div>
-                <textarea
-                    readOnly
-                    value={text}
-                    rows={9}
-                    onFocus={(e) => e.target.select()}
-                    style={{
-                        width: "100%",
-                        resize: "vertical",
-                        background: C.sunk,
-                        color: C.hi,
-                        border: "1px solid " + C.line,
-                        borderRadius: 10,
-                        padding: "10px 11px",
-                        fontSize: 10.5,
-                        fontFamily: FM,
-                        lineHeight: 1.6,
-                        whiteSpace: "pre",
-                        overflowX: "auto",
-                    }}
-                />
-                <button
-                    className="foc"
-                    onClick={copy}
-                    style={{
-                        width: "100%",
-                        marginTop: 9,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 7,
-                        padding: "11px",
-                        borderRadius: 10,
-                        background: C.raise,
-                        color: copied ? C.working : C.hi,
-                        border: "1px solid " + C.line,
-                        fontWeight: 700,
-                        fontSize: 13,
-                    }}
-                >
-                    {copied ? <Check size={14} /> : <Copy size={14} />}
-                    {copied ? "Copied" : "Copy text"}
-                </button>
-            </div>
-        </div>
-    );
-}
-
 
 /* ---------- main nav: bottom bar on a phone, top pills on a desktop ---------- */
 const TABS = [
@@ -4060,7 +3309,7 @@ function NavBar({ tab, setTab, variant }) {
                             fontSize: 13.5,
                             fontWeight: 800,
                             background: on ? C.brand : "transparent",
-                            color: on ? "#1A1206" : C.mid,
+                            color: on ? C.ink : C.mid,
                             border: "none",
                         }}
                     >
@@ -4534,7 +3783,7 @@ export default function App() {
                                 alignItems: "center",
                                 gap: 7,
                                 background: C.brand,
-                                color: "#1A1206",
+                                color: C.ink,
                                 textDecoration: "none",
                                 padding: "9px 12px",
                                 borderRadius: 10,
@@ -4757,7 +4006,7 @@ export default function App() {
                                         padding: "13px",
                                         borderRadius: 12,
                                         background: C.working,
-                                        color: "#06120C",
+                                        color: C.inkGood,
                                         border: "none",
                                         fontWeight: 800,
                                         fontSize: 14,
@@ -4858,7 +4107,7 @@ export default function App() {
                                         padding: "13px",
                                         borderRadius: 12,
                                         background: C.working,
-                                        color: "#06120C",
+                                        color: C.inkGood,
                                         border: "none",
                                         fontWeight: 800,
                                         fontSize: 14,
@@ -5038,20 +4287,6 @@ export default function App() {
                     onClose={() => setModal(null)}
                 >
                     <JatcRulesModal />
-                </Modal>
-            )}
-            {modal?.type === "ojtform" && (
-                <Modal
-                    title="OJT form"
-                    sub="Formatted for the JATC paper report"
-                    onClose={() => setModal(null)}
-                >
-                    <OjtExport
-                        entries={entries}
-                        months={ojt.months || []}
-                        roll={rollupEntries(entries)}
-                        profile={profile}
-                    />
                 </Modal>
             )}
             {modal?.type === "day" && (

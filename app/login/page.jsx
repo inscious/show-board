@@ -159,7 +159,7 @@ export default function LoginPage() {
               className="login-submit"
               type="submit"
               disabled={state === "sending" || !email.trim() || !password}
-              style={{ width: "100%", padding: "12px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14, opacity: state === "sending" ? 0.6 : 1, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}
+              style={{ width: "100%", padding: "12px", borderRadius: 9, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 14, opacity: state === "sending" ? 0.6 : 1, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}
             >
               {state === "sending" ? "Signing in…" : "Sign in"}
             </button>
@@ -201,7 +201,7 @@ export default function LoginPage() {
               className="login-submit"
               type="submit"
               disabled={state === "sending" || !email.trim()}
-              style={{ width: "100%", padding: "12px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14, opacity: state === "sending" ? 0.6 : 1, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}
+              style={{ width: "100%", padding: "12px", borderRadius: 9, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 14, opacity: state === "sending" ? 0.6 : 1, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}
             >
               {state === "sending" ? "Sending…" : "Email me a sign-in link"}
             </button>

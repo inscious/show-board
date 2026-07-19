@@ -148,7 +148,7 @@ export default function PendingPage() {
               <OjtImportFlow onSubmit={bulkSubmit} onCancel={() => setShowImport(false)} />
             ) : (
               <button type="button" onClick={() => setShowImport(true)}
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px", borderRadius: 10, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px", borderRadius: 10, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>
                 <Upload size={16} /> Upload old OJT slips (fastest)
               </button>
             )}
@@ -184,7 +184,7 @@ export default function PendingPage() {
               ))}
             </div>
             <button type="submit" disabled={state === "saving" || !form.m}
-              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 13.5, opacity: state === "saving" ? 0.6 : 1 }}>
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 9, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 13.5, opacity: state === "saving" ? 0.6 : 1 }}>
               <Plus size={15} /> {state === "saving" ? "Saving…" : "Add month"}
             </button>
             {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}

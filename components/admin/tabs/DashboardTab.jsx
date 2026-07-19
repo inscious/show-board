@@ -121,7 +121,7 @@ function AddToClassForm({ session, candidates, onAdded, onClose }) {
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>APPRENTICES NOT YET IN THIS CLASS</div>
           <ApprenticePicker apprentices={candidates} selected={selected} onToggle={toggle} maxHeight={260} />
           <button type="submit" disabled={state === "saving"}
-            style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+            style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>
             {state === "saving" ? "Adding…" : state === "done" ? "Added" : "Add " + selected.size + " apprentice" + (selected.size === 1 ? "" : "s")}
           </button>
         </>
@@ -219,7 +219,7 @@ function EditClassForm({ session, onSaved, onClose }) {
       </div>
 
       <button type="submit" disabled={state === "saving"}
-        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>
         {state === "saving" ? "Saving…" : state === "done" ? "Saved" : "Save changes"}
       </button>
       {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}

@@ -53,7 +53,7 @@ export function WelcomeModal({ onOpenOjtImport, onClose }) {
                     padding: "13px",
                     borderRadius: 10,
                     background: C.brand,
-                    color: "#1A1206",
+                    color: C.ink,
                     border: "none",
                     fontWeight: 800,
                     fontSize: 14,

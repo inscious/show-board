@@ -133,7 +133,7 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
             Back
           </button>
           <button type="button" onClick={submitManual} disabled={!manual.m}
-            style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 13.5 }}>
+            style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 9, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 13.5 }}>
             <Plus size={15} /> Add month
           </button>
         </div>
@@ -223,7 +223,7 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
             Cancel
           </button>
           <button type="button" onClick={submit} disabled={rows.length === 0 || state === "submitting"}
-            style={{ flex: 2, padding: "11px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 13.5, opacity: state === "submitting" ? 0.6 : 1 }}>
+            style={{ flex: 2, padding: "11px", borderRadius: 9, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 13.5, opacity: state === "submitting" ? 0.6 : 1 }}>
             {state === "submitting"
               ? "Saving…"
               : `Submit ${rows.length} month${rows.length === 1 ? "" : "s"}` + (dailyRows.length > 0 ? ` + ${dailyRows.length} day${dailyRows.length === 1 ? "" : "s"}` : "")}
@@ -263,7 +263,7 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
           Cancel
         </button>
         <button type="button" onClick={scan} disabled={files.length === 0 || state === "scanning"}
-          style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 13.5, opacity: state === "scanning" ? 0.6 : 1 }}>
+          style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 9, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 13.5, opacity: state === "scanning" ? 0.6 : 1 }}>
           <Plus size={15} /> {state === "scanning" ? "Scanning…" : "Scan for hours"}
         </button>
       </div>

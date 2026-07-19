@@ -2988,7 +2988,7 @@ function PasswordSetter({ onSaved }) {
                     disabled={state === "saving" || !pw || !pw2}
                     style={{
                         background: state === "done" ? C.working : C.brand,
-                        color: state === "done" ? "#06120C" : "#1A1206",
+                        color: state === "done" ? C.inkGood : C.ink,
                         border: "none",
                         borderRadius: 10,
                         padding: "12px",

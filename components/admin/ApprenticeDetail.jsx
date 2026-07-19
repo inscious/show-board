@@ -328,7 +328,7 @@ function AddCertForm({ userId, onAdded, onClose }) {
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 14 }} />
 
       <button type="submit" disabled={state === "saving"}
-        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>
         {state === "saving" ? "Adding…" : state === "done" ? "Added" : "Add certification"}
       </button>
       {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
@@ -600,7 +600,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
           ["settings", "Settings"],
         ].map(([k, label]) => (
           <button key={k} className="foc tab-btn" data-active={detailTab === k} onClick={() => setDetailTab(k)}
-            style={{ flex: 1, whiteSpace: "nowrap", padding: "9px 10px", borderRadius: 8, fontSize: 12.5, fontWeight: 800, background: detailTab === k ? C.brand : "transparent", color: detailTab === k ? "#1A1206" : C.mid, border: "none" }}>
+            style={{ flex: 1, whiteSpace: "nowrap", padding: "9px 10px", borderRadius: 8, fontSize: 12.5, fontWeight: 800, background: detailTab === k ? C.brand : "transparent", color: detailTab === k ? C.ink : C.mid, border: "none" }}>
             {label}
           </button>
         ))}
@@ -682,7 +682,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 9 }}>
                   <button className="foc approve-btn" onClick={() => decide(m.m, "approved")}
-                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, background: C.working, color: "#06120C", border: "none", borderRadius: 7, padding: "7px", fontSize: 12, fontWeight: 800 }}>
+                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 5, background: C.working, color: C.inkGood, border: "none", borderRadius: 7, padding: "7px", fontSize: 12, fontWeight: 800 }}>
                     <Check size={13} /> Approve
                   </button>
                   <button className="foc reject-btn" onClick={() => decide(m.m, "rejected")}
@@ -977,7 +977,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
           ))}
         </div>
         <button className="foc" onClick={saveProfile} disabled={profileState === "saving"}
-          style={{ width: "100%", marginTop: 12, background: profileState === "done" ? C.working : C.brand, color: profileState === "done" ? "#06120C" : "#1A1206", border: "none", borderRadius: 8, padding: "10px", fontWeight: 800, fontSize: 13 }}>
+          style={{ width: "100%", marginTop: 12, background: profileState === "done" ? C.working : C.brand, color: profileState === "done" ? C.inkGood : C.ink, border: "none", borderRadius: 8, padding: "10px", fontWeight: 800, fontSize: 13 }}>
           {profileState === "saving" ? "Saving…" : profileState === "done" ? "Saved" : "Save profile"}
         </button>
         {profileMsg && <div style={{ marginTop: 7, fontSize: 11.5, color: profileState === "error" ? C.danger : C.working }}>{profileMsg}</div>}
@@ -989,7 +989,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
           <PwField value={pw} onChange={(e) => { setPw(e.target.value); setPwState("idle"); }} placeholder="new password (8+ characters)" />
           <PwField value={pw2} onChange={(e) => { setPw2(e.target.value); setPwState("idle"); }} placeholder="retype password" />
           <button className="foc" onClick={savePassword} disabled={pwState === "saving" || !pw || !pw2}
-            style={{ background: pwState === "done" ? C.working : C.raise, color: pwState === "done" ? "#06120C" : C.hi, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 14px", fontSize: 12.5, fontWeight: 700 }}>
+            style={{ background: pwState === "done" ? C.working : C.raise, color: pwState === "done" ? C.inkGood : C.hi, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 14px", fontSize: 12.5, fontWeight: 700 }}>
             {pwState === "saving" ? "Saving…" : pwState === "done" ? "Set" : "Set password"}
           </button>
         </div>
@@ -1002,7 +1002,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
       <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginTop: 12 }}>
         <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>WELCOME MESSAGE</div>
         <button className="foc" onClick={resetWelcome} disabled={welcomeState === "saving"}
-          style={{ width: "100%", background: welcomeState === "done" ? C.working : C.raise, color: welcomeState === "done" ? "#06120C" : C.hi, border: "1px solid " + C.line, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, fontWeight: 700 }}>
+          style={{ width: "100%", background: welcomeState === "done" ? C.working : C.raise, color: welcomeState === "done" ? C.inkGood : C.hi, border: "1px solid " + C.line, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, fontWeight: 700 }}>
           {welcomeState === "saving" ? "Resetting…" : welcomeState === "done" ? "They'll see it next login" : "Show welcome message again"}
         </button>
         {welcomeState === "error" && <div style={{ marginTop: 7, fontSize: 11.5, color: C.danger }}>Couldn't reset it — try again.</div>}

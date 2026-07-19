@@ -54,7 +54,7 @@ function JatcContactForm({ onSaved, onClose, initial }) {
       <input value={form.sms} onChange={(e) => setForm((f) => ({ ...f, sms: e.target.value }))}
         style={{ ...fieldStyle, width: "100%", marginBottom: 14 }} />
       <button type="submit" disabled={state === "saving"}
-        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? "#06120C" : "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+        style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>
         {state === "saving" ? "Saving…" : state === "done" ? "Saved" : initial ? "Save changes" : "Save contact"}
       </button>
       {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}

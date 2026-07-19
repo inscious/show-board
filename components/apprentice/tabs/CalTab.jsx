@@ -1172,7 +1172,7 @@ export function Summary({ entries, cur }) {
                     padding: "13px",
                     borderRadius: 10,
                     background: copied ? C.working : C.brand,
-                    color: copied ? "#06120C" : "#1A1206",
+                    color: copied ? C.inkGood : C.ink,
                     border: "none",
                     fontWeight: 800,
                     fontSize: 14,

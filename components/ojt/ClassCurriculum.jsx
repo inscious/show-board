@@ -54,7 +54,7 @@ export function ClassCurriculum({ completed, onToggle, selfReport }) {
                 padding: "8px 0",
                 borderRadius: 8,
                 background: on ? C.brand : C.sunk,
-                color: on ? "#1A1206" : C.mid,
+                color: on ? C.ink : C.mid,
                 border: "1px solid " + (on ? C.brand : C.line),
                 fontWeight: 800,
                 fontSize: 12.5,
@@ -99,7 +99,7 @@ export function ClassCurriculum({ completed, onToggle, selfReport }) {
                         background: done ? C.working : "transparent",
                         border: "1px solid " + (done ? C.working : C.line),
                       }}>
-                        {done && <Check size={11} color="#06120C" />}
+                        {done && <Check size={11} color={C.inkGood} />}
                       </span>
                     )}
                     <span style={{ flexShrink: 0, width: 22, textAlign: "center", fontFamily: FM, fontSize: 10.5, fontWeight: 800, color: C.lo }}>

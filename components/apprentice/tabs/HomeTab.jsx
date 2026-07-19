@@ -1444,7 +1444,7 @@ export function HomeTab({
                             alignItems: "center",
                             gap: 5,
                             background: C.brand,
-                            color: "#1A1206",
+                            color: C.ink,
                             textDecoration: "none",
                             padding: "8px 10px",
                             borderRadius: 8,

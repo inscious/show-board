@@ -57,7 +57,7 @@ export function ShowForm({ initial, onSave, onClose }) {
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
         <button className="foc" onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: 10, background: C.raise, color: C.hi, border: "1px solid " + C.line, fontWeight: 600, fontSize: 14 }}>Cancel</button>
-        <button className="foc" onClick={save} style={{ flex: 2, padding: "12px", borderRadius: 10, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>Save show</button>
+        <button className="foc" onClick={save} style={{ flex: 2, padding: "12px", borderRadius: 10, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>Save show</button>
       </div>
     </div>
   );
@@ -117,7 +117,7 @@ export function ImportForm({ onAdd, onClose }) {
               <button key={i} className="foc" onClick={() => setSkip((p) => ({ ...p, [i]: !p[i] }))}
                 style={{ textAlign: "left", display: "flex", gap: 8, alignItems: "center", background: C.sunk, borderRadius: 8, padding: "8px 10px", border: "1px solid " + C.line, opacity: skip[i] ? 0.4 : 1 }}>
                 <span style={{ width: 18, height: 18, borderRadius: 5, border: "1px solid " + C.line, background: skip[i] ? "transparent" : C.brand, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  {!skip[i] && <Check size={13} color="#1A1206" />}
+                  {!skip[i] && <Check size={13} color={C.ink} />}
                 </span>
                 <span style={{ fontFamily: FM, fontSize: 12, color: C.brand, flexShrink: 0, width: 40 }}>{r.mi || r.start || "?"}</span>
                 <span className="min-w-0" style={{ minWidth: 0 }}>
@@ -129,7 +129,7 @@ export function ImportForm({ onAdd, onClose }) {
           </div>
           {rows.length > 0 && (
             <button className="foc" onClick={add}
-              style={{ width: "100%", marginTop: 12, padding: "12px", borderRadius: 10, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 14 }}>
+              style={{ width: "100%", marginTop: 12, padding: "12px", borderRadius: 10, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>
               Add {rows.filter((_, i) => !skip[i]).length} to board
             </button>
           )}

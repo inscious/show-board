@@ -167,7 +167,7 @@ export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
           <Plus size={15} /> Add show
         </button>
         <button className="foc" onClick={() => setModal("import")}
-          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 13.5, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}>
+          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 13.5, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}>
           <Upload size={15} /> Import schedule
         </button>
       </div>

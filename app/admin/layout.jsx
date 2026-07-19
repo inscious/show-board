@@ -49,7 +49,7 @@ function AdminNavBar({ pathname, variant }) {
         const on = isActive(href);
         return (
           <Link key={href} href={href} className="foc tab-btn" data-active={on}
-            style={{ flex: 1, whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", borderRadius: 9, fontSize: 13, fontWeight: 800, background: on ? C.brand : "transparent", color: on ? "#1A1206" : C.mid, border: "none", textDecoration: "none" }}>
+            style={{ flex: 1, whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", borderRadius: 9, fontSize: 13, fontWeight: 800, background: on ? C.brand : "transparent", color: on ? C.ink : C.mid, border: "none", textDecoration: "none" }}>
             <Icon size={15} /> {label}
           </Link>
         );

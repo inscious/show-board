@@ -71,6 +71,12 @@ export const C = {
     passed: "#5A6070",
     gc: "#7FB2FF",
     danger: "#E8927C",
+    /* dark "ink" text for sitting on top of a bright fill (brand/working/
+       danger buttons, active pills, checkmarks) — was ~40 repeated hex
+       literals scattered across components before this got named. */
+    ink: "#1A1206" /* on brand */,
+    inkGood: "#06120C" /* on working */,
+    inkBad: "#2A0E0A" /* on danger */,
 };
 export const SHADOW =
     "0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 14px rgba(0,0,0,0.45)";

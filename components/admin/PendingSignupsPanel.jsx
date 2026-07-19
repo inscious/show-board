@@ -71,7 +71,7 @@ export function PendingSignupsPanel({ onCountChange }) {
                     <div className="truncate" style={{ fontSize: 11, color: C.lo, fontFamily: FM }}>{p.email}</div>
                   </div>
                   <button className="foc" onClick={() => approve(p.id)} disabled={busyId === p.id}
-                    style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 5, background: C.working, color: "#06120C", border: "none", borderRadius: 7, padding: "7px 11px", fontSize: 12, fontWeight: 800, opacity: busyId === p.id ? 0.6 : 1 }}>
+                    style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 5, background: C.working, color: C.inkGood, border: "none", borderRadius: 7, padding: "7px 11px", fontSize: 12, fontWeight: 800, opacity: busyId === p.id ? 0.6 : 1 }}>
                     <Check size={13} /> Approve
                   </button>
                   <button className="foc icon-btn" onClick={() => setRejecting(p)} disabled={busyId === p.id}
