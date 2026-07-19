@@ -387,6 +387,21 @@ function LevelList({ total, avg, lastMonth }) {
                 few days after you turn in that OJT slip. Turning in a pay
                 stub that proves you hit the hours can get it processed early.
             </div>
+            <div
+                style={{
+                    fontSize: 10.5,
+                    color: C.lo,
+                    marginTop: 8,
+                    paddingTop: 8,
+                    borderTop: "1px solid " + C.line,
+                    lineHeight: 1.5,
+                }}
+            >
+                A level increase needs all three: 600 OJT hours since your
+                last increase, a satisfactory OJT rating, and 80 RSI hours
+                completed at your current level — hours alone don't move you
+                up.
+            </div>
         </div>
     );
 }
@@ -1277,11 +1292,6 @@ export function OjtTab({
 
             {/* right column: category progress, then anything shorter — stacked to keep pace with the level ladder */}
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {/* a level-up needs hours AND RSI — the ladder above only shows hours */}
-                <div style={{ fontSize: 11, color: C.lo, lineHeight: 1.5, padding: "0 2px" }}>
-                    A level increase needs all three: 600 OJT hours since your last increase, a satisfactory OJT rating, and 80 RSI hours completed at your current level — hours alone don't move you up.
-                </div>
-
                 <CatBars t={t} />
 
                 {/* months logged but never turned in */}
