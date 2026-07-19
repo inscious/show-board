@@ -69,13 +69,16 @@ export default function SignupPage() {
       fontFamily: FS, background: C.bg,
       backgroundImage: `radial-gradient(560px 420px at 50% 18%, rgba(255,176,32,0.10), transparent 65%)`,
     }}>
-      <style>{`
+      {/* dangerouslySetInnerHTML, not a text child — see app/login/page.jsx
+          for why: FS carries a quoted font name and <style> is RAWTEXT, so
+          a plain text child hydration-mismatches every load. */}
+      <style dangerouslySetInnerHTML={{ __html: `
         .login-shell input, .login-shell button { font-family: ${FS}; }
         .login-shell .login-field:focus-within{ border-color: ${C.brand}99 !important; box-shadow: 0 0 0 3px rgba(255,176,32,0.12); }
         .login-shell .login-submit:hover:not(:disabled){ filter: brightness(1.08); }
         .login-shell .login-link:hover{ color: ${C.brand}; }
         .login-shell button{ transition: filter .12s, color .12s, box-shadow .15s, border-color .15s; }
-      `}</style>
+      ` }} />
       <div style={{ width: "100%", maxWidth: 360, background: C.panel, border: "1px solid " + C.edge, borderRadius: 18, padding: "26px 24px", boxShadow: SHADOW + ", 0 0 60px rgba(255,176,32,0.06)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, transparent, ${C.brand}, transparent)` }} />
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
