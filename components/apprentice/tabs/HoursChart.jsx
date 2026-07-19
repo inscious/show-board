@@ -93,14 +93,6 @@ export function MonthlyHoursChart({ series }) {
                 borderRadius: 12,
                 padding: "11px 12px 4px",
                 boxShadow: SHADOW,
-                // fills the grid row's full height when it sits beside a
-                // taller sibling on desktop (dgrid's align-items:start
-                // otherwise leaves it top-aligned at its own short height);
-                // a no-op on mobile, where the row has no definite height
-                // to fill.
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
             }}
         >
             <div
@@ -158,7 +150,7 @@ export function MonthlyHoursChart({ series }) {
                 </div>
             </div>
             <div
-                style={{ width: "100%", flex: 1, minHeight: 160 }}
+                style={{ width: "100%", height: 160 }}
                 role="img"
                 aria-label={
                     "Monthly hours worked in " +
