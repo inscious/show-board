@@ -374,6 +374,51 @@ export function statusOn(shows: Show[], d: Date): "working" | "target" | null {
     });
     return out;
 }
+/* seed data abbreviates the big convention centers on the printed union
+   schedule — spelled out here for display only, `show.loc` itself stays
+   the short form everywhere else (matching, grouping, etc). */
+export const VENUE_FULL_NAME: Record<string, string> = {
+    ACC: "Anaheim Convention Center",
+    SDCC: "San Diego Convention Center",
+    LACC: "Los Angeles Convention Center",
+    LBCC: "Long Beach Convention Center",
+    "PALM SPRINGS CC": "Palm Springs Convention Center",
+};
+export function venueName(loc?: string | null): string {
+    if (!loc) return "";
+    return VENUE_FULL_NAME[loc] || loc;
+}
+
+const HALL_WORDS = ["NORTH", "SOUTH", "EAST", "WEST"];
+function titleWord(s: string): string {
+    return s.replace(/\w\S*/g, (t) => t[0] + t.slice(1).toLowerCase());
+}
+/* show.booth is one free-text column on the printed schedule doing double
+   duty as hall + booth number, in either order and with wildly
+   inconsistent formatting ("A / 132", "357 / A", "SOUTH / SPECIAL",
+   "FULL FACILITY"). This picks the pieces apart instead of guessing —
+   anything that isn't clearly a hall letter/word or a booth number falls
+   through as a plain note rather than being mislabeled. */
+export function boothInfo(
+    booth?: string | null,
+): { full?: boolean; hall?: string; num?: string; note?: string } | null {
+    const s = (booth || "").trim().toUpperCase();
+    if (!s || s === "TBD") return null;
+    let full = false;
+    let hall: string | undefined;
+    let num: string | undefined;
+    let note: string | undefined;
+    for (const seg of s.split("/").map((x) => x.trim()).filter(Boolean)) {
+        if (seg === "FULL FACILITY") full = true;
+        else if (/^\d+$/.test(seg)) num = seg;
+        else if (/^[A-Z]{1,2}(-[A-Z]{1,2})?$/.test(seg)) hall = seg;
+        else if (HALL_WORDS.includes(seg)) hall = titleWord(seg);
+        else note = titleWord(seg);
+    }
+    if (!full && !hall && !num && !note) return null;
+    return { full, hall, num, note };
+}
+
 /* month bucket a show belongs to, as a sortable integer */
 export function monthKey(s: Show): number {
     const d = mkDate(s.start, showYear(s)) || mkDate(s.mi, showYear(s));

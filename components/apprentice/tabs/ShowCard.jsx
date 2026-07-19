@@ -25,6 +25,7 @@ import {
     SHADOW,
     STATUS,
     UNION_LINE,
+    boothInfo,
     coColor,
     countdown,
     fmtTel,
@@ -32,6 +33,7 @@ import {
     isMine,
     isPast,
     matchCo,
+    venueName,
 } from "@/lib/core";
 import { DirectoryContext } from "@/components/utils/DirectoryContext";
 
@@ -109,6 +111,8 @@ export function ShowCard({
     const bigLabel = show.mi ? "MOVE IN" : "SHOW";
     const bigDate = show.mi || show.start || "—";
     const run = (show.start || "?") + "–" + (show.end || "?");
+    const venue = venueName(show.loc);
+    const bi = boothInfo(show.booth);
     const [note, setNote] = useState(show.note || "");
     useEffect(() => {
         setNote(show.note || "");
@@ -232,23 +236,93 @@ export function ShowCard({
                         )}
                     </div>
                     <div
-                        className="truncate"
                         style={{
                             display: "flex",
                             alignItems: "center",
-                            gap: 4,
+                            flexWrap: "wrap",
+                            rowGap: 3,
+                            columnGap: 6,
                             color: C.mid,
                             fontSize: 12,
                             marginTop: 3,
                         }}
                     >
-                        <MapPin size={11} color={C.lo} />
-                        <span className="truncate">
-                            {show.loc || "—"}
-                            {show.booth && show.booth !== "TBD"
-                                ? " · " + show.booth
-                                : ""}
+                        <span
+                            className="truncate"
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                minWidth: 0,
+                            }}
+                        >
+                            <MapPin
+                                size={11}
+                                color={C.lo}
+                                style={{ flexShrink: 0 }}
+                            />
+                            <span className="truncate">{venue || "—"}</span>
                         </span>
+                        {bi?.full && (
+                            <span
+                                style={{
+                                    fontSize: 10.5,
+                                    fontFamily: FM,
+                                    color: C.lo,
+                                    flexShrink: 0,
+                                }}
+                            >
+                                Full facility
+                            </span>
+                        )}
+                        {bi?.hall && (
+                            <span
+                                style={{
+                                    flexShrink: 0,
+                                    fontSize: 10,
+                                    fontFamily: FM,
+                                    fontWeight: 700,
+                                    letterSpacing: 0.3,
+                                    color: C.mid,
+                                    background: C.raise,
+                                    border: "1px solid " + C.line,
+                                    borderRadius: 5,
+                                    padding: "1px 5px",
+                                }}
+                            >
+                                HALL {bi.hall}
+                            </span>
+                        )}
+                        {bi?.num && (
+                            <span
+                                style={{
+                                    flexShrink: 0,
+                                    fontSize: 10,
+                                    fontFamily: FM,
+                                    fontWeight: 800,
+                                    letterSpacing: 0.3,
+                                    color: C.brand,
+                                    background: C.brand + "1C",
+                                    border: "1px solid " + C.brand + "40",
+                                    borderRadius: 5,
+                                    padding: "1px 5px",
+                                }}
+                            >
+                                BOOTH {bi.num}
+                            </span>
+                        )}
+                        {bi?.note && (
+                            <span
+                                style={{
+                                    fontSize: 10.5,
+                                    fontFamily: FM,
+                                    color: C.lo,
+                                    flexShrink: 0,
+                                }}
+                            >
+                                {bi.note}
+                            </span>
+                        )}
                     </div>
                     <div
                         style={{
