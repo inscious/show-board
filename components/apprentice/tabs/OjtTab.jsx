@@ -820,6 +820,7 @@ export function OjtTab({
     onPasswordSet,
     certs,
     completedClasses,
+    onToggleCompletedClass,
     pwIntent,
     onPwIntentConsumed,
 }) {
@@ -2402,7 +2403,7 @@ export function OjtTab({
             </Fold>
 
             <Fold icon={GraduationCap} title="Class curriculum" color={KLASS}>
-                <ClassCurriculum completed={new Set(completedClasses)} />
+                <ClassCurriculum completed={new Set(completedClasses)} onToggle={onToggleCompletedClass} selfReport />
             </Fold>
 
             <button

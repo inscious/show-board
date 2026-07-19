@@ -261,6 +261,12 @@ export const adminCompletedClassDeleteSchema = z.object({
     courseId: z.number().int().positive(),
 });
 
+// apprentice self-report — no userId, the session is the target (see
+// app/api/completed-classes)
+export const completedClassSchema = z.object({
+    courseId: z.number().int().positive(),
+});
+
 export const notificationDeleteSchema = z.object({
     id: z.union([id, z.literal("all")]),
 });

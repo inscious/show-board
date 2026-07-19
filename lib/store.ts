@@ -841,6 +841,22 @@ export const store = {
         }
     },
 
+    /* self-reporting a completed curriculum class — same direct-to-server
+     reasoning as clearNotification, not part of the diffed save() blob. */
+    async toggleCompletedClass(courseId: number, done: boolean): Promise<{ ok: boolean }> {
+        if (typeof window === "undefined") return { ok: false };
+        try {
+            const res = await fetch("/api/completed-classes", {
+                method: done ? "POST" : "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ courseId }),
+            });
+            return { ok: res.ok };
+        } catch {
+            return { ok: false };
+        }
+    },
+
     /* marks the welcome modal seen — same direct-to-server reasoning as
      clearNotification, not part of the diffed save() blob. */
     async markWelcomed(): Promise<{ ok: boolean }> {

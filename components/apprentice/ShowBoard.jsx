@@ -4259,6 +4259,17 @@ export default function App() {
         store.clearNotification(id);
     };
 
+    /* same optimistic-then-sync shape as clearNotification — self-reported,
+       not cross-checked against anything, so there's no reason to wait on
+       the server before reflecting the tap. */
+    const toggleCompletedClass = (courseId) => {
+        const done = !completedClasses.includes(courseId);
+        setCompletedClasses((prev) =>
+            done ? [...prev, courseId] : prev.filter((id) => id !== courseId),
+        );
+        store.toggleCompletedClass(courseId, done);
+    };
+
     /* switch tabs and, if a show id came along for the ride (tapping a show
        from the Home tab), land on the Board tab with that exact show already
        expanded — the show id lives in the URL (?tab=board&show=<id>) so this
@@ -4647,6 +4658,7 @@ export default function App() {
                         profile={profile}
                         certs={certs}
                         completedClasses={completedClasses}
+                        onToggleCompletedClass={toggleCompletedClass}
                         onPasswordSet={() => setHasPassword(true)}
                         pwIntent={pwIntent}
                         onPwIntentConsumed={() => setPwIntent(false)}

@@ -4,10 +4,13 @@
    selector, classes grouped by category within the year (mirrors the
    printed color-coded reference sheet). Completion is optional: pass
    `completed` (a Set of course IDs) to highlight what's done, and
-   `onToggle(courseId)` on top of that to make rows admin-editable — off
-   the official JATC Student Progress Report, not self-reported. Without
-   either prop this is pure read-only reference (the apprentice view before
-   an admin has entered anything). Content only, mounted inside an existing
+   `onToggle(courseId)` on top of that to make rows editable. Two editable
+   contexts share this component — admin cross-checking the official JATC
+   Student Progress Report (AdminBoard.jsx) and an apprentice self-reporting
+   their own history (ShowBoard.jsx/OjtTab.jsx) — pass `selfReport` to swap
+   the footer copy for the latter; the row/checkbox behavior is identical
+   either way, only the wording differs. Without `onToggle` at all this is
+   pure read-only reference. Content only, mounted inside an existing
    <Fold>/panel in ShowBoard.jsx and AdminBoard.jsx. */
 import { useState, useMemo } from "react";
 import { Check } from "lucide-react";
@@ -16,7 +19,7 @@ import { C, FM, JATC_CURRICULUM, CURRICULUM_CATEGORY_COLOR } from "@/lib/core";
 const YEARS = ["1", "2", "3"];
 const ALL_CLASSES = [...JATC_CURRICULUM.years["1"], ...JATC_CURRICULUM.years["2"], ...JATC_CURRICULUM.years["3"]];
 
-export function ClassCurriculum({ completed, onToggle }) {
+export function ClassCurriculum({ completed, onToggle, selfReport }) {
   const [year, setYear] = useState("1");
   const classes = JATC_CURRICULUM.years[year];
   const editable = typeof onToggle === "function";
@@ -118,7 +121,9 @@ export function ClassCurriculum({ completed, onToggle }) {
 
       <div style={{ fontSize: 10.5, color: C.lo, marginTop: 12, lineHeight: 1.5 }}>
         {editable
-          ? "Tap a class to mark it complete or not — cross-check against the apprentice's JATC Student Progress Report (Course ID column matches the # shown here)."
+          ? selfReport
+            ? "Tap a class to mark it taken or not — this is self-reported, so it's worth double-checking against your JATC Student Progress Report if you have one handy."
+            : "Tap a class to mark it complete or not — cross-check against the apprentice's JATC Student Progress Report (Course ID column matches the # shown here)."
           : "Every class in the program, for reference — your admin still assigns actual dates on the Class Schedule card above."}
       </div>
     </div>
