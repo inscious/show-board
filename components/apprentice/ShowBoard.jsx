@@ -1195,6 +1195,17 @@ export default function App() {
         store.toggleCompletedClass(courseId, done);
     };
 
+    /* same optimistic-then-sync shape — picking a cert from COMMON_CERTS
+       reuses an existing row's id (renewal) or generates a fresh one (new). */
+    const saveCert = (id, name, exp) => {
+        setCerts((prev) => {
+            const next = prev.filter((c) => c.id !== id);
+            next.push({ id, n: name, exp });
+            return next;
+        });
+        store.saveCert(id, name, exp);
+    };
+
     /* switch tabs and, if a show id came along for the ride (tapping a show
        from the Home tab), land on the Board tab with that exact show already
        expanded — the show id lives in the URL (?tab=board&show=<id>) so this
@@ -1582,6 +1593,7 @@ export default function App() {
                         isAdmin={isAdmin}
                         profile={profile}
                         certs={certs}
+                        onSaveCert={saveCert}
                         completedClasses={completedClasses}
                         onToggleCompletedClass={toggleCompletedClass}
                         onPasswordSet={() => setHasPassword(true)}

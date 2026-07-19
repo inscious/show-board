@@ -288,6 +288,14 @@ export const completedClassSchema = z.object({
     courseId: z.number().int().positive(),
 });
 
+// apprentice self-report — no userId, same reasoning as completedClassSchema
+// (see app/api/certs)
+export const certSchema = z.object({
+    id,
+    name: z.string().trim().min(1).max(200),
+    exp: dateStr,
+});
+
 export const notificationDeleteSchema = z.object({
     id: z.union([id, z.literal("all")]),
 });

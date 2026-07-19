@@ -874,6 +874,22 @@ export const store = {
         }
     },
 
+    /* self-reporting a certification (picked from COMMON_CERTS, not free
+     text) — same direct-to-server reasoning as toggleCompletedClass. */
+    async saveCert(id: string, name: string, exp: string): Promise<{ ok: boolean }> {
+        if (typeof window === "undefined") return { ok: false };
+        try {
+            const res = await fetch("/api/certs", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id, name, exp }),
+            });
+            return { ok: res.ok };
+        } catch {
+            return { ok: false };
+        }
+    },
+
     /* marks the welcome modal seen — same direct-to-server reasoning as
      clearNotification, not part of the diffed save() blob. */
     async markWelcomed(): Promise<{ ok: boolean }> {

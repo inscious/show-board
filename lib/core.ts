@@ -1225,6 +1225,18 @@ export const CATS_META: Record<
 };
 export const CAT_TOTAL = 1350 + 900 + 600 + 750;
 
+/* Starter list for the apprentice-facing "pick what you have" cert
+   picker (OjtTab.jsx) — the handful most apprentices actually hold, not
+   an exhaustive catalog. Static for now; move to a Supabase table (same
+   shared/admin-write shape as jatc_contacts) if/when admin needs to add
+   options without a code change. */
+export const COMMON_CERTS = [
+    "OSHA 10",
+    "Scissor Lift",
+    "Forklift / Genie",
+    "CPR / First-Aid / AED",
+];
+
 /* Treated as the confirmed scale throughout the app — see LevelList's
    footer in ShowBoard.jsx for the one-line explanation shown to apprentices.
    hrsEst/payEst are kept on the type and left false everywhere; a future
