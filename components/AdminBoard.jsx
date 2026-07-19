@@ -374,6 +374,17 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
     }
   };
 
+  const [welcomeState, setWelcomeState] = useState("idle");
+  const resetWelcome = async () => {
+    setWelcomeState("saving");
+    try {
+      await req("POST", "/api/admin/reset-welcome", { userId: apprentice.id });
+      setWelcomeState("done");
+    } catch (e) {
+      setWelcomeState("error");
+    }
+  };
+
   const decide = async (m, status) => {
     await req("PATCH", "/api/admin/ojt-months", { userId: apprentice.id, m, status });
     onChanged();
@@ -866,6 +877,19 @@ function ApprenticeDetail({ apprentice, months, bookings, flags, classes, certs,
         {pwMsg && <div style={{ marginTop: 7, fontSize: 11.5, color: pwState === "error" ? C.danger : C.working }}>{pwMsg}</div>}
         <div style={{ fontSize: 10.5, color: C.lo, marginTop: 8, lineHeight: 1.5 }}>
           They'll get an email confirming the change. Use this for a forgotten password or their initial temp password.
+        </div>
+      </div>
+
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginTop: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 9 }}>WELCOME MESSAGE</div>
+        <button className="foc" onClick={resetWelcome} disabled={welcomeState === "saving"}
+          style={{ width: "100%", background: welcomeState === "done" ? C.working : C.raise, color: welcomeState === "done" ? "#06120C" : C.hi, border: "1px solid " + C.line, borderRadius: 8, padding: "10px 14px", fontSize: 12.5, fontWeight: 700 }}>
+          {welcomeState === "saving" ? "Resetting…" : welcomeState === "done" ? "They'll see it next login" : "Show welcome message again"}
+        </button>
+        {welcomeState === "error" && <div style={{ marginTop: 7, fontSize: 11.5, color: C.danger }}>Couldn't reset it — try again.</div>}
+        <div style={{ fontSize: 10.5, color: C.lo, marginTop: 8, lineHeight: 1.5 }}>
+          The 4-tab rundown and OJT-history nudge they saw on first login. Use this if they missed it, or need
+          pointing back to the OJT-backfill upload after a support call.
         </div>
       </div>
 
