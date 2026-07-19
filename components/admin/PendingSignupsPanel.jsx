@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM, mMed } from "@/lib/core";
 import { Avatar, ConfirmModal, req } from "@/components/admin/shared";
 
-export function PendingSignupsPanel() {
+export function PendingSignupsPanel({ onCountChange }) {
   const [rows, setRows] = useState(null); // null = loading
   const [monthsByUser, setMonthsByUser] = useState({});
   const [rejecting, setRejecting] = useState(null); // profile row, or null
@@ -26,6 +26,7 @@ export function PendingSignupsPanel() {
       .is("approved_at", null)
       .order("email");
     setRows(profiles || []);
+    onCountChange?.(profiles?.length || 0);
     if (profiles?.length) {
       const { data: months } = await supabase.from("ojt_months")
         .select("user_id, month, cat_a, cat_b, cat_c, cat_d")

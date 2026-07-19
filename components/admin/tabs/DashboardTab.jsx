@@ -502,14 +502,22 @@ function ThisWeek({ shows, onOpenDay }) {
 
 /* ---------- dashboard tab ---------- */
 export function DashboardTab({ apprentices, monthsByUser, shows, classesByUser, certsByUser, onOpenApprentice, onOpenDay, onSelectShow, onChanged }) {
+  // self-reported by PendingSignupsPanel below (it already fetches these
+  // rows — this is a brand-new apprentice account waiting on approval, not
+  // an OJT month waiting on review, so it gets its own stat rather than
+  // folding into "PENDING APPROVALS" and reading as the same kind of thing.
+  const [pendingSignups, setPendingSignups] = useState(null);
+
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
         <Stat label="APPRENTICES" value={String(apprentices.length)} color={C.gc} />
-        <Stat label="PENDING APPROVALS" value={String(Object.values(monthsByUser).flat().filter((m) => m.status === "pending").length)}
-          sub="across everyone" color={C.brand} />
+        <Stat label="NEW SIGNUPS" value={pendingSignups == null ? "—" : String(pendingSignups)}
+          sub="to approve" color={pendingSignups ? C.brand : C.lo} />
+        <Stat label="OJT PENDING" value={String(Object.values(monthsByUser).flat().filter((m) => m.status === "pending").length)}
+          sub="months to review" color={C.brand} />
       </div>
-      <PendingSignupsPanel />
+      <PendingSignupsPanel onCountChange={setPendingSignups} />
       <ThisWeek shows={shows} onOpenDay={onOpenDay} />
       <OnTheFloorPanel shows={shows} onSelectShow={onSelectShow} />
       <RosterCategoryChart apprentices={apprentices} monthsByUser={monthsByUser} />
