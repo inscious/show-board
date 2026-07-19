@@ -1,49 +1,43 @@
 "use client";
 
-/* Admin console — a genuinely separate experience from the apprentice
-   dashboard (components/ShowBoard.jsx), not just extra buttons bolted onto
-   it. Roster of apprentices (profile + OJT progress, editable), pending
-   OJT-month approvals, and shared schedule management. */
-import React, { useState, useEffect, useMemo } from "react";
+/* Shared shell for every /admin/** route: auth guard, the one data load
+   (apprentices/months/bookings/etc — Promise.all), nav chrome, and the
+   cross-tab modals (new apprentice, assign class, bulk DNH, bulk archive).
+   A client layout persists across sibling route changes in the App Router,
+   so navigating /admin/roster -> /admin/schedule reuses this instance and
+   its state instead of refetching — the "shared fetch, not per-route
+   refetch" this was designed around. */
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { HardHat, Users, CalendarDays, LayoutDashboard, Settings as SettingsIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM, FS } from "@/lib/core";
-import { AdminAccountsPanel } from "@/components/admin/AdminAccountsPanel";
-import { AuditLogPanel } from "@/components/admin/AuditLogPanel";
-import { CompanyDirectoryPanel } from "@/components/admin/CompanyDirectoryPanel";
-import { JatcContactsPanel } from "@/components/admin/JatcContactsPanel";
-import { SelfSignupPanel } from "@/components/admin/SelfSignupPanel";
-import { NewAdminForm } from "@/components/admin/NewAdminForm";
-import { DashboardTab } from "@/components/admin/tabs/DashboardTab";
-import { ScheduleTab } from "@/components/admin/tabs/ScheduleTab";
-import { RosterTab, NewApprenticeForm, AssignClassForm, BulkDnhForm, BulkArchiveForm } from "@/components/admin/tabs/RosterTab";
-import { ApprenticeDetail } from "@/components/admin/ApprenticeDetail";
+import { AdminContext } from "@/lib/AdminContext";
+import { NewApprenticeForm, AssignClassForm, BulkDnhForm, BulkArchiveForm } from "@/components/admin/tabs/RosterTab";
 import { Modal, groupByUser } from "@/components/admin/shared";
 
 const ADMIN_TABS = [
-  ["dashboard", "Dashboard", LayoutDashboard],
-  ["roster", "Roster", Users],
-  ["schedule", "Schedule", CalendarDays],
-  ["settings", "Settings", SettingsIcon],
+  ["/admin", "Dashboard", LayoutDashboard],
+  ["/admin/roster", "Roster", Users],
+  ["/admin/schedule", "Schedule", CalendarDays],
+  ["/admin/settings", "Settings", SettingsIcon],
 ];
 
-/* ---------- top pills (desktop, >=900px) / bottom tab bar (phone) — same
-   split as the apprentice side's own NavBar (ShowBoard.jsx). This console
-   didn't have a bottom-bar variant at all before; on a phone the pill row
-   just sat at the top like a second header, out of thumb reach. ---------- */
-function AdminNavBar({ tab, onSelect, variant }) {
+function AdminNavBar({ pathname, variant }) {
+  const isActive = (href) => (href === "/admin" ? pathname === "/admin" : pathname.startsWith(href));
   if (variant === "bottom") {
     return (
       <div style={{ display: "flex" }}>
-        {ADMIN_TABS.map(([k, label, Icon]) => {
-          const on = tab === k;
+        {ADMIN_TABS.map(([href, label, Icon]) => {
+          const on = isActive(href);
           return (
-            <button key={k} className="foc" onClick={() => onSelect(k)}
-              style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 0 8px", background: "transparent", border: "none" }}>
+            <Link key={href} href={href} className="foc"
+              style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 0 8px", background: "transparent", border: "none", textDecoration: "none" }}>
               {on && <span style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 26, height: 2.5, borderRadius: 2, background: C.brand }} />}
               <Icon size={19} color={on ? C.brand : C.lo} />
               <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.2, color: on ? C.brand : C.lo }}>{label}</span>
-            </button>
+            </Link>
           );
         })}
       </div>
@@ -51,18 +45,22 @@ function AdminNavBar({ tab, onSelect, variant }) {
   }
   return (
     <div style={{ display: "flex", gap: 6, background: C.panel, borderRadius: 12, padding: 4, border: "1px solid " + C.edge, boxShadow: SHADOW, overflowX: "auto" }}>
-      {ADMIN_TABS.map(([k, label, Icon]) => (
-        <button key={k} className="foc tab-btn" data-active={tab === k} onClick={() => onSelect(k)}
-          style={{ flex: 1, whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", borderRadius: 9, fontSize: 13, fontWeight: 800, background: tab === k ? C.brand : "transparent", color: tab === k ? "#1A1206" : C.mid, border: "none" }}>
-          <Icon size={15} /> {label}
-        </button>
-      ))}
+      {ADMIN_TABS.map(([href, label, Icon]) => {
+        const on = isActive(href);
+        return (
+          <Link key={href} href={href} className="foc tab-btn" data-active={on}
+            style={{ flex: 1, whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", borderRadius: 9, fontSize: 13, fontWeight: 800, background: on ? C.brand : "transparent", color: on ? "#1A1206" : C.mid, border: "none", textDecoration: "none" }}>
+            <Icon size={15} /> {label}
+          </Link>
+        );
+      })}
     </div>
   );
 }
 
-/* ---------- shell ---------- */
-export default function AdminBoard() {
+export default function AdminLayout({ children }) {
+  const pathname = usePathname();
+  const router = useRouter();
   const [state, setState] = useState("loading"); // loading | ready
   const [email, setEmail] = useState(null);
   const [apprentices, setApprentices] = useState([]);
@@ -73,16 +71,13 @@ export default function AdminBoard() {
   const [certsByUser, setCertsByUser] = useState({});
   const [completedClassesByUser, setCompletedClassesByUser] = useState({});
   const [shows, setShows] = useState([]);
-  const [tab, setTab] = useState("dashboard"); // dashboard | roster | schedule | settings
-  const [selectedId, setSelectedId] = useState(null);
-  const [scheduleFocusId, setScheduleFocusId] = useState(null);
   const [newModal, setNewModal] = useState(false);
   const [classModal, setClassModal] = useState(false); // false | array of preselected userIds
   const [dnhModal, setDnhModal] = useState(false);
   const [bulkArchiveModal, setBulkArchiveModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const supabase = createClient();
     // bookings/show_flags/classes each need their own "admin read"/"admin
     // write" RLS policy (see supabase/schema.sql) — until those are applied
@@ -124,7 +119,7 @@ export default function AdminBoard() {
       loc: r.location || "", booth: r.booth || "", co: r.gc || "", region: r.region || "", src: r.source || "union",
       sheetMonth: r.sheet_month || "",
     })));
-  };
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -141,7 +136,7 @@ export default function AdminBoard() {
       setState("ready");
     })();
     return () => { live = false; };
-  }, []);
+  }, [load]);
 
   const signOut = async () => {
     if (signingOut) return;
@@ -151,11 +146,22 @@ export default function AdminBoard() {
     window.location.href = "/login";
   };
 
-  const selected = selectedId ? apprentices.find((a) => a.id === selectedId) : null;
-  const goToApprentice = (id) => { setTab("roster"); setSelectedId(id); };
-  const goToShow = (id) => { setTab("schedule"); setScheduleFocusId(id); };
   const activeApprentices = useMemo(() => apprentices.filter((a) => !a.archived_at), [apprentices]);
   const archivedApprentices = useMemo(() => apprentices.filter((a) => a.archived_at), [apprentices]);
+
+  const goToApprentice = useCallback((id) => router.push("/admin/roster/" + id), [router]);
+  const goToShow = useCallback((id) => router.push("/admin/schedule?show=" + id), [router]);
+
+  const ctx = {
+    email,
+    apprentices, activeApprentices, archivedApprentices,
+    monthsByUser, bookingsByUser, flagsByUser, classesByUser, certsByUser, completedClassesByUser, shows,
+    load, goToApprentice, goToShow,
+    openNewApprentice: () => setNewModal(true),
+    openAssignClass: (preselected) => setClassModal(preselected || []),
+    openDoNotHire: () => setDnhModal(true),
+    openBulkArchive: () => setBulkArchiveModal(true),
+  };
 
   if (state === "loading") {
     return (
@@ -211,53 +217,15 @@ export default function AdminBoard() {
         <div className="truncate" style={{ fontSize: 11.5, color: C.lo, fontFamily: FM, marginBottom: 14 }}>{email}</div>
 
         <div className="navtop">
-          <AdminNavBar tab={tab} onSelect={(k) => { setTab(k); if (k !== "roster") setSelectedId(null); }} variant="top" />
+          <AdminNavBar pathname={pathname} variant="top" />
         </div>
 
-        {tab === "dashboard" && (
-          <DashboardTab apprentices={activeApprentices} monthsByUser={monthsByUser} shows={shows} classesByUser={classesByUser} certsByUser={certsByUser}
-            onOpenApprentice={goToApprentice} onOpenDay={() => setTab("schedule")} onSelectShow={goToShow} onChanged={load} />
-        )}
-
-        {tab === "roster" && (
-          selected ? (
-            <ApprenticeDetail apprentice={selected} months={monthsByUser[selected.id] || []}
-              bookings={bookingsByUser[selected.id] || []} flags={flagsByUser[selected.id] || []}
-              classes={classesByUser[selected.id] || []} certs={certsByUser[selected.id] || []} shows={shows}
-              completedClasses={completedClassesByUser[selected.id] || []}
-              onAssignClass={() => setClassModal([selected.id])}
-              onBack={() => setSelectedId(null)} onChanged={load} />
-          ) : (
-            <RosterTab apprentices={activeApprentices} archivedApprentices={archivedApprentices} monthsByUser={monthsByUser} onSelect={setSelectedId}
-              onAddApprentice={() => setNewModal(true)} onAssignClass={() => setClassModal([])} onDoNotHire={() => setDnhModal(true)}
-              onBulkArchive={() => setBulkArchiveModal(true)} onChanged={load} />
-          )
-        )}
-
-        {tab === "schedule" && (
-          <ScheduleTab shows={shows} onChanged={load} focusId={scheduleFocusId} onFocusHandled={() => setScheduleFocusId(null)} />
-        )}
-
-        {tab === "settings" && (
-          <>
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, marginBottom: 8 }}>ACCESS</div>
-            <SelfSignupPanel />
-            <NewAdminForm onCreated={load} />
-            <AdminAccountsPanel currentEmail={email} />
-
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, margin: "8px 0 8px" }}>DIRECTORY</div>
-            <CompanyDirectoryPanel />
-            <JatcContactsPanel />
-
-            <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, margin: "8px 0 8px" }}>ACTIVITY</div>
-            <AuditLogPanel />
-          </>
-        )}
+        <AdminContext.Provider value={ctx}>{children}</AdminContext.Provider>
       </div>
 
       <div className="navbot" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30, background: C.bg, borderTop: "1px solid " + C.line }}>
         <div className="wrap" style={{ padding: "0 8px" }}>
-          <AdminNavBar tab={tab} onSelect={(k) => { setTab(k); if (k !== "roster") setSelectedId(null); }} variant="bottom" />
+          <AdminNavBar pathname={pathname} variant="bottom" />
         </div>
       </div>
 
