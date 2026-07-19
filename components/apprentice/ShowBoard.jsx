@@ -4769,29 +4769,27 @@ export default function App() {
                             </>
                         ) : tab === "board" ? null : tab === "ojt" ? (
                             <>
-                                {!OJT_IMPORT_ENABLED && (
-                                    <button
-                                        className="foc"
-                                        onClick={() => setModal({ type: "month" })}
-                                        style={{
-                                            flex: 1,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            gap: 7,
-                                            padding: "13px",
-                                            borderRadius: 12,
-                                            background: C.panel,
-                                            color: C.hi,
-                                            border: "1px solid " + C.edge,
-                                            fontWeight: 700,
-                                            fontSize: 14,
-                                            boxShadow: SHADOW,
-                                        }}
-                                    >
-                                        <Plus size={17} /> Add month
-                                    </button>
-                                )}
+                                <button
+                                    className="foc"
+                                    onClick={() => setModal({ type: "month" })}
+                                    style={{
+                                        flex: 1,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: 7,
+                                        padding: "13px",
+                                        borderRadius: 12,
+                                        background: C.panel,
+                                        color: C.hi,
+                                        border: "1px solid " + C.edge,
+                                        fontWeight: 700,
+                                        fontSize: 14,
+                                        boxShadow: SHADOW,
+                                    }}
+                                >
+                                    <Plus size={17} /> Add month
+                                </button>
                                 {OJT_IMPORT_ENABLED && (
                                     <button
                                         className="foc"
