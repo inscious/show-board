@@ -30,6 +30,11 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
   const [state, setState] = useState("pick"); // pick | scanning | review | submitting | manual | error
   const [msg, setMsg] = useState("");
   const [rows, setRows] = useState([]); // [{ id, m, a, b, c, d, confidence }]
+  // day-by-day rows — only populated when a slip actually has the real
+  // union form's DATE/A-D/COMPANY columns filled in, not every upload has
+  // these (a monthly-totals-only sheet won't). Reviewed the same way as
+  // months: editable, removable, nothing saved until Submit.
+  const [dailyRows, setDailyRows] = useState([]); // [{ id, date, cat, hrs, co, confidence }]
   const [manual, setManual] = useState({ m: monthOptions()[1] || "", a: "", b: "", c: "", d: "" });
 
   const pickFiles = (e) => {
@@ -62,6 +67,11 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
         m: m.month, a: String(m.cat_a ?? 0), b: String(m.cat_b ?? 0), c: String(m.cat_c ?? 0), d: String(m.cat_d ?? 0),
         confidence: m.confidence || "high",
       })));
+      setDailyRows((body.entries || []).map((e, i) => ({
+        id: "d" + e.date + "_" + i,
+        date: e.date, cat: e.category, hrs: String(e.hours ?? 0), co: e.company || "",
+        confidence: e.confidence || "high",
+      })));
       setState("review");
     } catch {
       setState("pick");
@@ -71,12 +81,17 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
 
   const editRow = (id, key, val) => setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [key]: val } : r)));
   const removeRow = (id) => setRows((prev) => prev.filter((r) => r.id !== id));
+  const editDaily = (id, key, val) => setDailyRows((prev) => prev.map((r) => (r.id === id ? { ...r, [key]: val } : r)));
+  const removeDaily = (id) => setDailyRows((prev) => prev.filter((r) => r.id !== id));
 
   const submit = async () => {
     setState("submitting");
     setMsg("");
     try {
-      await onSubmit(rows.map((r) => ({ m: r.m, a: num(r.a), b: num(r.b), c: num(r.c), d: num(r.d) })));
+      await onSubmit({
+        months: rows.map((r) => ({ m: r.m, a: num(r.a), b: num(r.b), c: num(r.c), d: num(r.d) })),
+        entries: dailyRows.map((r) => ({ dayKey: r.date, co: r.co.trim(), cat: r.cat, hrs: num(r.hrs) })).filter((e) => e.co && e.hrs > 0),
+      });
     } catch {
       setState("review");
       setMsg("Couldn't save — try again.");
@@ -87,7 +102,7 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
     if (!manual.m) return;
     setMsg("");
     try {
-      await onSubmit([{ m: manual.m, a: num(manual.a), b: num(manual.b), c: num(manual.c), d: num(manual.d) }]);
+      await onSubmit({ months: [{ m: manual.m, a: num(manual.a), b: num(manual.b), c: num(manual.c), d: num(manual.d) }], entries: [] });
     } catch {
       setMsg("Couldn't save — try again.");
     }
@@ -163,6 +178,45 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
             <div style={{ fontSize: 12.5, color: C.lo }}>No months left to submit — go back and add one manually instead.</div>
           )}
         </div>
+
+        {dailyRows.length > 0 && (
+          <>
+            <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 8 }}>
+              DAILY HOURS FOUND — {dailyRows.length} day{dailyRows.length === 1 ? "" : "s"}
+            </div>
+            <div style={{ fontSize: 12, color: C.mid, lineHeight: 1.5, marginBottom: 12 }}>
+              Your slip had a day-by-day breakdown — these can also fill in your work calendar so it matches what you already turned in. Skip a row if it's wrong; you can always add or fix a day later.
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+              {dailyRows.map((r) => (
+                <div key={r.id} style={{ background: C.raise, border: "1px solid " + (r.confidence === "low" ? "rgba(255,176,32,0.4)" : C.line), borderRadius: 10, padding: "10px 11px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <input type="date" value={r.date} onChange={(e) => editDaily(r.id, "date", e.target.value)}
+                      style={{ ...fieldStyle, flex: 1, fontSize: 12.5 }} />
+                    <select value={r.cat} onChange={(e) => editDaily(r.id, "cat", e.target.value)}
+                      style={{ ...fieldStyle, width: 56, flexShrink: 0 }}>
+                      {(["A", "B", "C", "D"]).map((k) => <option key={k} value={k}>{k}</option>)}
+                    </select>
+                    {r.confidence === "low" && (
+                      <span style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>
+                        <TriangleAlert size={13} color={C.brand} />
+                      </span>
+                    )}
+                    <button type="button" onClick={() => removeDaily(r.id)} style={{ background: "transparent", border: "none", color: C.lo, padding: 3, flexShrink: 0 }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input value={r.co} onChange={(e) => editDaily(r.id, "co", e.target.value)} placeholder="Company"
+                      style={{ ...fieldStyle, flex: 2 }} />
+                    <input type="number" min="0" step="0.5" value={r.hrs} onChange={(e) => editDaily(r.id, "hrs", e.target.value)} placeholder="Hours"
+                      style={{ ...fieldStyle, flex: 1 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         {msg && <div style={{ marginBottom: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
         <div style={{ display: "flex", gap: 8 }}>
           <button type="button" onClick={onCancel} style={{ flex: 1, padding: "11px", borderRadius: 9, background: "transparent", border: "1px solid " + C.line, color: C.mid, fontWeight: 700, fontSize: 13.5 }}>
@@ -170,7 +224,9 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
           </button>
           <button type="button" onClick={submit} disabled={rows.length === 0 || state === "submitting"}
             style={{ flex: 2, padding: "11px", borderRadius: 9, background: C.brand, color: "#1A1206", border: "none", fontWeight: 800, fontSize: 13.5, opacity: state === "submitting" ? 0.6 : 1 }}>
-            {state === "submitting" ? "Saving…" : `Submit ${rows.length} month${rows.length === 1 ? "" : "s"}`}
+            {state === "submitting"
+              ? "Saving…"
+              : `Submit ${rows.length} month${rows.length === 1 ? "" : "s"}` + (dailyRows.length > 0 ? ` + ${dailyRows.length} day${dailyRows.length === 1 ? "" : "s"}` : "")}
           </button>
         </div>
       </div>
@@ -180,7 +236,7 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
   return (
     <div>
       <div style={{ fontSize: 12.5, color: C.mid, lineHeight: 1.5, marginBottom: 14 }}>
-        Photos or PDFs of your old OJT slips — up to 10 at a time. You'll review every number before anything is submitted.
+        Photos or PDFs of your old OJT slips — up to 10 at a time. You'll review every number before anything is submitted. If a slip has the day-by-day columns filled in, those days can also fill in your work calendar.
       </div>
       <label style={{
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,

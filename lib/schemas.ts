@@ -61,6 +61,19 @@ export const entrySchema = z.object({
 });
 export const entryDeleteSchema = z.object({ id });
 
+// bulk write side of the OJT-slip calendar backfill (app/api/entries/bulk) —
+// draft rows an apprentice reviewed after scanning old slips. Same bounded
+// shape as entrySchema's flat-hours fields, minus id/clock/st/ot/dt: those
+// are server-generated/derived here rather than client-computed, since this
+// path has no local store draft to compute them ahead of time the way a
+// normal single-day save does.
+export const entryBulkSchema = z.array(z.object({
+    dayKey: dateStr,
+    co: z.string().trim().min(1).max(200),
+    cat: z.enum(["A", "B", "C", "D"]),
+    hrs: z.number().min(0).max(24),
+})).min(1).max(200);
+
 export const ojtMonthSchema = z.object({
     m: monthStr,
     a: z.number().min(0).max(1000),

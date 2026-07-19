@@ -73,15 +73,25 @@ export default function PendingPage() {
     }
   };
 
-  const bulkSubmit = async (rows) => {
+  const bulkSubmit = async ({ months, entries }) => {
     const res = await fetch("/api/ojt-months/bulk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(rows),
+      body: JSON.stringify(months),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       throw new Error(body.error || "Could not save");
+    }
+    // best-effort — the calendar backfill is a bonus on top of the months
+    // that actually count for OJT review; a failure here shouldn't block
+    // the submission that does.
+    if (entries.length > 0) {
+      await fetch("/api/entries/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entries),
+      }).catch(() => {});
     }
     setShowImport(false);
     load();

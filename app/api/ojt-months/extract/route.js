@@ -29,11 +29,19 @@ For each distinct month you find (a slip may show one month or several), report:
 - cat_a, cat_b, cat_c, cat_d: hours reported for that category that month, as numbers (0 if the slip shows none/blank for that category — never leave a category out)
 - confidence: "high" if the numbers are clearly printed/legible, "low" if handwriting, a smudge, glare, or a cut-off edge made you guess at a digit
 
-If the same month appears more than once across the files (e.g. a duplicate photo), only report it once, using the clearer of the two readings. If a document has no readable OJT hours at all, don't invent a month for it — just omit it. Never fabricate a month or number that isn't actually shown.`;
+If the same month appears more than once across the files (e.g. a duplicate photo), only report it once, using the clearer of the two readings. If a document has no readable OJT hours at all, don't invent a month for it — just omit it. Never fabricate a month or number that isn't actually shown.
+
+The real union OJT form (CA Tradeshow & Sign Crafts Apprentice On-The-Job-Training Form) also has a day-by-day table: one row per date worked, with columns for DATE, A/B/C/D hours (one category filled per row), COMPANY NAME, and SHOW NAME. Some slips will have this daily breakdown filled in; others (a simple monthly-totals sheet, a spreadsheet) won't. When you can read genuine daily rows, ALSO report each one separately as a daily entry:
+- date: the exact day worked, as "YYYY-MM-DD" (combine the row's DATE with the slip's MONTH/YEAR)
+- category: which single column (A, B, C, or D) has hours filled in on that row
+- hours: the number in that category's cell for that row
+- company: the COMPANY NAME printed on that row, as written (don't normalize or guess an official name)
+
+A single date can appear on more than one row if two different companies show hours that day (e.g. worked a half day for one shop, then another) — report each as its own daily entry, don't merge them. Only report daily entries you can actually read row-by-row; if a document only shows a monthly total with no per-day breakdown, don't fabricate daily rows to match it — just leave daily entries out for that document.`;
 
 const EXTRACT_TOOL = {
   name: "report_extracted_months",
-  description: "Report every OJT month found across the provided documents.",
+  description: "Report every OJT month, and any readable day-by-day rows, found across the provided documents.",
   input_schema: {
     type: "object",
     properties: {
@@ -50,6 +58,21 @@ const EXTRACT_TOOL = {
             confidence: { type: "string", enum: ["high", "low"] },
           },
           required: ["month", "cat_a", "cat_b", "cat_c", "cat_d", "confidence"],
+        },
+      },
+      entries: {
+        type: "array",
+        description: "Day-by-day rows, only when the source document actually shows a daily breakdown (not just a monthly total).",
+        items: {
+          type: "object",
+          properties: {
+            date: { type: "string", description: "YYYY-MM-DD" },
+            category: { type: "string", enum: ["A", "B", "C", "D"] },
+            hours: { type: "number" },
+            company: { type: "string" },
+            confidence: { type: "string", enum: ["high", "low"] },
+          },
+          required: ["date", "category", "hours", "company", "confidence"],
         },
       },
     },
@@ -106,7 +129,7 @@ export async function POST(request) {
   try {
     message = await anthropic.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 2048,
+      max_tokens: 4096,
       system: SYSTEM_PROMPT,
       tools: [EXTRACT_TOOL],
       tool_choice: { type: "tool", name: "report_extracted_months" },
@@ -119,9 +142,10 @@ export async function POST(request) {
 
   const toolUse = message.content.find((c) => c.type === "tool_use");
   const months = Array.isArray(toolUse?.input?.months) ? toolUse.input.months : [];
+  const entries = Array.isArray(toolUse?.input?.entries) ? toolUse.input.entries : [];
   if (months.length === 0) {
     return Response.json({ error: "Couldn't find any OJT months in those files — try clearer photos or add months manually." }, { status: 422 });
   }
 
-  return Response.json({ ok: true, months });
+  return Response.json({ ok: true, months, entries });
 }

@@ -4999,8 +4999,21 @@ export default function App() {
                     onClose={() => setModal(null)}
                 >
                     <OjtImportFlow
-                        onSubmit={async (rows) => {
-                            rows.forEach(saveMonth);
+                        onSubmit={async ({ months, entries }) => {
+                            months.forEach(saveMonth);
+                            if (entries.length > 0) {
+                                const res = await fetch("/api/entries/bulk", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify(entries),
+                                });
+                                const body = await res.json().catch(() => ({}));
+                                if (res.ok && Array.isArray(body.entries)) {
+                                    body.entries.forEach((e) =>
+                                        saveEntry(e.dayKey, { id: e.id, co: e.co, cat: e.cat, hrs: e.hrs }),
+                                    );
+                                }
+                            }
                             setModal(null);
                         }}
                         onCancel={() => setModal(null)}
