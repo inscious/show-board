@@ -37,6 +37,25 @@ import {
 } from "@/lib/core";
 import { DirectoryContext } from "@/components/utils/DirectoryContext";
 
+// hall stays neutral (it's just where on the floor); full facility/booth
+// count/note all get the brand highlight — a full-facility or "special"
+// show is usually one of the biggest events on the schedule, worth the
+// same visual weight as the booth count.
+function locBadge(highlight) {
+    return {
+        flexShrink: 0,
+        fontSize: 10,
+        fontFamily: FM,
+        fontWeight: highlight ? 800 : 700,
+        letterSpacing: 0.3,
+        color: highlight ? C.brand : C.mid,
+        background: highlight ? C.brand + "1C" : C.raise,
+        border: "1px solid " + (highlight ? C.brand + "40" : C.line),
+        borderRadius: 5,
+        padding: "1px 5px",
+    };
+}
+
 function Chip({ style, children }) {
     return (
         <span
@@ -264,63 +283,19 @@ export function ShowCard({
                             <span className="truncate">{venue || "—"}</span>
                         </span>
                         {bi?.full && (
-                            <span
-                                style={{
-                                    fontSize: 10.5,
-                                    fontFamily: FM,
-                                    color: C.lo,
-                                    flexShrink: 0,
-                                }}
-                            >
-                                Full facility
-                            </span>
+                            <span style={locBadge(true)}>FULL FACILITY</span>
                         )}
                         {bi?.hall && (
-                            <span
-                                style={{
-                                    flexShrink: 0,
-                                    fontSize: 10,
-                                    fontFamily: FM,
-                                    fontWeight: 700,
-                                    letterSpacing: 0.3,
-                                    color: C.mid,
-                                    background: C.raise,
-                                    border: "1px solid " + C.line,
-                                    borderRadius: 5,
-                                    padding: "1px 5px",
-                                }}
-                            >
-                                {bi.hall}
-                            </span>
+                            <span style={locBadge(false)}>{bi.hall}</span>
                         )}
                         {bi?.num && (
-                            <span
-                                style={{
-                                    flexShrink: 0,
-                                    fontSize: 10,
-                                    fontFamily: FM,
-                                    fontWeight: 800,
-                                    letterSpacing: 0.3,
-                                    color: C.brand,
-                                    background: C.brand + "1C",
-                                    border: "1px solid " + C.brand + "40",
-                                    borderRadius: 5,
-                                    padding: "1px 5px",
-                                }}
-                            >
+                            <span style={locBadge(true)}>
                                 {bi.num} BOOTHS
                             </span>
                         )}
                         {bi?.note && (
-                            <span
-                                style={{
-                                    fontSize: 10.5,
-                                    fontFamily: FM,
-                                    color: C.lo,
-                                    flexShrink: 0,
-                                }}
-                            >
-                                {bi.note}
+                            <span style={locBadge(true)}>
+                                {bi.note.toUpperCase()}
                             </span>
                         )}
                     </div>
