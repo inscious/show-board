@@ -528,6 +528,19 @@ export function CalTab({
                                     {hrs > 0 && (
                                         <span
                                             style={{
+                                                fontFamily: FM,
+                                                fontSize: 9,
+                                                fontWeight: 800,
+                                                color: C.working,
+                                                lineHeight: 1,
+                                            }}
+                                        >
+                                            WORKED
+                                        </span>
+                                    )}
+                                    {hrs > 0 && (
+                                        <span
+                                            style={{
                                                 marginLeft: "auto",
                                                 fontFamily: FM,
                                                 fontSize: 14,
