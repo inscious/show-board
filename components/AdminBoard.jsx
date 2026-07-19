@@ -63,6 +63,47 @@ function groupByUser(rows) {
 }
 function monthHours(m) { return Number(m.a || 0) + Number(m.b || 0) + Number(m.c || 0) + Number(m.d || 0); }
 
+const ADMIN_TABS = [
+  ["dashboard", "Dashboard", LayoutDashboard],
+  ["roster", "Roster", Users],
+  ["schedule", "Schedule", CalendarDays],
+  ["settings", "Settings", SettingsIcon],
+];
+
+/* ---------- top pills (desktop, >=900px) / bottom tab bar (phone) — same
+   split as the apprentice side's own NavBar (ShowBoard.jsx). This console
+   didn't have a bottom-bar variant at all before; on a phone the pill row
+   just sat at the top like a second header, out of thumb reach. ---------- */
+function AdminNavBar({ tab, onSelect, variant }) {
+  if (variant === "bottom") {
+    return (
+      <div style={{ display: "flex" }}>
+        {ADMIN_TABS.map(([k, label, Icon]) => {
+          const on = tab === k;
+          return (
+            <button key={k} className="foc" onClick={() => onSelect(k)}
+              style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 0 8px", background: "transparent", border: "none" }}>
+              {on && <span style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 26, height: 2.5, borderRadius: 2, background: C.brand }} />}
+              <Icon size={19} color={on ? C.brand : C.lo} />
+              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.2, color: on ? C.brand : C.lo }}>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", gap: 6, background: C.panel, borderRadius: 12, padding: 4, border: "1px solid " + C.edge, boxShadow: SHADOW, overflowX: "auto" }}>
+      {ADMIN_TABS.map(([k, label, Icon]) => (
+        <button key={k} className="foc tab-btn" data-active={tab === k} onClick={() => onSelect(k)}
+          style={{ flex: 1, whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", borderRadius: 9, fontSize: 13, fontWeight: 800, background: tab === k ? C.brand : "transparent", color: tab === k ? "#1A1206" : C.mid, border: "none" }}>
+          <Icon size={15} /> {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* ---------- read-only calendar for one apprentice — same fill logic and
    color language as the apprentice's own CalTab (ShowBoard.jsx), just
    view-only and self-fetching (work_entries isn't part of the roster-wide
@@ -2542,9 +2583,13 @@ export default function AdminBoard() {
         .admin-shell .icon-btn:hover{ background: ${C.raise}; color: ${C.hi}; }
         .admin-shell .roster-row:hover{ border-color: ${C.brand}66; background: ${C.raise}; }
         .admin-shell .tab-btn:hover:not([data-active="true"]){ background: rgba(255,255,255,0.04); color: ${C.hi}; }
-        .admin-shell .wrap{ max-width: 720px; margin: 0 auto; padding: 24px 16px 60px; }
+        .admin-shell .wrap{ max-width: 720px; margin: 0 auto; padding: 24px 16px 96px; }
+        .admin-shell .navtop{ display: none; }
+        .admin-shell .navbot{ display: block; padding-bottom: env(safe-area-inset-bottom, 0px); }
         @media (min-width: 900px){
-          .admin-shell .wrap{ max-width: 1160px; }
+          .admin-shell .wrap{ max-width: 1160px; padding-bottom: 60px; }
+          .admin-shell .navtop{ display: block; margin-bottom: 16px; }
+          .admin-shell .navbot{ display: none; }
         }
       `}</style>
       <div className="wrap">
@@ -2558,19 +2603,8 @@ export default function AdminBoard() {
         </div>
         <div className="truncate" style={{ fontSize: 11.5, color: C.lo, fontFamily: FM, marginBottom: 14 }}>{email}</div>
 
-        <div style={{ display: "flex", gap: 6, background: C.panel, borderRadius: 12, padding: 4, border: "1px solid " + C.edge, boxShadow: SHADOW, marginBottom: 16, overflowX: "auto" }}>
-          {[
-            ["dashboard", "Dashboard", LayoutDashboard],
-            ["roster", "Roster", Users],
-            ["schedule", "Schedule", CalendarDays],
-            ["settings", "Settings", SettingsIcon],
-          ].map(([k, label, Icon]) => (
-            <button key={k} className="foc tab-btn" data-active={tab === k}
-              onClick={() => { setTab(k); if (k !== "roster") setSelectedId(null); }}
-              style={{ flex: 1, whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", borderRadius: 9, fontSize: 13, fontWeight: 800, background: tab === k ? C.brand : "transparent", color: tab === k ? "#1A1206" : C.mid, border: "none" }}>
-              <Icon size={15} /> {label}
-            </button>
-          ))}
+        <div className="navtop">
+          <AdminNavBar tab={tab} onSelect={(k) => { setTab(k); if (k !== "roster") setSelectedId(null); }} variant="top" />
         </div>
 
         {tab === "dashboard" && (
@@ -2636,6 +2670,12 @@ export default function AdminBoard() {
             <AuditLogPanel />
           </>
         )}
+      </div>
+
+      <div className="navbot" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30, background: C.bg, borderTop: "1px solid " + C.line }}>
+        <div className="wrap" style={{ padding: "0 8px" }}>
+          <AdminNavBar tab={tab} onSelect={(k) => { setTab(k); if (k !== "roster") setSelectedId(null); }} variant="bottom" />
+        </div>
       </div>
 
       {newModal && (
