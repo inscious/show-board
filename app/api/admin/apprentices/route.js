@@ -68,20 +68,31 @@ export async function PATCH(request) {
    delete later, matches the two-step UI. A never-approved account (a
    rejected self-signup) skips that requirement: it never had a chance to
    accumulate real records the two-step flow is protecting, and rejecting a
-   signup is meant to be one click, not archive-then-delete. */
+   signup is meant to be one click, not archive-then-delete.
+
+   Accepts userId (single) or userIds (batch, bulk-delete-from-archive) —
+   deleteUser() has no bulk variant in the Admin API, so a batch request
+   still loops one call per id server-side, but that's still 1 HTTP
+   round-trip from the client instead of N against the rate limit. */
 export async function DELETE(request) {
   return guardedRoute(request, "admin:apprentices:delete", { schema: adminDeleteApprenticeSchema, requireAdmin: true }, async ({ user, data }) => {
     const admin = createAdminClient();
-    const { data: profile } = await admin.from("profiles").select("archived_at, approved_at, email").eq("id", data.userId).single();
-    if (profile?.approved_at && !profile?.archived_at) return Response.json({ error: "Archive the apprentice before deleting them." }, { status: 400 });
+    const ids = data.userIds || [data.userId];
 
-    const { error } = await admin.auth.admin.deleteUser(data.userId);
-    if (error) return Response.json({ error: "Could not delete" }, { status: 400 });
+    const { data: profiles } = await admin.from("profiles").select("id, archived_at, approved_at, email").in("id", ids);
+    const byId = Object.fromEntries((profiles || []).map((p) => [p.id, p]));
 
-    await logAudit(admin, {
-      actorEmail: user.email, targetEmail: profile.email,
-      action: "delete", message: "Permanently deleted " + (profile.email || data.userId),
-    });
+    const blocked = ids.filter((id) => byId[id]?.approved_at && !byId[id]?.archived_at);
+    if (blocked.length > 0) return Response.json({ error: "Archive the apprentice before deleting them." }, { status: 400 });
+
+    for (const id of ids) {
+      const { error } = await admin.auth.admin.deleteUser(id);
+      if (error) return Response.json({ error: "Could not delete" }, { status: 400 });
+      await logAudit(admin, {
+        actorEmail: user.email, targetEmail: byId[id]?.email,
+        action: "delete", message: "Permanently deleted " + (byId[id]?.email || id),
+      });
+    }
 
     return Response.json({ ok: true });
   });

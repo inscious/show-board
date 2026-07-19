@@ -230,7 +230,7 @@ export default function AdminBoard() {
           ) : (
             <RosterTab apprentices={activeApprentices} archivedApprentices={archivedApprentices} monthsByUser={monthsByUser} onSelect={setSelectedId}
               onAddApprentice={() => setNewModal(true)} onAssignClass={() => setClassModal([])} onDoNotHire={() => setDnhModal(true)}
-              onBulkArchive={() => setBulkArchiveModal(true)} />
+              onBulkArchive={() => setBulkArchiveModal(true)} onChanged={load} />
           )
         )}
 

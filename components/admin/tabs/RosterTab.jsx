@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Plus, Search, ChevronRight, GraduationCap, Ban, Archive as ArchiveIcon } from "lucide-react";
+import { Plus, Search, ChevronRight, GraduationCap, Ban, Archive as ArchiveIcon, Check, RotateCcw, Trash2 } from "lucide-react";
 import { C, SHADOW, FM, FS, hrsFmt, mMed, levelIndex, ojtTotals, LEVELS } from "@/lib/core";
-import { Avatar, PwField, ApprenticePicker, req } from "@/components/admin/shared";
+import { Avatar, PwField, ApprenticePicker, req, ConfirmModal } from "@/components/admin/shared";
 
 /* ---------- new apprentice ---------- */
 export function NewApprenticeForm({ onCreated, onClose }) {
@@ -388,26 +388,130 @@ function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssign
 
 /* ---------- archived apprentices — off the active roster, kept for record.
    Deliberately lighter-weight than Roster (no OJT stats up front, this is a
-   rarely-visited list) — archived date is the useful thing to see here. ---------- */
-function ArchivedRoster({ apprentices, onSelect }) {
+   rarely-visited list) — archived date is the useful thing to see here.
+   Select mode turns rows into checkboxes for bulk restore/delete instead of
+   drilling into one at a time — the archive is often cleaned out in a
+   batch (a season wrapping up, several no-shows at once), not one apprentice
+   at a time the way the active roster usually is. ---------- */
+function ArchivedRoster({ apprentices, onSelect, onChanged }) {
   const rows = useMemo(() => apprentices.slice()
     .sort((x, y) => (y.archived_at || "").localeCompare(x.archived_at || "")), [apprentices]);
 
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+  const [confirmAction, setConfirmAction] = useState(null); // "restore" | "delete" | null
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const toggle = (id) => setSelected((prev) => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelected(new Set());
+    setMsg("");
+  };
+
+  const runBulkAction = async () => {
+    setBusy(true);
+    setMsg("");
+    try {
+      const userIds = Array.from(selected);
+      if (confirmAction === "restore") {
+        await req("PATCH", "/api/admin/apprentices", { userIds, archived: false });
+      } else {
+        await req("DELETE", "/api/admin/apprentices", { userIds });
+      }
+      setConfirmAction(null);
+      exitSelectMode();
+      onChanged();
+    } catch (e) {
+      setMsg(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const selectedNames = useMemo(() =>
+    rows.filter((a) => selected.has(a.id)).map((a) => a.name || a.email),
+    [rows, selected]);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-      {rows.map((a) => (
-        <button key={a.id} className="foc roster-row" onClick={() => onSelect(a.id)}
-          style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: C.sunk, border: "1px solid " + C.line, borderRadius: 12, padding: "13px 15px", opacity: 0.8 }}>
-          <Avatar name={a.name} email={a.email} avatarUrl={a.avatar_url} size={34} />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.mid }}>{a.name || a.email}</div>
-            <div className="truncate" style={{ fontSize: 10.5, color: C.lo, marginTop: 1 }}>
-              archived {a.archived_at ? a.archived_at.slice(0, 10) : "—"}
-            </div>
-          </div>
-          <ChevronRight size={16} color={C.lo} style={{ flexShrink: 0 }} />
-        </button>
-      ))}
+    <div style={{ marginTop: 8 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: C.lo }}>
+          {selectMode ? selected.size + " selected" : rows.length + " archived"}
+        </div>
+        {selectMode ? (
+          <>
+            <button className="foc" onClick={() => setConfirmAction("restore")} disabled={selected.size === 0}
+              style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "1px solid " + C.line, color: selected.size ? C.working : C.lo, borderRadius: 7, padding: "6px 10px", fontSize: 11.5, fontWeight: 700, opacity: selected.size ? 1 : 0.5 }}>
+              <RotateCcw size={12} /> Restore
+            </button>
+            <button className="foc" onClick={() => setConfirmAction("delete")} disabled={selected.size === 0}
+              style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: "1px solid " + C.line, color: selected.size ? C.danger : C.lo, borderRadius: 7, padding: "6px 10px", fontSize: 11.5, fontWeight: 700, opacity: selected.size ? 1 : 0.5 }}>
+              <Trash2 size={12} /> Delete
+            </button>
+            <button className="foc" onClick={exitSelectMode}
+              style={{ background: "transparent", border: "none", color: C.lo, fontSize: 11.5, fontWeight: 700, padding: "6px 4px" }}>
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button className="foc" onClick={() => setSelectMode(true)}
+            style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.gc, fontSize: 11.5, fontWeight: 700, padding: "6px 4px" }}>
+            Select
+          </button>
+        )}
+      </div>
+      {msg && <div style={{ marginBottom: 8, fontSize: 11.5, color: C.danger }}>{msg}</div>}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {rows.map((a) => {
+          const isSelected = selected.has(a.id);
+          return (
+            <button key={a.id} className="foc roster-row" onClick={() => selectMode ? toggle(a.id) : onSelect(a.id)}
+              style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 12, background: C.sunk, border: "1px solid " + (selectMode && isSelected ? C.gc + "88" : C.line), borderRadius: 12, padding: "13px 15px", opacity: selectMode ? 1 : 0.8 }}>
+              {selectMode && (
+                <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: 5, border: "1px solid " + C.line, background: isSelected ? C.gc : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {isSelected && <Check size={12} color="#0A1420" />}
+                </span>
+              )}
+              <Avatar name={a.name} email={a.email} avatarUrl={a.avatar_url} size={34} />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.mid }}>{a.name || a.email}</div>
+                <div className="truncate" style={{ fontSize: 10.5, color: C.lo, marginTop: 1 }}>
+                  archived {a.archived_at ? a.archived_at.slice(0, 10) : "—"}
+                </div>
+              </div>
+              {!selectMode && <ChevronRight size={16} color={C.lo} style={{ flexShrink: 0 }} />}
+            </button>
+          );
+        })}
+      </div>
+
+      {confirmAction === "restore" && (
+        <ConfirmModal
+          title={"Restore " + selected.size + " apprentice" + (selected.size === 1 ? "" : "s") + "?"}
+          message={<>{selectedNames.join(", ")} will show up in the active roster again, same as before they were archived.</>}
+          confirmLabel="Restore"
+          danger={false}
+          onClose={() => !busy && setConfirmAction(null)}
+          onConfirm={runBulkAction}
+        />
+      )}
+      {confirmAction === "delete" && (
+        <ConfirmModal
+          title={"Delete " + selected.size + " apprentice" + (selected.size === 1 ? "" : "s") + " permanently?"}
+          message={<>This permanently deletes {selectedNames.join(", ")} and every record on file — hours, classes, certs, bookings. <strong style={{ color: C.hi }}>This can't be undone.</strong></>}
+          confirmLabel="Delete permanently"
+          onClose={() => !busy && setConfirmAction(null)}
+          onConfirm={runBulkAction}
+        />
+      )}
     </div>
   );
 }
@@ -415,7 +519,7 @@ function ArchivedRoster({ apprentices, onSelect }) {
 /* ---------- roster tab — the list view (drill-down into one apprentice is
    ApprenticeDetail, rendered by the shell instead, since selectedId lives
    there and the assign-class modal it opens is shell-level too). ---------- */
-export function RosterTab({ apprentices, archivedApprentices, monthsByUser, onSelect, onAddApprentice, onAssignClass, onDoNotHire, onBulkArchive }) {
+export function RosterTab({ apprentices, archivedApprentices, monthsByUser, onSelect, onAddApprentice, onAssignClass, onDoNotHire, onBulkArchive, onChanged }) {
   const [showArchived, setShowArchived] = useState(false);
 
   return (
@@ -431,7 +535,7 @@ export function RosterTab({ apprentices, archivedApprentices, monthsByUser, onSe
           {showArchived ? "Hide" : "Show"} {archivedApprentices.length} archived apprentice{archivedApprentices.length === 1 ? "" : "s"}
         </button>
       )}
-      {showArchived && <ArchivedRoster apprentices={archivedApprentices} onSelect={onSelect} />}
+      {showArchived && <ArchivedRoster apprentices={archivedApprentices} onSelect={onSelect} onChanged={onChanged} />}
     </>
   );
 }

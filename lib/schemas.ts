@@ -127,7 +127,12 @@ export const adminArchiveApprenticeSchema = z
         archived: z.boolean(),
     })
     .refine((d) => d.userId || d.userIds, { message: "userId or userIds required" });
-export const adminDeleteApprenticeSchema = z.object({ userId });
+export const adminDeleteApprenticeSchema = z
+    .object({
+        userId: userId.optional(),
+        userIds: z.array(userId).min(1).max(100).optional(),
+    })
+    .refine((d) => d.userId || d.userIds, { message: "userId or userIds required" });
 export const adminApproveSignupSchema = z.object({ userId });
 export const adminDoNotHireSchema = z
     .object({
