@@ -4817,29 +4817,6 @@ export default function App() {
                                         <Upload size={17} /> Upload
                                     </button>
                                 )}
-                                <button
-                                    className="foc"
-                                    onClick={() =>
-                                        setModal({ type: "ojtform" })
-                                    }
-                                    style={{
-                                        flex: 1,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        gap: 7,
-                                        padding: "13px",
-                                        borderRadius: 12,
-                                        background: C.brand,
-                                        color: "#1A1206",
-                                        border: "none",
-                                        fontWeight: 800,
-                                        fontSize: 14,
-                                        boxShadow: SHADOW,
-                                    }}
-                                >
-                                    <GraduationCap size={17} /> OJT form
-                                </button>
                             </>
                         ) : (
                             <>
