@@ -34,6 +34,12 @@ export async function middleware(request) {
 
   const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
   const isApiAuth = request.nextUrl.pathname.startsWith("/api/auth/");
+  // deliberately unauthenticated by design (see the route's own comment) —
+  // the login page fetches this before any session exists to decide whether
+  // to show "Create an account" at all. Without this bypass every logged-out
+  // request got redirected to /login instead of the JSON it expected, so the
+  // signup link silently never appeared regardless of the real toggle state.
+  const isPublicSettings = request.nextUrl.pathname === "/api/settings/self-signup";
   // Vercel Cron has no user session — it authenticates with its own
   // Authorization: Bearer $CRON_SECRET check inside the route handler
   // (see app/api/cron/ojt-reminders/route.js). Without this bypass every
@@ -52,7 +58,7 @@ export async function middleware(request) {
     }
   }
 
-  if (!user && !isPublic && !isApiAuth && !isCron) {
+  if (!user && !isPublic && !isApiAuth && !isCron && !isPublicSettings) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
