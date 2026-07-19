@@ -389,16 +389,24 @@ export function venueName(loc?: string | null): string {
     return VENUE_FULL_NAME[loc] || loc;
 }
 
-const HALL_WORDS = ["NORTH", "SOUTH", "EAST", "WEST"];
+// named halls at these venues (LACC has South/West/Kentia; other centers
+// may have their own — add as they come up) get "West Hall" style, not
+// "HALL WEST" like the lettered halls.
+const HALL_WORDS = ["NORTH", "SOUTH", "EAST", "WEST", "KENTIA"];
 function titleWord(s: string): string {
     return s.replace(/\w\S*/g, (t) => t[0] + t.slice(1).toLowerCase());
 }
 /* show.booth is one free-text column on the printed schedule doing double
-   duty as hall + booth number, in either order and with wildly
+   duty as hall + booth count, in either order and with wildly
    inconsistent formatting ("A / 132", "357 / A", "SOUTH / SPECIAL",
-   "FULL FACILITY"). This picks the pieces apart instead of guessing —
-   anything that isn't clearly a hall letter/word or a booth number falls
-   through as a plain note rather than being mislabeled. */
+   "FULL FACILITY"). The numeric part is the total number of booths on
+   the floor for the show, not a specific booth's ID — display it as a
+   count ("150 BOOTHS"), not "BOOTH 150". `hall` comes back pre-formatted
+   for display ("HALL D", "HALLS A-E" for a lettered range, "South Hall"
+   for a named hall) since that's this function's whole job. This picks
+   the pieces apart instead of guessing — anything that isn't clearly a
+   hall or a booth count falls through as a plain note rather than being
+   mislabeled. */
 export function boothInfo(
     booth?: string | null,
 ): { full?: boolean; hall?: string; num?: string; note?: string } | null {
@@ -411,8 +419,9 @@ export function boothInfo(
     for (const seg of s.split("/").map((x) => x.trim()).filter(Boolean)) {
         if (seg === "FULL FACILITY") full = true;
         else if (/^\d+$/.test(seg)) num = seg;
-        else if (/^[A-Z]{1,2}(-[A-Z]{1,2})?$/.test(seg)) hall = seg;
-        else if (HALL_WORDS.includes(seg)) hall = titleWord(seg);
+        else if (/^[A-Z]{1,2}(-[A-Z]{1,2})?$/.test(seg))
+            hall = (seg.includes("-") ? "HALLS " : "HALL ") + seg;
+        else if (HALL_WORDS.includes(seg)) hall = titleWord(seg) + " Hall";
         else note = titleWord(seg);
     }
     if (!full && !hall && !num && !note) return null;

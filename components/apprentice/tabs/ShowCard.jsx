@@ -290,7 +290,7 @@ export function ShowCard({
                                     padding: "1px 5px",
                                 }}
                             >
-                                HALL {bi.hall}
+                                {bi.hall}
                             </span>
                         )}
                         {bi?.num && (
@@ -308,7 +308,7 @@ export function ShowCard({
                                     padding: "1px 5px",
                                 }}
                             >
-                                BOOTH {bi.num}
+                                {bi.num} BOOTHS
                             </span>
                         )}
                         {bi?.note && (
