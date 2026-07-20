@@ -37,7 +37,7 @@ export function OjtAutoApprovePanel() {
   };
 
   return (
-    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "12px 14px", boxShadow: SHADOW, display: "flex", alignItems: "center", gap: 10 }}>
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "12px 14px", boxShadow: SHADOW, display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>OJT auto-approve</div>
         <div style={{ fontSize: 10.5, color: C.lo, marginTop: 1 }}>Submitted/uploaded hours skip the review queue</div>
