@@ -11,8 +11,9 @@
    /pending has no local store to go through, so it posts straight to the
    API, same as its existing manual form). Uploaded files never leave this
    one request — nothing is stored, nothing to clean up. */
-import { useState } from "react";
-import { Upload, Trash2, TriangleAlert, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Upload, Trash2, TriangleAlert, Plus, ShieldAlert } from "lucide-react";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { C, SHADOW, FM, CATS_META, num, mAdd, mKey, mMed, todayMid } from "@/lib/core";
 
 const fieldStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13.5 };
@@ -36,6 +37,19 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
   // months: editable, removable, nothing saved until Submit.
   const [dailyRows, setDailyRows] = useState([]); // [{ id, date, cat, hrs, co, confidence }]
   const [manual, setManual] = useState({ m: monthOptions()[1] || "", a: "", b: "", c: "", d: "" });
+  // when on, everything submitted here lands approved immediately (see
+  // protect_ojt_months_status in supabase/schema.sql) — no admin review
+  // backstop, so both submit paths below gate behind one extra "these are
+  // right" tap instead of saving on the first click.
+  const [autoApprove, setAutoApprove] = useState(false);
+  const [confirmingAction, setConfirmingAction] = useState(null); // null | "review" | "manual"
+
+  useEffect(() => {
+    fetch("/api/settings/ojt-auto-approve")
+      .then((r) => r.json())
+      .then((d) => setAutoApprove(!!d.enabled))
+      .catch(() => {});
+  }, []);
 
   const pickFiles = (e) => {
     const chosen = Array.from(e.target.files || []);
@@ -85,6 +99,7 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
   const removeDaily = (id) => setDailyRows((prev) => prev.filter((r) => r.id !== id));
 
   const submit = async () => {
+    setConfirmingAction(null);
     setState("submitting");
     setMsg("");
     try {
@@ -100,6 +115,7 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
 
   const submitManual = async () => {
     if (!manual.m) return;
+    setConfirmingAction(null);
     setMsg("");
     try {
       await onSubmit({ months: [{ m: manual.m, a: num(manual.a), b: num(manual.b), c: num(manual.c), d: num(manual.d) }], entries: [] });
@@ -107,6 +123,9 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
       setMsg("Couldn't save — try again.");
     }
   };
+
+  const trySubmit = () => (autoApprove ? setConfirmingAction("review") : submit());
+  const trySubmitManual = () => (autoApprove ? setConfirmingAction("manual") : submitManual());
 
   if (state === "manual") {
     return (
@@ -127,16 +146,35 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
             </div>
           ))}
         </div>
+        {autoApprove && (
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 7, marginBottom: 14, background: "rgba(255,176,32,0.08)", border: "1px solid rgba(255,176,32,0.3)", borderRadius: 9, padding: "10px 11px", fontSize: 11.5, color: C.mid, lineHeight: 1.45 }}>
+            <ShieldAlert size={13} color={C.brand} style={{ flexShrink: 0, marginTop: 1 }} />
+            <div>This lands approved right away — no admin review first. Double-check the numbers before saving.</div>
+          </div>
+        )}
         {msg && <div style={{ marginBottom: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
         <div style={{ display: "flex", gap: 8 }}>
           <button type="button" onClick={() => setState("pick")} style={{ flex: 1, padding: "11px", borderRadius: 9, background: "transparent", border: "1px solid " + C.line, color: C.mid, fontWeight: 700, fontSize: 13.5 }}>
             Back
           </button>
-          <button type="button" onClick={submitManual} disabled={!manual.m}
+          <button type="button" onClick={trySubmitManual} disabled={!manual.m}
             style={{ flex: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 9, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 13.5 }}>
             <Plus size={15} /> Add month
           </button>
         </div>
+        {confirmingAction === "manual" && (
+          <ConfirmModal
+            title={"Approve " + mMed(manual.m) + " right now?"}
+            message={<>
+              A {manual.a || 0} · B {manual.b || 0} · C {manual.c || 0} · D {manual.d || 0} — will count toward your total immediately, with no admin review.{" "}
+              <strong style={{ color: C.hi }}>Make sure these match your slip.</strong>
+            </>}
+            confirmLabel="Numbers are right — save"
+            tone="confirm"
+            onClose={() => setConfirmingAction(null)}
+            onConfirm={submitManual}
+          />
+        )}
       </div>
     );
   }
@@ -145,7 +183,9 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
     return (
       <div>
         <div style={{ fontSize: 12.5, color: C.mid, lineHeight: 1.5, marginBottom: 14 }}>
-          Check these against your slips before submitting — fix anything that's off, or remove a month entirely.
+          {autoApprove
+            ? "These land approved right away — no admin review first. Check every number against your slips before submitting."
+            : "Check these against your slips before submitting — fix anything that's off, or remove a month entirely."}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
           {rows.map((r) => (
@@ -222,13 +262,26 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
           <button type="button" onClick={onCancel} style={{ flex: 1, padding: "11px", borderRadius: 9, background: "transparent", border: "1px solid " + C.line, color: C.mid, fontWeight: 700, fontSize: 13.5 }}>
             Cancel
           </button>
-          <button type="button" onClick={submit} disabled={rows.length === 0 || state === "submitting"}
+          <button type="button" onClick={trySubmit} disabled={rows.length === 0 || state === "submitting"}
             style={{ flex: 2, padding: "11px", borderRadius: 9, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 13.5, opacity: state === "submitting" ? 0.6 : 1 }}>
             {state === "submitting"
               ? "Saving…"
               : `Submit ${rows.length} month${rows.length === 1 ? "" : "s"}` + (dailyRows.length > 0 ? ` + ${dailyRows.length} day${dailyRows.length === 1 ? "" : "s"}` : "")}
           </button>
         </div>
+        {confirmingAction === "review" && (
+          <ConfirmModal
+            title={`Approve ${rows.length} month${rows.length === 1 ? "" : "s"} right now?`}
+            message={<>
+              {rows.map((r) => mMed(r.m)).join(", ")} will count toward your total immediately, with no admin review.{" "}
+              <strong style={{ color: C.hi }}>Make sure these match your slips.</strong>
+            </>}
+            confirmLabel="Numbers are right — save"
+            tone="confirm"
+            onClose={() => setConfirmingAction(null)}
+            onConfirm={submit}
+          />
+        )}
       </div>
     );
   }

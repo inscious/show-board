@@ -9,10 +9,11 @@
    like it would from inside the app. Nothing else — no schedule, no company
    directory, no new hour-logging. */
 import { useEffect, useState } from "react";
-import { HardHat, Plus, Trash2, Upload, TriangleAlert } from "lucide-react";
+import { HardHat, Plus, Trash2, Upload, TriangleAlert, ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM, FS, mKey, mAdd, mMed, todayMid, CATS_META, num } from "@/lib/core";
 import { OjtImportFlow } from "@/components/ojt/OjtImportFlow";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 const fieldStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13.5 };
 
@@ -37,6 +38,12 @@ export default function PendingPage() {
   const [signingOut, setSigningOut] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showManual, setShowManual] = useState(!IMPORT_ENABLED); // manual form starts open if there's no upload option to prefer
+  // when on, this form's save lands approved immediately (see
+  // protect_ojt_months_status in supabase/schema.sql) — same gate as
+  // MonthForm/OjtImportFlow, since this is a third, separate submission
+  // path hitting the same /api/ojt-months endpoint.
+  const [autoApprove, setAutoApprove] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   const load = async () => {
     const supabase = createClient();
@@ -46,10 +53,22 @@ export default function PendingPage() {
     const { data } = await supabase.from("ojt_months").select("*").eq("user_id", user.id).order("month", { ascending: false });
     setMonths(data || []);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    fetch("/api/settings/ojt-auto-approve").then((r) => r.json()).then((d) => setAutoApprove(!!d.enabled)).catch(() => {});
+  }, []);
 
-  const submit = async (e) => {
+  const submit = (e) => {
     e.preventDefault();
+    if (autoApprove) {
+      setConfirming(true);
+      return;
+    }
+    doSave();
+  };
+
+  const doSave = async () => {
+    setConfirming(false);
     setState("saving");
     setMsg("");
     try {
@@ -183,12 +202,31 @@ export default function PendingPage() {
                 </div>
               ))}
             </div>
+            {autoApprove && (
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 7, marginBottom: 14, background: "rgba(255,176,32,0.08)", border: "1px solid rgba(255,176,32,0.3)", borderRadius: 9, padding: "10px 11px", fontSize: 11.5, color: C.mid, lineHeight: 1.45 }}>
+                <ShieldAlert size={13} color={C.brand} style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>This lands approved right away — no admin review first. Double-check the numbers before saving.</div>
+              </div>
+            )}
             <button type="submit" disabled={state === "saving" || !form.m}
               style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px", borderRadius: 9, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 13.5, opacity: state === "saving" ? 0.6 : 1 }}>
               <Plus size={15} /> {state === "saving" ? "Saving…" : "Add month"}
             </button>
             {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{msg}</div>}
           </form>
+          )}
+          {confirming && (
+            <ConfirmModal
+              title={"Approve " + mMed(form.m) + " right now?"}
+              message={<>
+                A {form.a || 0} · B {form.b || 0} · C {form.c || 0} · D {form.d || 0} — will count toward your total immediately, with no admin review.{" "}
+                <strong style={{ color: C.hi }}>Make sure these match your slip.</strong>
+              </>}
+              confirmLabel="Numbers are right — save"
+              tone="confirm"
+              onClose={() => setConfirming(false)}
+              onConfirm={doSave}
+            />
           )}
         </div>
 

@@ -2,11 +2,10 @@
 
 /* Add/edit a submitted OJT month — opened from the OJT tab's "Add month"
    button or tapping an existing row. Fully prop-driven, same extraction
-   pattern as CoPicker/DaySheet/BookingForm/DirList. ConfirmModal is bundled
-   here rather than its own file since MonthForm is its only call site. */
-import { useState } from "react";
-import { CalendarDays, Copy, Trash2 } from "lucide-react";
-import { Modal } from "@/components/ui/Modal";
+   pattern as CoPicker/DaySheet/BookingForm/DirList. */
+import { useState, useEffect } from "react";
+import { CalendarDays, Copy, ShieldAlert, Trash2 } from "lucide-react";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import {
     C,
     CATS_META,
@@ -20,32 +19,6 @@ import {
     num,
     todayMid,
 } from "@/lib/core";
-
-function ConfirmModal({ title, message, confirmLabel = "Delete", onConfirm, onClose }) {
-    return (
-        <Modal title={title} onClose={onClose}>
-            <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.5, marginBottom: 18 }}>
-                {message}
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-                <button
-                    className="foc"
-                    onClick={onClose}
-                    style={{ flex: 1, padding: "13px", borderRadius: 10, background: C.raise, color: C.hi, border: "1px solid " + C.line, fontWeight: 700, fontSize: 14 }}
-                >
-                    Cancel
-                </button>
-                <button
-                    className="foc"
-                    onClick={onConfirm}
-                    style={{ flex: 1, padding: "13px", borderRadius: 10, background: C.danger, color: C.inkBad, border: "none", fontWeight: 800, fontSize: 14 }}
-                >
-                    {confirmLabel}
-                </button>
-            </div>
-        </Modal>
-    );
-}
 
 export function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }) {
     const t0 = todayMid();
@@ -65,6 +38,20 @@ export function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }
     const total = num(f.a) + num(f.b) + num(f.c) + num(f.d);
     const dupe = !initial && existing.some((x) => x.m === key);
     const [confirmDelete, setConfirmDelete] = useState(false);
+    // when on, a save here lands approved immediately (see
+    // protect_ojt_months_status in supabase/schema.sql) — no admin review
+    // backstop to catch a typo, so gate the save behind one extra "these
+    // numbers are right" tap instead of saving on the first click.
+    const [autoApprove, setAutoApprove] = useState(false);
+    const [confirmSubmit, setConfirmSubmit] = useState(false);
+    useEffect(() => {
+        fetch("/api/settings/ojt-auto-approve")
+            .then((r) => r.json())
+            .then((d) => setAutoApprove(!!d.enabled))
+            .catch(() => {});
+    }, []);
+    const save = () =>
+        onSave({ m: key, a: num(f.a), b: num(f.b), c: num(f.c), d: num(f.d) });
     const set = (k, v) =>
         setF((p) => ({ ...p, [k]: v.replace(/[^0-9.]/g, "") }));
     const fill = () =>
@@ -339,6 +326,30 @@ export function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }
                 )}
             </div>
 
+            {autoApprove && (
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 7,
+                        marginTop: 10,
+                        background: "rgba(255,176,32,0.08)",
+                        border: "1px solid rgba(255,176,32,0.3)",
+                        borderRadius: 9,
+                        padding: "10px 11px",
+                        fontSize: 11.5,
+                        color: C.mid,
+                        lineHeight: 1.45,
+                    }}
+                >
+                    <ShieldAlert size={13} color={C.brand} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div>
+                        This lands approved right away — no admin review first.
+                        Double-check the numbers before saving.
+                    </div>
+                </div>
+            )}
+
             <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
                 {initial ? (
                     <button
@@ -382,13 +393,7 @@ export function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }
                 <button
                     className="foc"
                     onClick={() =>
-                        onSave({
-                            m: key,
-                            a: num(f.a),
-                            b: num(f.b),
-                            c: num(f.c),
-                            d: num(f.d),
-                        })
+                        autoApprove ? setConfirmSubmit(true) : save()
                     }
                     style={{
                         flex: 2,
@@ -419,6 +424,29 @@ export function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }
                     confirmLabel="Delete month"
                     onClose={() => setConfirmDelete(false)}
                     onConfirm={onDelete}
+                />
+            )}
+            {confirmSubmit && (
+                <ConfirmModal
+                    title={"Approve " + mMed(key) + " right now?"}
+                    message={
+                        <>
+                            {hrsFmt(total)} hrs — A {hrsFmt(num(f.a))} · B{" "}
+                            {hrsFmt(num(f.b))} · C {hrsFmt(num(f.c))} · D{" "}
+                            {hrsFmt(num(f.d))} — will count toward your total
+                            immediately, with no admin review.{" "}
+                            <strong style={{ color: C.hi }}>
+                                Make sure these match your slip.
+                            </strong>
+                        </>
+                    }
+                    confirmLabel="Numbers are right — save"
+                    tone="confirm"
+                    onClose={() => setConfirmSubmit(false)}
+                    onConfirm={() => {
+                        setConfirmSubmit(false);
+                        save();
+                    }}
                 />
             )}
         </div>

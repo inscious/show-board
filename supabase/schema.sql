@@ -420,6 +420,10 @@ create policy "admin insert" on admin_audit_log for insert to authenticated with
 create table app_settings (
   id                  int primary key default 1,
   self_signup_enabled boolean not null default true,
+  -- when true, an apprentice's own OJT submission/upload lands 'approved'
+  -- immediately instead of 'pending' — see protect_ojt_months_status()
+  -- below, which is what actually enforces this, not application code.
+  ojt_auto_approve    boolean not null default false,
   constraint app_settings_singleton check (id = 1)
 );
 insert into app_settings (id, self_signup_enabled) values (1, true);
@@ -469,17 +473,23 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  auto_approve boolean;
+  landing_status text;
 begin
   if auth.uid() is not null and not is_admin_user() then
+    select ojt_auto_approve into auto_approve from app_settings where id = 1;
+    landing_status := case when coalesce(auto_approve, false) then 'approved' else 'pending' end;
     if TG_OP = 'INSERT' then
-      new.status := 'pending';
+      new.status := landing_status;
     elsif old.status = 'rejected' then
-      -- a resubmit after a decline always goes back to pending, even with
-      -- identical numbers — declined is never a status a plain resave should
-      -- leave you stuck in.
-      new.status := 'pending';
+      -- a resubmit after a decline always goes back to pending (or, with
+      -- auto-approve on, straight to approved) even with identical
+      -- numbers — declined is never a status a plain resave should leave
+      -- you stuck in.
+      new.status := landing_status;
     elsif (new.cat_a, new.cat_b, new.cat_c, new.cat_d) is distinct from (old.cat_a, old.cat_b, old.cat_c, old.cat_d) then
-      new.status := 'pending';
+      new.status := landing_status;
     else
       new.status := old.status;
     end if;

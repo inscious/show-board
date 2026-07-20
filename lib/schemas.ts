@@ -126,6 +126,7 @@ export const createApprenticeSchema = z.object({
 export const adminSetPasswordSchema = z.object({ userId, password });
 export const adminResetWelcomeSchema = z.object({ userId });
 export const adminSelfSignupSchema = z.object({ enabled: z.boolean() });
+export const adminOjtAutoApproveSchema = z.object({ enabled: z.boolean() });
 
 /* userId (single) or userIds (batch, up to 100) — accepting both means the
    existing single-apprentice Danger Zone flow doesn't have to change while
