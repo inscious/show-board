@@ -465,6 +465,7 @@ begin
     new.archived_at := old.archived_at;
     new.do_not_hire_at := old.do_not_hire_at;
     new.do_not_hire_reason := old.do_not_hire_reason;
+    new.approved_at := old.approved_at;
   end if;
   return new;
 end;
