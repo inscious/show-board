@@ -7,10 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 import {
   C, SHADOW, FM, FS, hrsFmt, mMed, mShort, levelIndex, ojtTotals, ojtRows, rollupEntries, LEVELS, STATUS,
   certState, KLASS, todayMid, DOW, CATS_META, mKey, mParse, MONTHS, num, CAT_TOTAL, projectMonth, keyOf,
-  mAdd, monthGrid, sameDay, bookingOn, classOn, BOOKED,
+  mAdd, monthGrid, sameDay, bookingOn, classOn, BOOKED, holidayName,
 } from "@/lib/core";
+import { hexRgb } from "@/components/utils/hexRgb";
 import { ClassCurriculum } from "@/components/ojt/ClassCurriculum";
 import { Avatar, Modal, ConfirmModal, req, Stat, PwField, shortDate, RosterCatTooltip, monthHours } from "@/components/admin/shared";
+
+const CAL_CATS = ["A", "B", "C", "D"];
 
 /* ---------- read-only calendar for one apprentice — same fill logic and
    color language as the apprentice's own CalTab (ShowBoard.jsx), just
@@ -26,17 +29,22 @@ function AdminApprenticeCalendar({ entries, bookings, classes }) {
   const isNow = cur.y === t0.getFullYear() && cur.m === t0.getMonth();
 
   const monthStats = useMemo(() => {
-    if (!entries) return { hrs: 0, days: 0 };
+    if (!entries) return { hrs: 0, days: 0, byCat: {} };
     const prefix = cur.y + "-" + String(cur.m + 1).padStart(2, "0");
     let hrs = 0, days = 0;
+    const byCat = {};
     Object.keys(entries).forEach((k) => {
       if (k.indexOf(prefix) !== 0) return;
       const list = entries[k];
       if (!list.length) return;
       days++;
-      list.forEach((e) => { hrs += e.hrs; });
+      list.forEach((e) => {
+        const h = Number(e.hrs) || 0;
+        hrs += h;
+        if (e.cat) byCat[e.cat] = (byCat[e.cat] || 0) + h;
+      });
     });
-    return { hrs, days };
+    return { hrs, days, byCat };
   }, [entries, cur]);
 
   if (entries === null) {
@@ -52,117 +60,169 @@ function AdminApprenticeCalendar({ entries, bookings, classes }) {
   const selectedClasses = selectedKey ? classOn(classes, selectedKey) : [];
 
   return (
-    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW }}>
+    <div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <button className="foc icon-btn" onClick={() => step(-1)} aria-label="Previous month"
-          style={{ width: 32, height: 32, borderRadius: 8, background: C.sunk, border: "1px solid " + C.line, color: C.hi, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <ChevronLeft size={15} />
+          style={{ width: 40, height: 40, borderRadius: 10, background: C.panel, border: "1px solid " + C.edge, color: C.hi, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <ChevronLeft size={18} />
         </button>
         <div style={{ flex: 1, textAlign: "center" }}>
-          <div style={{ fontFamily: FM, fontSize: 13, fontWeight: 800, letterSpacing: 1, color: C.hi }}>{MONTHS[cur.m]} {cur.y}</div>
+          <div style={{ fontFamily: FM, fontSize: 15, fontWeight: 800, letterSpacing: 2, color: C.hi }}>{MONTHS[cur.m]} {cur.y}</div>
           {!isNow && (
             <button className="foc" onClick={() => { setSelectedKey(null); setCur({ y: t0.getFullYear(), m: t0.getMonth() }); }}
-              style={{ background: "transparent", border: "none", color: C.brand, fontSize: 10.5, fontWeight: 700, padding: 0 }}>
+              style={{ marginTop: 2, background: "transparent", border: "none", color: C.brand, fontSize: 11, fontWeight: 700, padding: 0 }}>
               jump to today
             </button>
           )}
         </div>
         <button className="foc icon-btn" onClick={() => step(1)} aria-label="Next month"
-          style={{ width: 32, height: 32, borderRadius: 8, background: C.sunk, border: "1px solid " + C.line, color: C.hi, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <ChevronRight size={15} />
+          style={{ width: 40, height: 40, borderRadius: 10, background: C.panel, border: "1px solid " + C.edge, color: C.hi, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <ChevronRight size={18} />
         </button>
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-        <Stat label="HOURS" value={hrsFmt(monthStats.hrs)} color={monthStats.hrs ? C.working : C.lo} />
-        <Stat label="DAYS WORKED" value={String(monthStats.days)} />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 5 }}>
-        {DOW.map((d, i) => (
-          <div key={i} style={{ textAlign: "center", fontSize: 9.5, fontFamily: FM, fontWeight: 700, color: i === 0 || i === 6 ? C.lo : C.mid }}>{d}</div>
-        ))}
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
-        {cells.map((d, i) => {
-          const inMonth = d.getMonth() === cur.m;
-          const k = keyOf(d);
-          const list = entries[k] || [];
-          const hrs = list.reduce((a, e) => a + e.hrs, 0);
-          const isToday = sameDay(d, t0);
-          const classesToday = classOn(classes, k);
-          const hasClass = classesToday.length > 0;
-          const missedClass = classesToday.some((c) => (c.missedDates || []).indexOf(k) !== -1);
-          const bookingsToday = bookingOn(bookings, k);
-          const hasBook = bookingsToday.length > 0;
-          const fill = hrs ? C.working : hasBook ? BOOKED : hasClass ? (missedClass ? C.danger : KLASS) : null;
-          const isSelected = selectedKey === k;
-          const label = hrs > 0 ? hrsFmt(hrs)
-            : hasBook ? bookingsToday[0].co
-              : hasClass ? (missedClass ? "MISSED" : "CLASS")
-                : null;
-          return (
-            <button key={i} type="button" disabled={!inMonth}
-              onClick={() => setSelectedKey(k === selectedKey ? null : k)}
-              style={{
-                aspectRatio: "1", borderRadius: 7, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 1,
-                background: isSelected ? (fill || C.line) + "33" : fill ? fill + "22" : inMonth ? C.sunk : "transparent",
-                border: "1px solid " + (isSelected ? (fill || C.brand) : isToday ? C.brand : fill ? fill + "55" : inMonth ? C.line : "transparent"),
-                cursor: inMonth ? "pointer" : "default", padding: "2px 2px 3px", overflow: "hidden",
-              }}>
-              <span style={{ fontSize: 10.5, fontFamily: FM, fontWeight: isToday ? 800 : 600, color: inMonth ? (fill ? C.hi : C.mid) : C.line }}>{d.getDate()}</span>
-              {label && (
-                <span className="truncate" style={{ maxWidth: "100%", fontSize: 7.5, fontFamily: FM, fontWeight: 800, color: hrs > 0 ? C.working : fill, lineHeight: 1.1, padding: "0 1px" }}>
-                  {label}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
-        {[["Worked", C.working], ["Scheduled", BOOKED], ["Class", KLASS]].map(([label, color]) => (
-          <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <span style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
-            <span style={{ fontSize: 10.5, color: C.mid }}>{label}</span>
+      {/* month stats — same three tiles as the apprentice's own CalTab (HOURS / DAYS WORKED / BY CATEGORY) */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+        <div style={{ flex: 1, background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "15px 16px", boxShadow: SHADOW }}>
+          <div style={{ fontSize: 9, letterSpacing: 0.8, color: C.lo, fontFamily: FM }}>HOURS</div>
+          <div style={{ fontFamily: FM, fontSize: 26, fontWeight: 800, color: monthStats.hrs ? C.working : C.lo, lineHeight: 1.15 }}>
+            {hrsFmt(monthStats.hrs)}
           </div>
-        ))}
-      </div>
-
-      {selectedKey && (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid " + C.line }}>
-          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 8 }}>{selectedKey}</div>
-          {selectedList.length === 0 && selectedBookings.length === 0 && selectedClasses.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file this day.</div>
+        </div>
+        <div style={{ flex: 1, background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "15px 16px", boxShadow: SHADOW }}>
+          <div style={{ fontSize: 9, letterSpacing: 0.8, color: C.lo, fontFamily: FM }}>DAYS WORKED</div>
+          <div style={{ fontFamily: FM, fontSize: 26, fontWeight: 800, color: monthStats.days ? C.hi : C.lo, lineHeight: 1.15 }}>
+            {monthStats.days}
+          </div>
+        </div>
+        <div style={{ flex: 1.2, background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "15px 16px", boxShadow: SHADOW, minWidth: 0 }}>
+          <div style={{ fontSize: 9, letterSpacing: 0.8, color: C.lo, fontFamily: FM }}>BY CATEGORY</div>
+          {Object.keys(monthStats.byCat).length === 0 ? (
+            <div style={{ fontSize: 12, color: C.lo, marginTop: 6 }}>—</div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {selectedList.map((e, i) => (
-                <div key={"e" + i} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
-                  {e.cat && <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: 5, background: CATS_META[e.cat].color + "22", border: "1px solid " + CATS_META[e.cat].color + "66", color: CATS_META[e.cat].color, fontFamily: FM, fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{e.cat}</span>}
-                  <span className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{e.co}</span>
-                  <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 12, fontWeight: 800, color: C.working }}>{hrsFmt(e.hrs)}h</span>
-                </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+              {CAL_CATS.filter((k) => monthStats.byCat[k]).map((k) => (
+                <span key={k} style={{ fontFamily: FM, fontSize: 10.5, fontWeight: 800, color: CATS_META[k].color, background: CATS_META[k].color + "1C", border: "1px solid " + CATS_META[k].color + "55", borderRadius: 6, padding: "2px 5px" }}>
+                  {k} {hrsFmt(monthStats.byCat[k])}
+                </span>
               ))}
-              {selectedBookings.map((b, i) => (
-                <div key={"b" + i} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
-                  <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: BOOKED, border: "1px solid " + BOOKED + "66", borderRadius: 5, padding: "2px 6px" }}>SCHED</span>
-                  <span className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{b.co}{b.show ? " — " + b.show : ""}</span>
-                </div>
-              ))}
-              {selectedClasses.map((c, i) => {
-                const missed = (c.missedDates || []).indexOf(selectedKey) !== -1;
-                return (
-                  <div key={"c" + i} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
-                    <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: missed ? C.danger : KLASS, border: "1px solid " + (missed ? C.danger : KLASS) + "66", borderRadius: 5, padding: "2px 6px" }}>{missed ? "MISSED" : "CLASS"}</span>
-                    <span className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{c.name}</span>
-                  </div>
-                );
-              })}
             </div>
           )}
         </div>
-      )}
+      </div>
+
+      {/* grid */}
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 14, padding: 10, boxShadow: SHADOW }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5, marginBottom: 6 }}>
+          {DOW.map((d, i) => (
+            <div key={i} style={{ textAlign: "center", fontSize: 10, fontFamily: FM, fontWeight: 700, color: i === 0 || i === 6 ? C.lo : C.mid, letterSpacing: 0.5 }}>{d}</div>
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>
+          {cells.map((d, i) => {
+            const inMonth = d.getMonth() === cur.m;
+            const k = keyOf(d);
+            const list = entries[k] || [];
+            const hrs = list.reduce((a, e) => a + (Number(e.hrs) || 0), 0);
+            const isToday = sameDay(d, t0);
+            const hol = holidayName(d);
+            const classesToday = classOn(classes, k);
+            const hasClass = classesToday.length > 0;
+            const missedClass = classesToday.some((c) => (c.missedDates || []).indexOf(k) !== -1);
+            const bookingsToday = bookingOn(bookings, k);
+            const hasBook = bookingsToday.length > 0;
+            const isSelected = selectedKey === k;
+
+            /* FILL = the day's status. worked beats scheduled beats class. */
+            const fill = hrs ? C.working : hasBook ? BOOKED : hasClass ? (missedClass ? C.danger : KLASS) : null;
+            const bg = isSelected
+              ? (fill ? "rgba(" + hexRgb(fill) + ",0.3)" : C.raise)
+              : fill ? "rgba(" + hexRgb(fill) + "," + (hrs ? 0.18 : 0.13) + ")" : inMonth ? C.sunk : "transparent";
+            const bd = isToday ? C.brand : fill ? "rgba(" + hexRgb(fill) + ",0.5)" : inMonth ? C.line : "transparent";
+
+            return (
+              <button key={i} type="button" disabled={!inMonth}
+                onClick={() => setSelectedKey(k === selectedKey ? null : k)}
+                style={{
+                  position: "relative", borderRadius: 9, padding: "5px 5px 4px", textAlign: "left",
+                  background: bg, border: "1px solid " + bd, overflow: "hidden",
+                  opacity: inMonth ? 1 : 0.28, display: "flex", flexDirection: "column",
+                  cursor: inMonth ? "pointer" : "default", aspectRatio: "1",
+                }}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <span style={{ fontFamily: FM, fontSize: 13, fontWeight: isToday ? 800 : 600, color: isToday ? C.brand : fill ? C.hi : C.mid, lineHeight: 1 }}>
+                    {d.getDate()}
+                  </span>
+                  {hol && (
+                    <span style={{ marginLeft: 2, fontFamily: FM, fontSize: 9, fontWeight: 800, color: C.brand, lineHeight: 1 }}>H</span>
+                  )}
+                </div>
+                <div style={{ marginTop: "auto", display: "flex", alignItems: "flex-end" }}>
+                  {hasBook && !hrs && (
+                    <span style={{ fontFamily: FM, fontSize: 10, fontWeight: 800, color: BOOKED, lineHeight: 1 }}>SCHED</span>
+                  )}
+                  {hasClass && !hasBook && !hrs && (
+                    <span style={{ fontFamily: FM, fontSize: 10, fontWeight: 800, color: missedClass ? C.danger : KLASS, lineHeight: 1 }}>
+                      {missedClass ? "MISSED" : "CLASS"}
+                    </span>
+                  )}
+                  {hrs > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                      <span style={{ fontFamily: FM, fontSize: 15, fontWeight: 800, color: C.hi, lineHeight: 1.15 }}>{hrsFmt(hrs)}</span>
+                      <span style={{ fontFamily: FM, fontSize: 10, fontWeight: 800, color: C.working, lineHeight: 1.15 }}>LOGGED</span>
+                    </div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "14px 16px", boxShadow: SHADOW, marginTop: 12 }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          {[["Worked", C.working], ["Scheduled", BOOKED], ["Class", KLASS]].map(([label, color]) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 3, background: color }} />
+              <span style={{ fontSize: 10.5, color: C.mid }}>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        {selectedKey && (
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid " + C.line }}>
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 8 }}>{selectedKey}</div>
+            {selectedList.length === 0 && selectedBookings.length === 0 && selectedClasses.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file this day.</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {selectedList.map((e, i) => (
+                  <div key={"e" + i} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+                    {e.cat && <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: 5, background: CATS_META[e.cat].color + "22", border: "1px solid " + CATS_META[e.cat].color + "66", color: CATS_META[e.cat].color, fontFamily: FM, fontSize: 9.5, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{e.cat}</span>}
+                    <span className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{e.co}</span>
+                    <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 12, fontWeight: 800, color: C.working }}>{hrsFmt(e.hrs)}h</span>
+                  </div>
+                ))}
+                {selectedBookings.map((b, i) => (
+                  <div key={"b" + i} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+                    <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: BOOKED, border: "1px solid " + BOOKED + "66", borderRadius: 5, padding: "2px 6px" }}>SCHED</span>
+                    <span className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{b.co}{b.show ? " — " + b.show : ""}</span>
+                  </div>
+                ))}
+                {selectedClasses.map((c, i) => {
+                  const missed = (c.missedDates || []).indexOf(selectedKey) !== -1;
+                  return (
+                    <div key={"c" + i} style={{ display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+                      <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: missed ? C.danger : KLASS, border: "1px solid " + (missed ? C.danger : KLASS) + "66", borderRadius: 5, padding: "2px 6px" }}>{missed ? "MISSED" : "CLASS"}</span>
+                      <span className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{c.name}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
