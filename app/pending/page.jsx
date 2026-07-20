@@ -44,6 +44,17 @@ export default function PendingPage() {
   // path hitting the same /api/ojt-months endpoint.
   const [autoApprove, setAutoApprove] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  // "who you are" fields — optional, filled in here rather than on /signup
+  // itself (kept minimal to maximize signup completion) and shown before
+  // the OJT upload section since it's the quicker, lower-effort thing to
+  // knock out first. unionName comes from the same admin-editable
+  // app_settings.org_profile the rest of the app now reads (see
+  // /api/settings/org-profile) — one option today, more once other
+  // locals exist, never hardcoded here.
+  const [unionName, setUnionName] = useState(null); // null = loading
+  const [profileForm, setProfileForm] = useState({ local: "", city: "", joined: "" });
+  const [profileState, setProfileState] = useState("idle"); // idle | saving | done | error
+  const [profileMsg, setProfileMsg] = useState("");
 
   const load = async () => {
     const supabase = createClient();
@@ -52,11 +63,54 @@ export default function PendingPage() {
     setEmail(user.email);
     const { data } = await supabase.from("ojt_months").select("*").eq("user_id", user.id).order("month", { ascending: false });
     setMonths(data || []);
+    // profile + org-profile fetched together and merged in one setProfileForm
+    // call — two independent fetches each calling setProfileForm on their own
+    // is a real race (whichever resolves second silently clobbers the
+    // other's value); auto-fill only kicks in when nothing's saved yet.
+    const [{ data: profile }, org] = await Promise.all([
+      supabase.from("profiles").select("local, city, joined_on").eq("id", user.id).single(),
+      fetch("/api/settings/org-profile").then((r) => r.json()).catch(() => ({ unionName: "" })),
+    ]);
+    setUnionName(org.unionName || "");
+    // profiles.local's DB column default is the stale "IUPAT 831" (schema.sql),
+    // which predates the org-profile branding ("IUPAT Local 831") and doesn't
+    // match it — treat that placeholder as unset so the dropdown auto-fills
+    // with the real union name instead of rendering blank against a value
+    // that matches neither <option>.
+    const savedLocal = profile?.local && profile.local !== "IUPAT 831" ? profile.local : "";
+    setProfileForm({
+      local: savedLocal || org.unionName || "",
+      city: profile?.city || "",
+      joined: profile?.joined_on || "",
+    });
   };
   useEffect(() => {
     load();
     fetch("/api/settings/ojt-auto-approve").then((r) => r.json()).then((d) => setAutoApprove(!!d.enabled)).catch(() => {});
   }, []);
+
+  const saveProfile = async (e) => {
+    e.preventDefault();
+    setProfileState("saving");
+    setProfileMsg("");
+    try {
+      const res = await fetch("/api/profile/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ local: profileForm.local, city: profileForm.city, joined: profileForm.joined || undefined }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setProfileState("error");
+        setProfileMsg(body.error || "Couldn't save.");
+        return;
+      }
+      setProfileState("done");
+    } catch {
+      setProfileState("error");
+      setProfileMsg("Network error — check your connection and try again.");
+    }
+  };
 
   const submit = (e) => {
     e.preventDefault();
@@ -158,6 +212,36 @@ export default function PendingPage() {
             <TriangleAlert size={14} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>This part is optional — you can skip it and come back anytime. But your progress and pay-scale level won't be tracked until you add your OJT history.</span>
           </div>
+        </div>
+
+        <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 14, padding: "18px 20px", boxShadow: SHADOW, marginBottom: 16 }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 4 }}>YOUR PROFILE</div>
+          <div style={{ fontSize: 12, color: C.mid, lineHeight: 1.5, marginBottom: 14 }}>
+            All optional, but recommended — helps your admin place you correctly once they review your account.
+          </div>
+          <form onSubmit={saveProfile}>
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>LOCAL</div>
+            {unionName === null ? (
+              <div className="skeleton" style={{ height: 38, borderRadius: 9, marginBottom: 12 }} />
+            ) : (
+              <select value={profileForm.local} onChange={(e) => setProfileForm((f) => ({ ...f, local: e.target.value }))}
+                style={{ ...fieldStyle, width: "100%", marginBottom: 12 }}>
+                <option value="">— not set —</option>
+                {unionName && <option value={unionName}>{unionName}</option>}
+              </select>
+            )}
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>HOME CITY (optional)</div>
+            <input value={profileForm.city} onChange={(e) => setProfileForm((f) => ({ ...f, city: e.target.value }))} placeholder="Chula Vista, CA"
+              style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>JOINED (optional)</div>
+            <input type="date" value={profileForm.joined} onChange={(e) => setProfileForm((f) => ({ ...f, joined: e.target.value }))}
+              style={{ ...fieldStyle, width: "100%", marginBottom: 14 }} />
+            <button type="submit" disabled={profileState === "saving"}
+              style={{ width: "100%", padding: "11px", borderRadius: 9, background: profileState === "done" ? C.working : C.brand, color: profileState === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 13.5, opacity: profileState === "saving" ? 0.6 : 1 }}>
+              {profileState === "saving" ? "Saving…" : profileState === "done" ? "Saved" : "Save profile"}
+            </button>
+            {profileMsg && <div style={{ marginTop: 10, fontSize: 12.5, color: C.danger }}>{profileMsg}</div>}
+          </form>
         </div>
 
         {IMPORT_ENABLED && (

@@ -134,6 +134,14 @@ export const adminOrgProfileSchema = z.object({
     jatcOfficeAddress: z.string().trim().min(1).max(300),
 });
 
+// self-service — an apprentice filling in their own local/city/joined date
+// on /pending while waiting on approval. All three optional by design.
+export const profileOnboardingSchema = z.object({
+    local: z.string().trim().max(120).optional().nullable(),
+    joined: dateStr.optional().nullable(),
+    city: z.string().trim().max(120).optional().nullable(),
+});
+
 /* userId (single) or userIds (batch, up to 100) — accepting both means the
    existing single-apprentice Danger Zone flow doesn't have to change while
    the bulk forms (BulkArchiveForm, BulkDnhForm) can send one request instead
