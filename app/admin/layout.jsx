@@ -63,6 +63,12 @@ export default function AdminLayout({ children }) {
   const router = useRouter();
   const [state, setState] = useState("loading"); // loading | ready
   const [email, setEmail] = useState(null);
+  // "IUPAT Local 831" default matches lib/core.ts's UNION_NAME fallback so
+  // there's no flash of different text once the real value (Settings → Org
+  // Profile) loads in — that setting previously had no visible effect
+  // anywhere an admin could see it, including this header on the admin's
+  // own page.
+  const [unionName, setUnionName] = useState("IUPAT Local 831");
   const [apprentices, setApprentices] = useState([]);
   const [monthsByUser, setMonthsByUser] = useState({});
   const [bookingsByUser, setBookingsByUser] = useState({});
@@ -132,6 +138,10 @@ export default function AdminLayout({ children }) {
       if (!live) return;
       setEmail(user.email);
       await load();
+      fetch("/api/settings/org-profile")
+        .then((r) => r.json())
+        .then((d) => live && d.unionName && setUnionName(d.unionName))
+        .catch(() => {});
       if (!live) return;
       setState("ready");
     })();
@@ -208,7 +218,7 @@ export default function AdminLayout({ children }) {
       <div className="wrap">
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <HardHat size={20} color={C.brand} />
-          <div style={{ fontSize: 17, fontWeight: 800, color: C.hi }}>Local 831 Admin</div>
+          <div style={{ fontSize: 17, fontWeight: 800, color: C.hi }}>{unionName} Admin</div>
           <button className="foc signout-btn" disabled={signingOut} onClick={signOut}
             style={{ marginLeft: "auto", background: "transparent", border: "1px solid " + C.line, color: C.mid, borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 700, opacity: signingOut ? 0.6 : 1 }}>
             {signingOut ? "Signing out…" : "Sign out"}

@@ -14,10 +14,19 @@ export default function LoginPage() {
   // live admin toggle (Settings → Apprentice Sign-Up), fetched at runtime —
   // was a build-time env var, but that needed a redeploy to change.
   const [signupEnabled, setSignupEnabled] = useState(false);
+  // "IUPAT Local 831" default matches lib/core.ts's UNION_NAME fallback, so
+  // there's no flash of different text once the real org-profile value
+  // (Settings → Org Profile) loads in — this was previously a hardcoded
+  // string here, invisible to that admin-editable setting entirely.
+  const [unionName, setUnionName] = useState("IUPAT Local 831");
   useEffect(() => {
     fetch("/api/settings/self-signup")
       .then((r) => r.json())
       .then((d) => setSignupEnabled(!!d.enabled))
+      .catch(() => {});
+    fetch("/api/settings/org-profile")
+      .then((r) => r.json())
+      .then((d) => d.unionName && setUnionName(d.unionName))
       .catch(() => {});
   }, []);
 
@@ -118,7 +127,7 @@ export default function LoginPage() {
           </span>
           <div style={{ fontWeight: 800, fontSize: 19, color: C.hi }}>L831 Tracker</div>
         </div>
-        <div style={{ fontSize: 11.5, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 20 }}>IUPAT LOCAL 831</div>
+        <div style={{ fontSize: 11.5, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 20, textTransform: "uppercase" }}>{unionName}</div>
 
         {state === "sent" ? (
           <div>
