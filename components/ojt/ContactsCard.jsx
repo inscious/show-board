@@ -9,10 +9,10 @@ import { useContext } from "react";
 import { ChevronRight, MapPin, Phone } from "lucide-react";
 import { Fold } from "@/components/ui/Fold";
 import { DirectoryContext } from "@/components/utils/DirectoryContext";
-import { C, FM, JATC, fmtTel, mapsUrl } from "@/lib/core";
+import { C, FM, fmtTel, mapsUrl } from "@/lib/core";
 
 export function ContactsCard() {
-    const { jatcContacts, dc36Contacts } = useContext(DirectoryContext);
+    const { jatcContacts, dc36Contacts, orgProfile } = useContext(DirectoryContext);
     return (
         <Fold icon={Phone} title="Contacts" color={C.working}>
             <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 8 }}>
@@ -119,7 +119,7 @@ export function ContactsCard() {
                 ))}
                 <a
                     className="foc"
-                    href={mapsUrl(JATC.office)}
+                    href={mapsUrl(orgProfile.jatcOfficeAddress)}
                     target="_blank"
                     rel="noreferrer"
                     style={{
@@ -147,7 +147,7 @@ export function ContactsCard() {
                             color: C.hi,
                         }}
                     >
-                        {JATC.office}
+                        {orgProfile.jatcOfficeAddress}
                     </span>
                     <ChevronRight
                         size={14}

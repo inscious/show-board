@@ -24,7 +24,6 @@ import {
     REGION,
     SHADOW,
     STATUS,
-    UNION_LINE,
     boothInfo,
     coColor,
     countdown,
@@ -122,7 +121,7 @@ export function ShowCard({
     books,
     myCompanies,
 }) {
-    const { companies } = useContext(DirectoryContext);
+    const { companies, orgProfile } = useContext(DirectoryContext);
     const past = isPast(show);
     const st = show.status ? STATUS[show.status] : null;
     const spine = st ? st.color : C.line;
@@ -501,7 +500,7 @@ export function ShowCard({
                                     ) : (
                                         <a
                                             className="foc"
-                                            href={"tel:" + UNION_LINE}
+                                            href={"tel:" + orgProfile.outOfWorkLine}
                                             style={{
                                                 flexShrink: 0,
                                                 display: "flex",

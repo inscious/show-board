@@ -23,7 +23,7 @@
    ============================================================ */
 
 import { createClient } from "@/lib/supabase/client";
-import { entrySplit, rateFor, levelIndex, ojtTotals } from "@/lib/core";
+import { entrySplit, rateFor, levelIndex, ojtTotals, JATC, UNION_NAME, UNION_LINE, UNION_LINE_PRETTY } from "@/lib/core";
 import type {
     Show,
     Entry,
@@ -173,6 +173,18 @@ export type Blob = {
         email: string;
         sms: string;
     }>;
+    // admin-editable org identity (app_settings.org_profile) — first slice of
+    // the "union profile" concept from the platform-vision memory. Falls
+    // back to the lib/core.ts constants (still the source of truth for
+    // anywhere unauthenticated, like the login page) when the DB value is
+    // missing, same graceful-degradation convention as every other
+    // app_settings-backed toggle.
+    orgProfile?: {
+        unionName: string;
+        outOfWorkLine: string;
+        outOfWorkLinePretty: string;
+        jatcOfficeAddress: string;
+    };
     isAdmin?: boolean;
     hasPassword?: boolean;
     needsWelcome?: boolean;
@@ -641,6 +653,7 @@ export const store = {
                 jatcRes,
                 dc36Res,
                 completedClassesRes,
+                orgProfileRes,
             ] = await Promise.all([
                 supabase
                     .from("profiles")
@@ -682,9 +695,16 @@ export const store = {
                     .from("completed_classes")
                     .select("course_id")
                     .eq("user_id", user.id),
+                supabase.from("app_settings").select("org_profile").eq("id", 1).single(),
             ]);
 
             const profile = profileRes.data as ProfileSelectRow | null;
+            const orgProfileRow = (orgProfileRes.data?.org_profile || {}) as Partial<{
+                unionName: string;
+                outOfWorkLine: string;
+                outOfWorkLinePretty: string;
+                jatcOfficeAddress: string;
+            }>;
             const showRows = (showsRes.data || []) as ShowRow[];
             const flagRows = (flagsRes.data || []) as ShowFlagRow[];
             const entryRows = (entriesRes.data || []) as (WorkEntryRow & {
@@ -752,6 +772,14 @@ export const store = {
                     message: n.message,
                     at: n.created_at,
                 })),
+                orgProfile: {
+                    unionName: orgProfileRow.unionName || UNION_NAME,
+                    outOfWorkLine: orgProfileRow.outOfWorkLine || UNION_LINE,
+                    outOfWorkLinePretty:
+                        orgProfileRow.outOfWorkLinePretty || UNION_LINE_PRETTY,
+                    jatcOfficeAddress:
+                        orgProfileRow.jatcOfficeAddress || JATC.office,
+                },
                 // shared directory data — same shape the app has always used ({n, city, st, tel, fm})
                 companies: companyRows.map((c) => ({
                     n: c.name,
@@ -781,7 +809,7 @@ export const store = {
                     name: profile?.name || "",
                     memberId: profile?.member_id || "",
                     last4: profile?.ssn_last4 || "",
-                    local: profile?.local || "IUPAT Local 831",
+                    local: profile?.local || orgProfileRow.unionName || UNION_NAME,
                     rsiCredits: Number(profile?.rsi_credits || 0),
                     joined: profile?.joined_on || "",
                 },

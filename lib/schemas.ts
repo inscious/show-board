@@ -127,6 +127,12 @@ export const adminSetPasswordSchema = z.object({ userId, password });
 export const adminResetWelcomeSchema = z.object({ userId });
 export const adminSelfSignupSchema = z.object({ enabled: z.boolean() });
 export const adminOjtAutoApproveSchema = z.object({ enabled: z.boolean() });
+export const adminOrgProfileSchema = z.object({
+    unionName: z.string().trim().min(1).max(120),
+    outOfWorkLine: z.string().trim().regex(/^\d{10}$/, "expected 10 digits, no punctuation"),
+    outOfWorkLinePretty: z.string().trim().min(1).max(30),
+    jatcOfficeAddress: z.string().trim().min(1).max(300),
+});
 
 /* userId (single) or userIds (batch, up to 100) — accepting both means the
    existing single-apprentice Danger Zone flow doesn't have to change while

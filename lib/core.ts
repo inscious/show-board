@@ -29,6 +29,13 @@
 export const YEAR = 2026;
 /* the union's fixed RSI-credit threshold — a program rule, not personal data */
 export const RSI_REQUIRED = 10;
+/* Local-identity defaults — the source of truth for anywhere unauthenticated
+   (login page, before app_settings.org_profile can be fetched) and the
+   fallback whenever that DB value is missing. See lib/store.ts's blob.orgProfile
+   for the live, admin-editable version — first slice of the "union profile"
+   concept from the platform-vision memory (lib/core.ts stays the seed/default,
+   not the live value, same as every other per-union constant in this file). */
+export const UNION_NAME = "IUPAT Local 831";
 export const UNION_LINE = "6262968075";
 export const UNION_LINE_PRETTY = "(626) 296-8075";
 /* the only payroll deductions confirmed flat/reliable so far — federal law,

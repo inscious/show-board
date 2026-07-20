@@ -24,7 +24,6 @@ import {
     RELIABLE_PAYROLL_TAX_RATE,
     SHADOW,
     STATUS,
-    UNION_LINE,
     bookingOn,
     classOn,
     countdown,
@@ -90,7 +89,7 @@ export function HomeTab({
     onClearNotification,
     doNotHire,
 }) {
-    const { companies } = useContext(DirectoryContext);
+    const { companies, orgProfile } = useContext(DirectoryContext);
     const today = todayMid();
     const roll = useMemo(() => rollupEntries(entries), [entries]);
     const mine = useMemo(() => myCompanyTokens(entries), [entries]);
@@ -1253,7 +1252,7 @@ export function HomeTab({
                     </div>
                     <a
                         className="foc"
-                        href={"tel:" + UNION_LINE}
+                        href={"tel:" + orgProfile.outOfWorkLine}
                         style={{
                             flexShrink: 0,
                             display: "flex",

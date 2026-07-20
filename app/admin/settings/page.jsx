@@ -9,13 +9,17 @@ import { JatcContactsPanel } from "@/components/admin/JatcContactsPanel";
 import { Dc36ContactsPanel } from "@/components/admin/Dc36ContactsPanel";
 import { SelfSignupPanel } from "@/components/admin/SelfSignupPanel";
 import { OjtAutoApprovePanel } from "@/components/admin/OjtAutoApprovePanel";
+import { OrgProfilePanel } from "@/components/admin/OrgProfilePanel";
 import { NewAdminForm } from "@/components/admin/NewAdminForm";
 
 export default function AdminSettingsPage() {
   const { email, load } = useAdmin();
   return (
     <>
-      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, marginBottom: 8 }}>ACCESS</div>
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, marginBottom: 8 }}>ORGANIZATION</div>
+      <OrgProfilePanel />
+
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, margin: "8px 0 8px" }}>ACCESS</div>
       <SelfSignupPanel />
       <NewAdminForm onCreated={load} />
       <AdminAccountsPanel currentEmail={email} />

@@ -128,6 +128,7 @@ import {
     REGION_KEYS,
     SEED,
     SHADOW,
+    UNION_NAME,
     UNION_LINE,
     UNION_LINE_PRETTY,
     fromKey,
@@ -326,6 +327,12 @@ export default function App() {
     const [companies, setCompanies] = useState([]);
     const [jatcContacts, setJatcContacts] = useState([]);
     const [dc36Contacts, setDc36Contacts] = useState([]);
+    const [orgProfile, setOrgProfile] = useState({
+        unionName: UNION_NAME,
+        outOfWorkLine: UNION_LINE,
+        outOfWorkLinePretty: UNION_LINE_PRETTY,
+        jatcOfficeAddress: JATC.office,
+    });
     const t0 = todayMid();
     const [cur, setCur] = useState({ y: t0.getFullYear(), m: t0.getMonth() });
 
@@ -397,6 +404,7 @@ export default function App() {
             setCompanies(data && Array.isArray(data.companies) ? data.companies : []);
             setJatcContacts(data && Array.isArray(data.jatcContacts) ? data.jatcContacts : []);
             setDc36Contacts(data && Array.isArray(data.dc36Contacts) ? data.dc36Contacts : []);
+            if (data && data.orgProfile) setOrgProfile(data.orgProfile);
             setLoaded(true);
         });
         return () => {
@@ -651,7 +659,7 @@ export default function App() {
     }[view];
 
     return (
-        <DirectoryContext.Provider value={{ companies, jatcContacts, dc36Contacts }}>
+        <DirectoryContext.Provider value={{ companies, jatcContacts, dc36Contacts, orgProfile }}>
         <div
             className="sb"
             style={{
@@ -719,7 +727,7 @@ export default function App() {
                                       ].label
                                     : tab === "board"
                                       ? "Out-of-work list · LA & SD · " +
-                                        UNION_LINE_PRETTY
+                                        orgProfile.outOfWorkLinePretty
                                       : tab === "cal"
                                         ? "Tap a day to log the company and your hours"
                                         : LEVELS[
@@ -734,7 +742,7 @@ export default function App() {
                         </div>
                         <a
                             className="foc"
-                            href={"tel:" + UNION_LINE}
+                            href={"tel:" + orgProfile.outOfWorkLine}
                             style={{
                                 flexShrink: 0,
                                 display: "flex",

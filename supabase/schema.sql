@@ -424,6 +424,13 @@ create table app_settings (
   -- immediately instead of 'pending' — see protect_ojt_months_status()
   -- below, which is what actually enforces this, not application code.
   ojt_auto_approve    boolean not null default false,
+  -- admin-editable org identity — union name, out-of-work line, JATC office
+  -- address. One JSONB blob (not one column per field) so future "union
+  -- profile" fields land here by extending the object, not another
+  -- migration — first slice of the platform-vision memory's Phase 2 goal.
+  -- lib/core.ts's UNION_NAME/UNION_LINE/JATC.office are the fallback
+  -- defaults, used pre-auth and whenever a field here is unset.
+  org_profile         jsonb not null default '{}'::jsonb,
   constraint app_settings_singleton check (id = 1)
 );
 insert into app_settings (id, self_signup_enabled) values (1, true);
