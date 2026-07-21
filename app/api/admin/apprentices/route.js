@@ -11,7 +11,7 @@ import { logAudit } from "@/lib/auditLog";
    admin already vetted them by creating the account directly; self-signups
    start unapproved. */
 export async function POST(request) {
-  return guardedRoute(request, "admin:apprentices:post", { schema: createApprenticeSchema, requireAdmin: true }, async ({ data }) => {
+  return guardedRoute(request, "admin:apprentices:post", { schema: createApprenticeSchema, requireAdmin: true }, async ({ profile, data }) => {
     const admin = createAdminClient();
     const { data: created, error } = await admin.auth.admin.createUser({
       email: data.email,
@@ -20,9 +20,12 @@ export async function POST(request) {
     });
     if (error) return Response.json({ error: error.message || "Could not create account" }, { status: 400 });
 
-    // handle_new_user() trigger already created the profiles row; fill in
-    // what we know, mark a password as already set, and approve immediately.
-    await admin.from("profiles").update({ name: data.name || null, has_password: true, approved_at: new Date().toISOString() }).eq("id", created.user.id);
+    // handle_new_user() trigger already created the profiles row (with its
+    // own interim-default organization_id); fill in what we know, mark a
+    // password as already set, approve immediately, and correct
+    // organization_id to the creating admin's own union — an admin can only
+    // ever be adding someone to their own roster, never another union's.
+    await admin.from("profiles").update({ name: data.name || null, has_password: true, approved_at: new Date().toISOString(), organization_id: profile.organization_id }).eq("id", created.user.id);
 
     return Response.json({ ok: true });
   });

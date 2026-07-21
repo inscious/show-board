@@ -21,7 +21,9 @@ export async function POST(request) {
     if (error) return Response.json({ error: error.message || "Could not create account" }, { status: 400 });
 
     const isCentralAdmin = !!(profile?.is_central_admin && data.isCentralAdmin);
-    await admin.from("profiles").update({ name: data.name || null, has_password: true, is_admin: true, is_central_admin: isCentralAdmin, approved_at: new Date().toISOString() }).eq("id", created.user.id);
+    // a new admin always lands in the creator's own union — an admin has no
+    // way to invite someone into a union they don't themselves belong to.
+    await admin.from("profiles").update({ name: data.name || null, has_password: true, is_admin: true, is_central_admin: isCentralAdmin, organization_id: profile.organization_id, approved_at: new Date().toISOString() }).eq("id", created.user.id);
 
     await logAudit(admin, {
       actorEmail: user.email, targetEmail: data.email,

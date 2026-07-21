@@ -74,6 +74,11 @@ export default function AdminLayout({ children }) {
   // admin capability, just not this one. Only used to show/hide UI; the
   // actual guardrail is server-side (app/api/admin/revoke-admin, create-admin).
   const [isCentralAdmin, setIsCentralAdmin] = useState(false);
+  // this admin's own union — every roster/schedule/etc query below is
+  // scoped to it. RLS (supabase/stage2_org_scoping.sql) is the actual
+  // enforcement; this filter is belt-and-suspenders so the UI never even
+  // asks for another union's rows in the first place.
+  const [organizationId, setOrganizationId] = useState(null);
   const [apprentices, setApprentices] = useState([]);
   const [monthsByUser, setMonthsByUser] = useState({});
   const [bookingsByUser, setBookingsByUser] = useState({});
@@ -88,18 +93,30 @@ export default function AdminLayout({ children }) {
   const [bulkArchiveModal, setBulkArchiveModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (orgId) => {
+    // orgId param sidesteps a stale-closure issue on the very first call —
+    // organizationId's state update from the auth effect hasn't landed in
+    // this closure yet at that point. Later calls (e.g. onCreated={load}
+    // from a form) call it with no arg and fall back to state, which by
+    // then has settled.
+    const useOrgId = orgId ?? organizationId;
+    if (!useOrgId) return;
     const supabase = createClient();
     // bookings/show_flags/classes each need their own "admin read"/"admin
     // write" RLS policy (see supabase/schema.sql) — until those are applied
     // they just come back empty and the relevant section quietly shows nothing.
+    // organization_id filter here is redundant with RLS (stage2_org_scoping.sql
+    // is the real enforcement) but keeps the UI from even asking for another
+    // union's rows — shows/jatc_contacts carry organization_id directly;
+    // ojt_months/bookings/etc are scoped via their user_id's own profile, so
+    // RLS alone covers those without a client-side filter being possible here.
     const [profilesRes, monthsRes, showsRes, bookingsRes, flagsRes, classesRes, certsRes, completedClassesRes] = await Promise.all([
       // a self-signed-up account with approved_at still null isn't real yet
       // (see PendingSignupsPanel) — excluded here so it can't clutter the
       // normal roster, Falling Behind, or Do Not Hire before it is.
-      supabase.from("profiles").select("*").eq("is_admin", false).not("approved_at", "is", null),
+      supabase.from("profiles").select("*").eq("is_admin", false).eq("organization_id", useOrgId).not("approved_at", "is", null),
       supabase.from("ojt_months").select("*"),
-      supabase.from("shows").select("*"),
+      supabase.from("shows").select("*").eq("organization_id", useOrgId),
       supabase.from("bookings").select("*"),
       supabase.from("show_flags").select("*"),
       supabase.from("classes").select("*"),
@@ -130,7 +147,7 @@ export default function AdminLayout({ children }) {
       loc: r.location || "", booth: r.booth || "", co: r.gc || "", region: r.region || "", src: r.source || "union",
       sheetMonth: r.sheet_month || "",
     })));
-  }, []);
+  }, [organizationId]);
 
   useEffect(() => {
     let live = true;
@@ -138,12 +155,13 @@ export default function AdminLayout({ children }) {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/login"; return; }
-      const { data: me } = await supabase.from("profiles").select("is_admin, is_central_admin").eq("id", user.id).single();
+      const { data: me } = await supabase.from("profiles").select("is_admin, is_central_admin, organization_id").eq("id", user.id).single();
       if (!me?.is_admin) { window.location.href = "/"; return; }
       if (!live) return;
       setEmail(user.email);
       setIsCentralAdmin(!!me.is_central_admin);
-      await load();
+      setOrganizationId(me.organization_id);
+      await load(me.organization_id);
       fetch("/api/settings/org-profile")
         .then((r) => r.json())
         .then((d) => live && d.unionName && setUnionName(d.unionName))
@@ -169,7 +187,7 @@ export default function AdminLayout({ children }) {
   const goToShow = useCallback((id) => router.push("/admin/schedule?show=" + id), [router]);
 
   const ctx = {
-    email, isCentralAdmin,
+    email, isCentralAdmin, organizationId,
     apprentices, activeApprentices, archivedApprentices,
     monthsByUser, bookingsByUser, flagsByUser, classesByUser, certsByUser, completedClassesByUser, shows,
     load, goToApprentice, goToShow,
