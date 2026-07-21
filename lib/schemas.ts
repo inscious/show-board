@@ -218,6 +218,13 @@ export const adminDc36ContactDeleteSchema = z.object({ id });
 
 export const adminRevokeAdminSchema = z.object({ userId });
 
+// grant/revoke Foreman capability on an existing apprentice/CJ profile —
+// companyId null clears it. Not a new account, see platform_architecture_scoping.
+export const adminForemanSchema = z.object({
+    userId,
+    companyId: z.number().int().positive().nullable(),
+});
+
 export const adminProfileSchema = z.object({
     userId,
     name: shortText,
