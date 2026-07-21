@@ -82,15 +82,37 @@ export async function middleware(request) {
   const isAdminPath = request.nextUrl.pathname.startsWith("/admin");
   const isApprenticeHome = request.nextUrl.pathname === "/";
   const isPendingPage = request.nextUrl.pathname === "/pending";
-  if (user && (isAdminPath || isApprenticeHome || isPendingPage)) {
+  const isConsolePath = request.nextUrl.pathname.startsWith("/console");
+  if (user && (isAdminPath || isApprenticeHome || isPendingPage || isConsolePath)) {
     const { data: profile, error: profileError } = await supabase.from("profiles").select("is_admin, approved_at").eq("id", user.id).single();
     // a transient read failure here (network blip, connection timeout) used
     // to silently read as "no profile" -> not admin, not approved -> bounce
-    // a real admin to /pending. Every signed-in user has a profile row, so
-    // an error is infra, not a real "unapproved" account — skip the
-    // redirect decision entirely rather than guess wrong in either
-    // direction; the page's own client-side fetches still enforce auth.
-    if (profileError) return response;
+    // a real admin to /pending. Every signed-in user has a profile row EXCEPT
+    // a platform admin (handle_new_user() deliberately skips creating one for
+    // them, see supabase/stage1_staging.sql) — so a missing-row error is now
+    // ambiguous between "genuine platform admin" and "real infra blip," and
+    // this is the one place that distinguishes them. Ordinary apprentice/
+    // admin requests never pay this extra lookup — only ones that would
+    // already have hit this branch do.
+    if (profileError) {
+      const { data: platformAdmin } = await supabase.from("platform_admins").select("id").eq("id", user.id).maybeSingle();
+      if (platformAdmin) {
+        if (!isConsolePath) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/console";
+          return NextResponse.redirect(url);
+        }
+        return response;
+      }
+      // not a platform admin either — real infra blip, don't guess.
+      return response;
+    }
+    if (isConsolePath) {
+      // has a real profiles row, so definitionally not a platform admin.
+      const url = request.nextUrl.clone();
+      url.pathname = profile?.is_admin ? "/admin" : "/";
+      return NextResponse.redirect(url);
+    }
     const isAdmin = !!profile?.is_admin;
     // admins are never subject to this gate regardless of approved_at —
     // belt-and-suspenders alongside create-admin/apprentices always

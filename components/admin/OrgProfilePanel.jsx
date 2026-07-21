@@ -65,8 +65,14 @@ export function OrgProfilePanel() {
       </div>
       <form onSubmit={submit}>
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>UNION NAME</div>
-        <input value={form.unionName} onChange={(e) => set("unionName", e.target.value)} placeholder="IUPAT Local 831"
-          style={fieldStyle} />
+        {/* Locked, not an <input> — freely-retypable union identity doesn't
+            hold up once this app supports more than one local; the real
+            fix is a proper organizations record, not a text field an
+            admin can edit into a typo or duplicate. */}
+        <div style={{ ...fieldStyle, color: C.mid, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <span>{form.unionName || "—"}</span>
+          <span style={{ fontSize: 10, letterSpacing: 0.4, color: C.lo, fontFamily: FM, whiteSpace: "nowrap" }}>LOCKED</span>
+        </div>
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>OUT-OF-WORK LINE</div>
         <input value={form.outOfWorkLine} onChange={(e) => set("outOfWorkLine", e.target.value)} placeholder="(626) 296-8075"
           style={fieldStyle} />
