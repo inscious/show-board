@@ -66,6 +66,75 @@ function PasswordPanel() {
   );
 }
 
+function RolesPanel() {
+  const [targetEmail, setTargetEmail] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isCentralAdmin, setIsCentralAdmin] = useState(false);
+  const [organizationId, setOrganizationId] = useState("");
+  const [foremanOfCompanyId, setForemanOfCompanyId] = useState("");
+  const [state, setState] = useState("idle");
+  const [msg, setMsg] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!targetEmail.trim()) return;
+    setState("saving");
+    setMsg("");
+    try {
+      await req("POST", "/api/console/set-roles", {
+        email: targetEmail.trim(),
+        isAdmin,
+        isCentralAdmin,
+        organizationId: organizationId === "" ? null : Number(organizationId),
+        foremanOfCompanyId: foremanOfCompanyId === "" ? null : Number(foremanOfCompanyId),
+      });
+      setState("done");
+      setMsg("Roles updated. Logged to platform_audit_log.");
+    } catch (e2) {
+      setState("error");
+      setMsg(e2.message);
+    }
+  };
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+      <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 4 }}>ROLE ASSIGNMENT</div>
+      <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 12 }}>
+        Testing/troubleshooting only — sets any account's role directly, crossing every union boundary. Bypasses each union's own admin flow entirely. Every change is logged.
+      </div>
+      <form onSubmit={submit}>
+        <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>ACCOUNT EMAIL</div>
+        <input type="email" value={targetEmail} onChange={(e) => setTargetEmail(e.target.value)} placeholder="apprentice@example.com"
+          style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: C.mid }}>
+            <input type="checkbox" checked={isAdmin} onChange={(e) => setIsAdmin(e.target.checked)} /> is_admin
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: C.mid }}>
+            <input type="checkbox" checked={isCentralAdmin} onChange={(e) => setIsCentralAdmin(e.target.checked)} /> is_central_admin
+          </label>
+        </div>
+
+        <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>ORGANIZATION ID (blank clears it)</div>
+        <input type="number" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} placeholder="e.g. 2"
+          style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
+
+        <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>FOREMAN OF COMPANY ID (blank clears it)</div>
+        <input type="number" value={foremanOfCompanyId} onChange={(e) => setForemanOfCompanyId(e.target.value)} placeholder="e.g. 1"
+          style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 14 }} />
+
+        <button type="submit" disabled={state === "saving" || !targetEmail.trim()}
+          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14, opacity: state === "saving" ? 0.6 : 1 }}>
+          {state === "done" && <Check size={15} />}
+          {state === "saving" ? "Saving…" : state === "done" ? "Saved" : "Set roles"}
+        </button>
+        {msg && <div style={{ marginTop: 10, fontSize: 12.5, color: state === "error" ? C.danger : C.working }}>{msg}</div>}
+      </form>
+    </div>
+  );
+}
+
 export default function ConsoleSettingsPage() {
   const { email } = usePlatform();
 
@@ -77,6 +146,9 @@ export default function ConsoleSettingsPage() {
         <div style={{ fontSize: 14, color: C.hi }}>{email}</div>
       </div>
       <PasswordPanel />
+
+      <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, margin: "20px 0 8px" }}>TESTING &amp; TROUBLESHOOTING</div>
+      <RolesPanel />
     </>
   );
 }

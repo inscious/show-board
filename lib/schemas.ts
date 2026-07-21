@@ -345,6 +345,18 @@ export const notificationDeleteSchema = z.object({
     id: z.union([id, z.literal("all")]),
 });
 
+// Platform Admin's role-assignment tool — testing/troubleshooting only, see
+// platform_architecture_scoping memory. Deliberately crosses every tenant
+// boundary; every field optional so a request can touch just one flag.
+export const platformSetRolesSchema = z.object({
+    email: z.string().trim().toLowerCase().email().max(254),
+    isAdmin: z.boolean().optional(),
+    isCentralAdmin: z.boolean().optional(),
+    organizationId: z.number().int().positive().nullable().optional(),
+    foremanOfCompanyId: z.number().int().positive().nullable().optional(),
+    graduatedAt: z.union([dateStr, z.literal("")]).optional().nullable(),
+});
+
 /* -------- inferred types --------
    Real TS types generated from the schemas above, not hand-duplicated —
    if a bound or field changes here, every consumer's type updates with it.
