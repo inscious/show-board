@@ -619,6 +619,9 @@ export default function App() {
     .sb .bgrid{ display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
     .sb .dcell{ height: 54px; }
     .sb .wcell{ height: 58px; }
+    .sb .dnum{ font-size: 14px; }
+    .sb .dcap{ font-size: 9px; }
+    .sb .dcap-unit{ display: none; font-size: 10px; font-weight: 600; color: ${C.mid}; margin-left: 3px; }
     .sb .modal-ovl{ display: flex; flex-direction: column; justify-content: flex-end; }
     .sb .modal-panel{ width: 100%; max-width: 576px; margin: 0 auto; border-top-left-radius: 18px; border-top-right-radius: 18px; border-top: 1px solid ${C.edge}; max-height: 92vh; }
     @media (min-width: 900px){
@@ -633,6 +636,9 @@ export default function App() {
       .sb .dcell{ height: 84px; }
       .sb .wcell{ height: 74px; }
       .sb .htitle{ font-size: 32px !important; }
+      .sb .dnum{ font-size: 14px; }
+      .sb .dcap{ font-size: 10px; }
+      .sb .dcap-unit{ display: inline; }
       .sb .modal-ovl{ justify-content: center; align-items: center; padding: 24px; }
       .sb .modal-panel{ max-width: 520px; max-height: 88vh; border-radius: 16px; border: 1px solid ${C.edge}; }
     }

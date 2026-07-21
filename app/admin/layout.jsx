@@ -209,10 +209,16 @@ export default function AdminLayout({ children }) {
         .admin-shell .wrap{ max-width: 720px; margin: 0 auto; padding: 24px 16px 96px; }
         .admin-shell .navtop{ display: none; }
         .admin-shell .navbot{ display: block; padding-bottom: env(safe-area-inset-bottom, 0px); }
+        .admin-shell .dnum{ font-size: 15px; }
+        .admin-shell .dcap{ font-size: 10px; }
+        .admin-shell .dcap-unit{ display: none; font-size: 10px; font-weight: 600; color: ${C.mid}; margin-left: 3px; }
         @media (min-width: 900px){
           .admin-shell .wrap{ max-width: 1160px; padding-bottom: 60px; }
           .admin-shell .navtop{ display: block; margin-bottom: 16px; }
           .admin-shell .navbot{ display: none; }
+          .admin-shell .dnum{ font-size: 15px; }
+          .admin-shell .dcap{ font-size: 10px; }
+          .admin-shell .dcap-unit{ display: inline; }
         }
       `}</style>
       <div className="wrap">

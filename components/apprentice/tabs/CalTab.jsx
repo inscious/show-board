@@ -501,9 +501,9 @@ export function CalTab({
                                 >
                                     {hasBook && !hrs && (
                                         <span
+                                            className="dcap"
                                             style={{
                                                 fontFamily: FM,
-                                                fontSize: 9,
                                                 fontWeight: 800,
                                                 color: BOOKED,
                                                 lineHeight: 1,
@@ -514,9 +514,9 @@ export function CalTab({
                                     )}
                                     {hasClass && !hasBook && !hrs && (
                                         <span
+                                            className="dcap"
                                             style={{
                                                 fontFamily: FM,
-                                                fontSize: 9,
                                                 fontWeight: 800,
                                                 color: missedClass ? C.danger : KLASS,
                                                 lineHeight: 1,
@@ -533,20 +533,21 @@ export function CalTab({
                                             }}
                                         >
                                             <span
+                                                className="dnum"
                                                 style={{
                                                     fontFamily: FM,
-                                                    fontSize: 14,
                                                     fontWeight: 800,
                                                     color: C.hi,
                                                     lineHeight: 1.15,
                                                 }}
                                             >
                                                 {hrsFmt(hrs)}
+                                                <span className="dcap-unit"> HOURS</span>
                                             </span>
                                             <span
+                                                className="dcap"
                                                 style={{
                                                     fontFamily: FM,
-                                                    fontSize: 9,
                                                     fontWeight: 800,
                                                     color: C.working,
                                                     lineHeight: 1.15,

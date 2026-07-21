@@ -159,17 +159,20 @@ function AdminApprenticeCalendar({ entries, bookings, classes }) {
                 </div>
                 <div style={{ marginTop: "auto", display: "flex", alignItems: "flex-end" }}>
                   {hasBook && !hrs && (
-                    <span style={{ fontFamily: FM, fontSize: 10, fontWeight: 800, color: BOOKED, lineHeight: 1 }}>SCHED</span>
+                    <span className="dcap" style={{ fontFamily: FM, fontWeight: 800, color: BOOKED, lineHeight: 1 }}>SCHED</span>
                   )}
                   {hasClass && !hasBook && !hrs && (
-                    <span style={{ fontFamily: FM, fontSize: 10, fontWeight: 800, color: missedClass ? C.danger : KLASS, lineHeight: 1 }}>
+                    <span className="dcap" style={{ fontFamily: FM, fontWeight: 800, color: missedClass ? C.danger : KLASS, lineHeight: 1 }}>
                       {missedClass ? "MISSED" : "CLASS"}
                     </span>
                   )}
                   {hrs > 0 && (
                     <div style={{ display: "flex", flexDirection: "column" }}>
-                      <span style={{ fontFamily: FM, fontSize: 15, fontWeight: 800, color: C.hi, lineHeight: 1.15 }}>{hrsFmt(hrs)}</span>
-                      <span style={{ fontFamily: FM, fontSize: 10, fontWeight: 800, color: C.working, lineHeight: 1.15 }}>LOGGED</span>
+                      <span className="dnum" style={{ fontFamily: FM, fontWeight: 800, color: C.hi, lineHeight: 1.15 }}>
+                        {hrsFmt(hrs)}
+                        <span className="dcap-unit"> HOURS</span>
+                      </span>
+                      <span className="dcap" style={{ fontFamily: FM, fontWeight: 800, color: C.working, lineHeight: 1.15 }}>LOGGED</span>
                     </div>
                   )}
                 </div>
