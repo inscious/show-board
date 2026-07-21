@@ -225,6 +225,21 @@ export const adminForemanSchema = z.object({
     companyId: z.number().int().positive().nullable(),
 });
 
+export const laborCallSchema = z.object({
+    companyId: z.number().int().positive(),
+    showId: id.optional().nullable(),
+    title: shortText,
+    neededCount: z.number().int().min(1).max(200),
+    // a label describing the kind of work, never a filter against an
+    // apprentice's own OJT category history — see ojt_category_self_reporting memory
+    category: z.enum(["A", "B", "C", "D"]).optional().nullable(),
+    startsAt: z.string().trim().min(1),
+});
+export const laborCallResponseSchema = z.object({
+    laborCallId: z.number().int().positive(),
+    status: z.enum(["available", "withdrawn"]),
+});
+
 export const adminProfileSchema = z.object({
     userId,
     name: shortText,
