@@ -75,6 +75,12 @@ create table profiles (
   id                uuid primary key references auth.users on delete cascade,
   email             text not null,
   is_admin          boolean not null default false,
+  -- only meaningful when is_admin = true. A central admin can revoke/grant
+  -- admin access from anyone else; a moderator admin (the default for new
+  -- admin accounts) gets every other admin capability unchanged. Guarded
+  -- by protect_profile_privilege_columns() same as the other privilege
+  -- columns below — an admin who isn't already central can't self-promote.
+  is_central_admin  boolean not null default false,
   has_password      boolean not null default false, -- flips true once they set one; drives the "set a password" nudge
   name              text,
   member_id         text,
@@ -466,6 +472,13 @@ begin
     new.do_not_hire_at := old.do_not_hire_at;
     new.do_not_hire_reason := old.do_not_hire_reason;
     new.approved_at := old.approved_at;
+  end if;
+  -- is_central_admin needs its own guard even for admins — otherwise a
+  -- moderator admin (is_admin = true, is_central_admin = false) could
+  -- grant themselves central status through the same wide-open "admin
+  -- update all" RLS policy that lets any admin edit any profiles row.
+  if auth.uid() is not null and not (select is_central_admin from profiles where id = auth.uid()) then
+    new.is_central_admin := old.is_central_admin;
   end if;
   return new;
 end;

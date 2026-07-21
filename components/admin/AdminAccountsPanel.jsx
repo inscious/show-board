@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM } from "@/lib/core";
 import { Avatar, ConfirmModal, req } from "@/components/admin/shared";
 
-export function AdminAccountsPanel({ currentEmail }) {
+export function AdminAccountsPanel({ currentEmail, isCentralAdmin }) {
   const [rows, setRows] = useState(null);
   const [confirmFor, setConfirmFor] = useState(null); // admin row, or null
   const [state, setState] = useState("idle");
@@ -17,7 +17,7 @@ export function AdminAccountsPanel({ currentEmail }) {
 
   const load = async () => {
     const supabase = createClient();
-    const { data } = await supabase.from("profiles").select("id,email,name").eq("is_admin", true).order("email");
+    const { data } = await supabase.from("profiles").select("id,email,name,is_central_admin").eq("is_admin", true).order("email");
     setRows(data || []);
   };
   useEffect(() => { load(); }, []);
@@ -49,17 +49,22 @@ export function AdminAccountsPanel({ currentEmail }) {
               <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
                 <Avatar name={a.name} email={a.email} avatarUrl={a.avatar_url} size={30} />
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
+                  <div className="truncate" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: C.hi }}>
+                    {a.name || a.email}
+                    {a.is_central_admin && (
+                      <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 8.5, fontWeight: 800, color: C.brand, border: "1px solid " + C.brand + "55", borderRadius: 5, padding: "1px 5px" }}>CENTRAL</span>
+                    )}
+                  </div>
                   {a.name && <div className="truncate" style={{ fontSize: 10.5, color: C.lo, fontFamily: FM }}>{a.email}</div>}
                 </div>
                 {isSelf ? (
                   <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9.5, fontWeight: 800, color: C.lo, border: "1px solid " + C.line, borderRadius: 5, padding: "2px 6px" }}>YOU</span>
-                ) : (
+                ) : isCentralAdmin ? (
                   <button className="foc" onClick={() => setConfirmFor(a)}
                     style={{ flexShrink: 0, background: "transparent", border: "1px solid " + C.line, color: C.danger, borderRadius: 7, padding: "6px 10px", fontSize: 11.5, fontWeight: 700 }}>
                     Revoke
                   </button>
-                )}
+                ) : null}
               </div>
             );
           })}

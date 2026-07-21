@@ -3,11 +3,13 @@ import { adminRevokeAdminSchema } from "@/lib/schemas";
 import { logAudit } from "@/lib/auditLog";
 
 /* the mirror of create-admin — plain profiles update, RLS's "admin update
-   all" policy already covers it. Two guardrails that only make sense
-   server-side: can't revoke your own session (no accidental lockout), and
-   can't drop the last admin to zero (no locked-out system at all). */
+   all" policy already covers it. Guardrails: only a central admin can
+   revoke anyone (a moderator admin has every other admin capability, just
+   not this one), can't revoke your own session (no accidental lockout),
+   and can't drop the last admin to zero (no locked-out system at all). */
 export async function POST(request) {
-  return guardedRoute(request, "admin:revoke-admin", { schema: adminRevokeAdminSchema, requireAdmin: true }, async ({ supabase, user, data }) => {
+  return guardedRoute(request, "admin:revoke-admin", { schema: adminRevokeAdminSchema, requireAdmin: true }, async ({ supabase, user, profile, data }) => {
+    if (!profile?.is_central_admin) return Response.json({ error: "Only a central admin can revoke admin access." }, { status: 403 });
     if (data.userId === user.id) return Response.json({ error: "Can't revoke your own admin access." }, { status: 400 });
 
     const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_admin", true);

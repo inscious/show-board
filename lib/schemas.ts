@@ -123,6 +123,14 @@ export const createApprenticeSchema = z.object({
     name: z.string().trim().max(200).optional(),
 });
 
+// central admins can revoke/grant admin access; moderator admins (the
+// default) get every other admin capability unchanged. isCentralAdmin is
+// only ever honored server-side when the caller is already central — see
+// app/api/admin/create-admin/route.js.
+export const createAdminSchema = createApprenticeSchema.extend({
+    isCentralAdmin: z.boolean().optional(),
+});
+
 export const adminSetPasswordSchema = z.object({ userId, password });
 export const adminResetWelcomeSchema = z.object({ userId });
 export const adminSelfSignupSchema = z.object({ enabled: z.boolean() });

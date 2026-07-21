@@ -10,10 +10,11 @@ import { req, PwField } from "@/components/admin/shared";
    mirrors NewApprenticeForm but hits create-admin, which sets is_admin from
    the moment the account exists. It never touches (or appears on) the
    roster, since load() only ever pulls is_admin = false profiles. ---------- */
-export function NewAdminForm({ onCreated }) {
+export function NewAdminForm({ onCreated, isCentralAdmin }) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [pw, setPw] = useState("");
+  const [grantCentral, setGrantCentral] = useState(false);
   const [state, setState] = useState("idle");
   const [msg, setMsg] = useState("");
 
@@ -23,9 +24,9 @@ export function NewAdminForm({ onCreated }) {
     setState("saving");
     setMsg("");
     try {
-      await req("POST", "/api/admin/create-admin", { email: email.trim().toLowerCase(), password: pw, name: name.trim() || undefined });
+      await req("POST", "/api/admin/create-admin", { email: email.trim().toLowerCase(), password: pw, name: name.trim() || undefined, isCentralAdmin: grantCentral });
       setState("done");
-      setEmail(""); setName(""); setPw("");
+      setEmail(""); setName(""); setPw(""); setGrantCentral(false);
       onCreated();
     } catch (e2) {
       setState("error");
@@ -50,6 +51,14 @@ export function NewAdminForm({ onCreated }) {
         <div style={{ marginBottom: 14 }}>
           <PwField value={pw} onChange={(e) => setPw(e.target.value)} placeholder="8+ characters — tell them this directly" />
         </div>
+        {isCentralAdmin && (
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 14, cursor: "pointer" }}>
+            <input type="checkbox" checked={grantCentral} onChange={(e) => setGrantCentral(e.target.checked)} style={{ marginTop: 2 }} />
+            <span style={{ fontSize: 12, color: C.mid, lineHeight: 1.4 }}>
+              Make this a <strong style={{ color: C.hi }}>central admin</strong> — can revoke/grant admin access from anyone else. Leave unchecked for a regular (moderator) admin, which can do everything else.
+            </span>
+          </label>
+        )}
         <button type="submit" disabled={state === "saving" || !email.trim() || !pw}
           style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>
           <ShieldCheck size={15} /> {state === "saving" ? "Creating…" : state === "done" ? "Admin account created" : "Create admin account"}

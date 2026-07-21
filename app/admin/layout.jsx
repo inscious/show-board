@@ -69,6 +69,11 @@ export default function AdminLayout({ children }) {
   // anywhere an admin could see it, including this header on the admin's
   // own page.
   const [unionName, setUnionName] = useState("IUPAT Local 831");
+  // whether THIS signed-in admin can revoke/grant admin access — a
+  // moderator admin (the default for new admin accounts) gets every other
+  // admin capability, just not this one. Only used to show/hide UI; the
+  // actual guardrail is server-side (app/api/admin/revoke-admin, create-admin).
+  const [isCentralAdmin, setIsCentralAdmin] = useState(false);
   const [apprentices, setApprentices] = useState([]);
   const [monthsByUser, setMonthsByUser] = useState({});
   const [bookingsByUser, setBookingsByUser] = useState({});
@@ -133,10 +138,11 @@ export default function AdminLayout({ children }) {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/login"; return; }
-      const { data: me } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
+      const { data: me } = await supabase.from("profiles").select("is_admin, is_central_admin").eq("id", user.id).single();
       if (!me?.is_admin) { window.location.href = "/"; return; }
       if (!live) return;
       setEmail(user.email);
+      setIsCentralAdmin(!!me.is_central_admin);
       await load();
       fetch("/api/settings/org-profile")
         .then((r) => r.json())
@@ -163,7 +169,7 @@ export default function AdminLayout({ children }) {
   const goToShow = useCallback((id) => router.push("/admin/schedule?show=" + id), [router]);
 
   const ctx = {
-    email,
+    email, isCentralAdmin,
     apprentices, activeApprentices, archivedApprentices,
     monthsByUser, bookingsByUser, flagsByUser, classesByUser, certsByUser, completedClassesByUser, shows,
     load, goToApprentice, goToShow,
