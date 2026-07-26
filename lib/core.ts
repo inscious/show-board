@@ -78,12 +78,14 @@ export const C = {
     passed: "#5A6070",
     gc: "#7FB2FF",
     danger: "#E8927C",
+    folio: "#B9A6FF" /* Portfolio feature's own accent — kept off brand/working/gc so it reads as its own thing wherever it shows up (DaySheet's "Add Project", the Portfolio section, the shared page) */,
     /* dark "ink" text for sitting on top of a bright fill (brand/working/
        danger buttons, active pills, checkmarks) — was ~40 repeated hex
        literals scattered across components before this got named. */
     ink: "#1A1206" /* on brand */,
     inkGood: "#06120C" /* on working */,
     inkBad: "#2A0E0A" /* on danger */,
+    inkFolio: "#150F2A" /* on folio */,
 };
 export const SHADOW =
     "0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 14px rgba(0,0,0,0.45)";

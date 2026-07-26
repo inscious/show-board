@@ -345,6 +345,39 @@ export const notificationDeleteSchema = z.object({
     id: z.union([id, z.literal("all")]),
 });
 
+/* -------- portfolio -------- */
+export const portfolioProjectSchema = z.object({
+    id,
+    title: z.string().trim().min(1).max(200),
+    notes: note,
+    sortOrder: z.number().int().optional(),
+    includeInPortfolio: z.boolean().optional(),
+});
+export const portfolioProjectDeleteSchema = z.object({ id });
+
+export const portfolioProjectDaySchema = z.object({
+    projectId: id,
+    workEntryId: id,
+    workType: z.enum(["install", "dismantle"]),
+});
+export const portfolioProjectDayDeleteSchema = z.object({
+    projectId: id,
+    workEntryId: id,
+});
+
+export const portfolioPhotoDeleteSchema = z.object({ id });
+
+export const portfolioShareSchema = z.object({
+    projectId: id,
+    shared: z.boolean(),
+});
+
+export const portfolioSettingsSchema = z.object({
+    displayName: shortText,
+    bio: note,
+    shared: z.boolean().optional(),
+});
+
 // Platform Admin's role-assignment tool — testing/troubleshooting only, see
 // platform_architecture_scoping memory. Deliberately crosses every tenant
 // boundary; every field optional so a request can touch just one flag.

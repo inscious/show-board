@@ -8,7 +8,7 @@ import { NextResponse } from "next/server";
    below, kept separate from this list since it needs an extra condition the
    others don't, and specifically scoped to /signup requests only so this
    doesn't add a DB read to every single navigation. */
-const PUBLIC_PATHS = ["/login", "/auth/callback", "/signup"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/signup", "/portfolio"];
 
 export async function middleware(request) {
   let response = NextResponse.next({ request });
@@ -41,6 +41,12 @@ export async function middleware(request) {
   // got redirected to /login instead of the JSON it expected, so the fetch
   // silently failed and the login page fell back to its static defaults.
   const isPublicSettings = ["/api/settings/self-signup", "/api/settings/org-profile"].includes(request.nextUrl.pathname);
+  // the shared-portfolio page (app/portfolio/[token]/page.jsx) fetches this
+  // itself, signed out, from a hiring manager's browser with no session at
+  // all — see app/api/portfolio/shared/[token]/route.js for the route's own
+  // hand-rolled auth (there is none; it's public by design, scoped by an
+  // unguessable share_token instead).
+  const isPublicPortfolio = request.nextUrl.pathname.startsWith("/api/portfolio/shared/");
   // Vercel Cron has no user session — it authenticates with its own
   // Authorization: Bearer $CRON_SECRET check inside the route handler
   // (see app/api/cron/ojt-reminders/route.js). Without this bypass every
@@ -61,7 +67,7 @@ export async function middleware(request) {
     }
   }
 
-  if (!user && !isPublic && !isApiAuth && !isCron && !isPublicSettings) {
+  if (!user && !isPublic && !isApiAuth && !isCron && !isPublicSettings && !isPublicPortfolio) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

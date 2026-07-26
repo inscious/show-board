@@ -12,6 +12,7 @@ import {
     Check,
     ChevronRight,
     Copy,
+    FolderPlus,
     GraduationCap,
     HardHat,
     MapPin,
@@ -24,6 +25,7 @@ import { DirectoryContext } from "@/components/utils/DirectoryContext";
 import { r1 } from "@/components/utils/r1";
 import { SplitChips } from "@/components/ui/SplitChips";
 import { CoPicker } from "@/components/apprentice/CoPicker";
+import { PortfolioProjectPicker } from "@/components/apprentice/PortfolioProjectPicker";
 import {
     BOOKED,
     BREAK_SLOTS,
@@ -115,6 +117,7 @@ export function DaySheet({
         return ra !== rb ? ra - rb : (a.name || "").localeCompare(b.name || "");
     });
     const [picking, setPicking] = useState(false);
+    const [addingProjectFor, setAddingProjectFor] = useState(null); // the entry being tagged, or null
     const [co, setCo] = useState("");
     const [hrs, setHrs] = useState(8);
     const [cat, setCat] = useState("");
@@ -263,6 +266,17 @@ export function DaySheet({
                     setPicking(false);
                 }}
                 onClose={() => setPicking(false)}
+            />
+        );
+    }
+
+    if (addingProjectFor) {
+        return (
+            <PortfolioProjectPicker
+                dayKey={dayKey}
+                entry={addingProjectFor}
+                onDone={() => setAddingProjectFor(null)}
+                onClose={() => setAddingProjectFor(null)}
             />
         );
     }
@@ -941,6 +955,21 @@ export function DaySheet({
                                         h
                                     </span>
                                 </span>
+                                <button
+                                    className="foc"
+                                    onClick={() => setAddingProjectFor(e)}
+                                    title="Add to a portfolio project"
+                                    style={{
+                                        flexShrink: 0,
+                                        background: "rgba(185,166,255,0.12)",
+                                        border: "1px solid rgba(185,166,255,0.35)",
+                                        borderRadius: 7,
+                                        color: C.folio,
+                                        padding: "5px 6px",
+                                    }}
+                                >
+                                    <FolderPlus size={14} />
+                                </button>
                                 <button
                                     className="foc"
                                     onClick={() => onDelete(dayKey, e.id)}
