@@ -285,11 +285,16 @@ export function showYear(s?: { sheetMonth?: string | null } | null): number {
     return y || YEAR;
 }
 export function sortDate(s: Show): Date {
-    return (
-        mkDate(s.mi, showYear(s)) ||
-        mkDate(s.start, showYear(s)) ||
-        new Date(YEAR, 11, 31)
-    );
+    const y = showYear(s);
+    // move-in is printed as bare "M/D" and can land in December for a
+    // January show ("12/26" move-in, sheetMonth "2026-01") — that's really
+    // Dec 2025, not Dec 2026. Without rolling the year back here, that one
+    // show's sort date lands a full year in the future, which drags its
+    // entire month group to the front of the archive (newest-first).
+    const sm = parseInt(String(s.sheetMonth || "").slice(5, 7), 10);
+    const miMonth = s.mi ? parseInt(String(s.mi).split("/")[0], 10) : 0;
+    const miYear = sm && miMonth && miMonth > sm ? y - 1 : y;
+    return mkDate(s.mi, miYear) || mkDate(s.start, y) || new Date(YEAR, 11, 31);
 }
 export function endDate(s: Show): Date {
     return (

@@ -211,6 +211,15 @@ export function BoardTab({
               ? g.first
               : !g.done;
     const activeRegionCount = REGION_KEYS.filter((r) => regionsOn[r]).length;
+    const emptyMsg = query.trim()
+        ? `No matches for "${query.trim()}"`
+        : view === "past"
+          ? "Nothing in the archive yet."
+          : view === "working"
+            ? "Nothing marked Working yet — tap a show and set its status."
+            : view === "targets"
+              ? "No targets yet — tap a show and mark it as a target."
+              : "Nothing on the books right now.";
 
     return (
         <>
