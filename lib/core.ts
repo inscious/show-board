@@ -291,9 +291,15 @@ export function sortDate(s: Show): Date {
     // Dec 2025, not Dec 2026. Without rolling the year back here, that one
     // show's sort date lands a full year in the future, which drags its
     // entire month group to the front of the archive (newest-first).
+    //
+    // The gap has to be large (> 6 months) before this kicks in — a show
+    // printed on the August sheet with a September 1st move-in (gap of 1)
+    // is completely normal, not a year wraparound. An earlier version of
+    // this check fired on any miMonth > sm and wrongly rolled ordinary
+    // adjacent-month move-ins back a full year.
     const sm = parseInt(String(s.sheetMonth || "").slice(5, 7), 10);
     const miMonth = s.mi ? parseInt(String(s.mi).split("/")[0], 10) : 0;
-    const miYear = sm && miMonth && miMonth > sm ? y - 1 : y;
+    const miYear = sm && miMonth && miMonth - sm > 6 ? y - 1 : y;
     return mkDate(s.mi, miYear) || mkDate(s.start, y) || new Date(YEAR, 11, 31);
 }
 export function endDate(s: Show): Date {
