@@ -23,7 +23,6 @@ import {
     Image as ImageIcon,
     Link2,
     Loader2,
-    Sparkles,
     Trash2,
     Wrench,
     X,
@@ -376,7 +375,6 @@ function ProjectRow({ project, index, count, detail, expanded, onToggle, onMove,
 }
 
 export function PortfolioSection() {
-    const [open, setOpen] = useState(false);
     const [projects, setProjects] = useState(null); // null = loading
     const [settings, setSettings] = useState(null);
     const [detail, setDetail] = useState({});
@@ -399,8 +397,8 @@ export function PortfolioSection() {
     }
 
     useEffect(() => {
-        if (open && projects === null) loadAll();
-    }, [open]);
+        loadAll();
+    }, []);
 
     async function loadDetail(projectId) {
         const supabase = createClient();
@@ -502,162 +500,110 @@ export function PortfolioSection() {
     }
 
     return (
-        <div
-            style={{
-                background: "linear-gradient(160deg, rgba(185,166,255,0.08), rgba(185,166,255,0.02))",
-                border: "1px solid rgba(185,166,255,0.3)",
-                borderRadius: 14,
-                overflow: "hidden",
-            }}
-        >
-            <button
-                className="foc"
-                onClick={() => setOpen((v) => !v)}
-                style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    background: "transparent",
-                    border: "none",
-                    padding: "16px 16px",
-                    color: C.hi,
-                }}
-            >
-                <div
-                    style={{
-                        width: 30,
-                        height: 30,
-                        borderRadius: 9,
-                        background: "rgba(185,166,255,0.16)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                    }}
-                >
-                    <Sparkles size={15} color={C.folio} />
-                </div>
-                <div style={{ textAlign: "left" }}>
-                    <div style={{ fontWeight: 800, fontSize: 14 }}>Portfolio</div>
-                    <div style={{ fontSize: 11, color: C.mid }}>
-                        Turn the booths you've built into a shareable career record
+        <div>
+            {projects === null ? (
+                <div style={{ fontSize: 12, color: C.lo, padding: "10px 0" }}>Loading…</div>
+            ) : (
+                <>
+                    <div
+                        style={{
+                            background: "linear-gradient(160deg, rgba(185,166,255,0.08), rgba(185,166,255,0.02))",
+                            border: "1px solid rgba(185,166,255,0.3)",
+                            borderRadius: 14,
+                            padding: 14,
+                            marginBottom: 14,
+                        }}
+                    >
+                        <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 8 }}>
+                            YOUR PORTFOLIO
+                        </div>
+                        <input
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            onBlur={() => name !== (settings?.display_name || "") && saveSettings({ displayName: name })}
+                            placeholder="Display name shown to hiring managers"
+                            style={{
+                                width: "100%",
+                                background: C.sunk,
+                                border: "1px solid " + C.line,
+                                borderRadius: 8,
+                                padding: "9px 10px",
+                                color: C.hi,
+                                fontSize: 13,
+                                marginBottom: 8,
+                            }}
+                        />
+                        <textarea
+                            value={bio}
+                            onChange={(e) => setBio(e.target.value)}
+                            onBlur={() => bio !== (settings?.bio || "") && saveSettings({ bio })}
+                            placeholder="A short intro — trade focus, specialties, what you're looking for"
+                            rows={2}
+                            style={{
+                                width: "100%",
+                                background: C.sunk,
+                                border: "1px solid " + C.line,
+                                borderRadius: 8,
+                                padding: "9px 10px",
+                                color: C.hi,
+                                fontSize: 12.5,
+                                resize: "vertical",
+                                marginBottom: 10,
+                                fontFamily: "inherit",
+                            }}
+                        />
+                        <button
+                            className="foc"
+                            disabled={settingsSaving}
+                            onClick={() => saveSettings({ shared: !settings?.share_token })}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                                background: settings?.share_token ? C.folio : C.raise,
+                                border: "1px solid " + (settings?.share_token ? C.folio : C.line),
+                                borderRadius: 8,
+                                padding: "9px 12px",
+                                fontSize: 12,
+                                fontWeight: 800,
+                                color: settings?.share_token ? C.inkFolio : C.hi,
+                            }}
+                        >
+                            <Link2 size={13} />
+                            {settings?.share_token ? "Sharing your whole portfolio" : "Share your whole portfolio"}
+                        </button>
+                        {settings?.share_token && (
+                            <div style={{ marginTop: 8 }}>
+                                <CopyLink token={settings.share_token} />
+                            </div>
+                        )}
                     </div>
-                </div>
-                <ChevronDown
-                    size={17}
-                    color={C.lo}
-                    style={{ marginLeft: "auto", transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }}
-                />
-            </button>
 
-            {open && (
-                <div style={{ padding: "0 16px 18px" }}>
-                    {projects === null ? (
-                        <div style={{ fontSize: 12, color: C.lo, padding: "10px 0" }}>Loading…</div>
-                    ) : (
-                        <>
-                            <div
-                                style={{
-                                    background: C.panel,
-                                    border: "1px solid " + C.line,
-                                    borderRadius: 10,
-                                    padding: 12,
-                                    marginBottom: 14,
-                                }}
-                            >
-                                <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 8 }}>
-                                    YOUR PORTFOLIO
-                                </div>
-                                <input
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    onBlur={() => name !== (settings?.display_name || "") && saveSettings({ displayName: name })}
-                                    placeholder="Display name shown to hiring managers"
-                                    style={{
-                                        width: "100%",
-                                        background: C.sunk,
-                                        border: "1px solid " + C.line,
-                                        borderRadius: 8,
-                                        padding: "9px 10px",
-                                        color: C.hi,
-                                        fontSize: 13,
-                                        marginBottom: 8,
-                                    }}
-                                />
-                                <textarea
-                                    value={bio}
-                                    onChange={(e) => setBio(e.target.value)}
-                                    onBlur={() => bio !== (settings?.bio || "") && saveSettings({ bio })}
-                                    placeholder="A short intro — trade focus, specialties, what you're looking for"
-                                    rows={2}
-                                    style={{
-                                        width: "100%",
-                                        background: C.sunk,
-                                        border: "1px solid " + C.line,
-                                        borderRadius: 8,
-                                        padding: "9px 10px",
-                                        color: C.hi,
-                                        fontSize: 12.5,
-                                        resize: "vertical",
-                                        marginBottom: 10,
-                                        fontFamily: "inherit",
-                                    }}
-                                />
-                                <button
-                                    className="foc"
-                                    disabled={settingsSaving}
-                                    onClick={() => saveSettings({ shared: !settings?.share_token })}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 6,
-                                        background: settings?.share_token ? C.folio : C.raise,
-                                        border: "1px solid " + (settings?.share_token ? C.folio : C.line),
-                                        borderRadius: 8,
-                                        padding: "9px 12px",
-                                        fontSize: 12,
-                                        fontWeight: 800,
-                                        color: settings?.share_token ? C.inkFolio : C.hi,
-                                    }}
-                                >
-                                    <Link2 size={13} />
-                                    {settings?.share_token ? "Sharing your whole portfolio" : "Share your whole portfolio"}
-                                </button>
-                                {settings?.share_token && (
-                                    <div style={{ marginTop: 8 }}>
-                                        <CopyLink token={settings.share_token} />
-                                    </div>
-                                )}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {projects.map((p, i) => (
+                            <ProjectRow
+                                key={p.id}
+                                project={p}
+                                index={i}
+                                count={projects.length}
+                                detail={detail[p.id]}
+                                expanded={expandedId === p.id}
+                                onToggle={() => toggleExpand(p)}
+                                onMove={moveProject}
+                                onDelete={setConfirmDelete}
+                                onIncludeToggle={toggleInclude}
+                                onShareToggle={toggleShare}
+                                onDetailChange={(id, d) => setDetail((cur) => ({ ...cur, [id]: d }))}
+                            />
+                        ))}
+                        {projects.length === 0 && (
+                            <div style={{ fontSize: 12, color: C.lo, textAlign: "center", padding: "16px 0" }}>
+                                No projects yet — tag a logged day to a booth from your
+                                calendar to start one.
                             </div>
-
-                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                {projects.map((p, i) => (
-                                    <ProjectRow
-                                        key={p.id}
-                                        project={p}
-                                        index={i}
-                                        count={projects.length}
-                                        detail={detail[p.id]}
-                                        expanded={expandedId === p.id}
-                                        onToggle={() => toggleExpand(p)}
-                                        onMove={moveProject}
-                                        onDelete={setConfirmDelete}
-                                        onIncludeToggle={toggleInclude}
-                                        onShareToggle={toggleShare}
-                                        onDetailChange={(id, d) => setDetail((cur) => ({ ...cur, [id]: d }))}
-                                    />
-                                ))}
-                                {projects.length === 0 && (
-                                    <div style={{ fontSize: 12, color: C.lo, textAlign: "center", padding: "16px 0" }}>
-                                        No projects yet — tag a logged day to a booth from your
-                                        calendar to start one.
-                                    </div>
-                                )}
-                            </div>
-                        </>
-                    )}
-                </div>
+                        )}
+                    </div>
+                </>
             )}
 
             {confirmDelete && (

@@ -66,7 +66,6 @@ import { LevelList } from "@/components/ojt/LevelList";
 import { CatBars } from "@/components/ojt/CatBars";
 import { OjtLog } from "@/components/ojt/OjtLog";
 import { CertificationsCard } from "@/components/ojt/CertificationsCard";
-import { PortfolioSection } from "@/components/ojt/PortfolioSection";
 import { PayRatesCard } from "@/components/ojt/PayRatesCard";
 import { ContactsCard } from "@/components/ojt/ContactsCard";
 import { Fold } from "@/components/ui/Fold";
@@ -1155,11 +1154,6 @@ export function OjtTab({
                 </div>
             </Fold>
 
-
-            {/* worker-facing career record — booth photos tagged to logged
-                days, shareable outside the app. Own visual identity on
-                purpose, see the component's own comment. */}
-            <PortfolioSection />
 
             {/* certs — either the training center enters these, or you
                 self-report by picking from COMMON_CERTS (lib/core.ts).

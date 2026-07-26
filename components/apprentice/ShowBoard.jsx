@@ -43,6 +43,18 @@ const CalTab = dynamic(() => import("@/components/apprentice/tabs/CalTab").then(
 });
 const Summary = dynamic(() => import("@/components/apprentice/tabs/CalTab").then((m) => m.Summary), { ssr: false });
 
+// promoted to its own top-level tab (was a fold inside OJT) — same
+// on-demand treatment, own-rows RLS reads/writes, nothing shared with the
+// blob-synced tabs above.
+const PortfolioSection = dynamic(() => import("@/components/ojt/PortfolioSection").then((m) => m.PortfolioSection), {
+    ssr: false,
+    loading: () => (
+        <div style={{ padding: "40px 0", textAlign: "center", color: "#6B7383", fontSize: 13 }}>
+            Loading…
+        </div>
+    ),
+});
+
 // Board is the last tab to get this treatment — unlike the other three it
 // wasn't a standalone component to begin with, so this took real
 // restructuring (see components/apprentice/tabs/BoardTab.jsx's own header
@@ -113,6 +125,7 @@ import {
     GraduationCap,
     LayoutDashboard,
     CloudOff,
+    Sparkles,
 } from "lucide-react";
 import { store, subscribeSyncStatus } from "@/lib/store";
 import {
@@ -169,6 +182,7 @@ const TABS = [
     ["board", "Board", LayoutList],
     ["cal", "Calendar", CalendarDays],
     ["ojt", "OJT", GraduationCap],
+    ["portfolio", "Portfolio", Sparkles],
 ];
 
 function NavBar({ tab, setTab, variant }) {
@@ -714,7 +728,9 @@ export default function App() {
                                       ? "Show Board"
                                       : tab === "cal"
                                         ? "Work Calendar"
-                                        : "Apprenticeship"}
+                                        : tab === "portfolio"
+                                          ? "Portfolio"
+                                          : "Apprenticeship"}
                             </div>
                             <div
                                 style={{
@@ -736,14 +752,16 @@ export default function App() {
                                         orgProfile.outOfWorkLinePretty
                                       : tab === "cal"
                                         ? "Tap a day to log the company and your hours"
-                                        : LEVELS[
-                                              levelIndex(
-                                                  ojtTotals(ojt.months).total,
-                                              )
-                                          ].label +
-                                          " · " +
-                                          hrsFmt(ojtTotals(ojt.months).total) +
-                                          " hrs on file with the JATC"}
+                                        : tab === "portfolio"
+                                          ? "Turn the booths you've built into a shareable career record"
+                                          : LEVELS[
+                                                levelIndex(
+                                                    ojtTotals(ojt.months).total,
+                                                )
+                                            ].label +
+                                            " · " +
+                                            hrsFmt(ojtTotals(ojt.months).total) +
+                                            " hrs on file with the JATC"}
                             </div>
                         </div>
                         <a
@@ -893,6 +911,8 @@ export default function App() {
                             })
                         }
                     />
+                ) : tab === "portfolio" ? (
+                    <PortfolioSection standalone />
                 ) : (
                     <BoardTab
                         shows={shows}
