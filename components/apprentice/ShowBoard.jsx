@@ -125,6 +125,7 @@ import {
     GraduationCap,
     LayoutDashboard,
     CloudOff,
+    Sparkles,
 } from "lucide-react";
 import { store, subscribeSyncStatus } from "@/lib/store";
 import {
@@ -176,14 +177,12 @@ const OJT_IMPORT_ENABLED = process.env.NEXT_PUBLIC_OJT_IMPORT_ENABLED === "true"
 
 
 /* ---------- main nav: bottom bar on a phone, top pills on a desktop ---------- */
-// "portfolio" is a real, reachable tab value (see the tab === "portfolio"
-// render branch below) but deliberately left out of TABS — the user wants
-// it reached from a dashboard card on Home, not a permanent nav slot.
 const TABS = [
     ["home", "Home", LayoutDashboard],
     ["board", "Board", LayoutList],
     ["cal", "Calendar", CalendarDays],
     ["ojt", "OJT", GraduationCap],
+    ["portfolio", "Portfolio", Sparkles],
 ];
 
 function NavBar({ tab, setTab, variant }) {

@@ -9,7 +9,7 @@
    they needed) moved out to HoursChart.jsx — exclusive to that one chart,
    confirmed via grep before moving. */
 import { useContext, useMemo } from "react";
-import { Ban, Bell, Building2, CalendarDays, ChevronRight, GraduationCap, Hammer, Info, Lock, Phone, ShieldAlert, Sparkles, X } from "lucide-react";
+import { Ban, Bell, Building2, CalendarDays, ChevronRight, GraduationCap, Hammer, Info, Lock, Phone, ShieldAlert, X } from "lucide-react";
 import {
     BOOKED,
     C,
@@ -1509,50 +1509,6 @@ export function HomeTab({
                             </div>
                         </div>
                     )}
-                </button>
-
-                {/* entry point into the Portfolio tab — deliberately not a
-                    permanent nav slot, just a dashboard card, per the user's
-                    own framing of where this should live. */}
-                <button
-                    className="foc"
-                    onClick={() => onGoto("portfolio")}
-                    style={{
-                        width: "100%",
-                        textAlign: "left",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        marginTop: 10,
-                        background: "linear-gradient(160deg, rgba(185,166,255,0.1), rgba(185,166,255,0.02))",
-                        border: "1px solid rgba(185,166,255,0.3)",
-                        borderRadius: 12,
-                        padding: "13px 14px",
-                    }}
-                >
-                    <div
-                        style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 8,
-                            background: "rgba(185,166,255,0.16)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                        }}
-                    >
-                        <Sparkles size={14} color={C.folio} />
-                    </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: C.hi }}>
-                            Portfolio
-                        </div>
-                        <div style={{ fontSize: 11, color: C.mid, marginTop: 1 }}>
-                            Turn the booths you've built into a shareable career record
-                        </div>
-                    </div>
-                    <ChevronRight size={16} color={C.lo} style={{ flexShrink: 0 }} />
                 </button>
             </div>
 
