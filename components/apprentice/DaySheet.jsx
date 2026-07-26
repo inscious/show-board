@@ -9,6 +9,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import {
     Ban,
     Building2,
+    Camera,
     Check,
     ChevronRight,
     Copy,
@@ -26,6 +27,7 @@ import { r1 } from "@/components/utils/r1";
 import { SplitChips } from "@/components/ui/SplitChips";
 import { CoPicker } from "@/components/apprentice/CoPicker";
 import { PortfolioProjectPicker } from "@/components/apprentice/PortfolioProjectPicker";
+import { TimeTicketPhotoPicker } from "@/components/apprentice/TimeTicketPhotoPicker";
 import {
     BOOKED,
     BREAK_SLOTS,
@@ -118,6 +120,7 @@ export function DaySheet({
     });
     const [picking, setPicking] = useState(false);
     const [addingProjectFor, setAddingProjectFor] = useState(null); // the entry being tagged, or null
+    const [addingPhotoFor, setAddingPhotoFor] = useState(null); // the entry getting a time-ticket photo, or null
     const [co, setCo] = useState("");
     const [hrs, setHrs] = useState(8);
     const [cat, setCat] = useState("");
@@ -277,6 +280,16 @@ export function DaySheet({
                 entry={addingProjectFor}
                 onDone={() => setAddingProjectFor(null)}
                 onClose={() => setAddingProjectFor(null)}
+            />
+        );
+    }
+
+    if (addingPhotoFor) {
+        return (
+            <TimeTicketPhotoPicker
+                dayKey={dayKey}
+                entry={addingPhotoFor}
+                onClose={() => setAddingPhotoFor(null)}
             />
         );
     }
@@ -969,6 +982,21 @@ export function DaySheet({
                                     }}
                                 >
                                     <FolderPlus size={14} />
+                                </button>
+                                <button
+                                    className="foc"
+                                    onClick={() => setAddingPhotoFor(e)}
+                                    title="Attach a photo of the time ticket"
+                                    style={{
+                                        flexShrink: 0,
+                                        background: "rgba(127,178,255,0.12)",
+                                        border: "1px solid rgba(127,178,255,0.35)",
+                                        borderRadius: 7,
+                                        color: C.gc,
+                                        padding: "5px 6px",
+                                    }}
+                                >
+                                    <Camera size={14} />
                                 </button>
                                 <button
                                     className="foc"
