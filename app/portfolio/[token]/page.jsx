@@ -10,7 +10,7 @@
    is already scoped server-side to be safe to show a stranger. */
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { HardHat, MapPin, ShieldCheck, Wrench } from "lucide-react";
+import { ChevronLeft, ChevronRight, HardHat, MapPin, ShieldCheck, Wrench, X } from "lucide-react";
 
 const PC = {
     bg: "#12151B",
@@ -199,6 +199,9 @@ function ProjectCard({ project }) {
     const install = project.days.filter((d) => d.workType === "install");
     const dismantle = project.days.filter((d) => d.workType === "dismantle");
     const companies = [...new Set(project.days.map((d) => d.company).filter(Boolean))];
+    const [lightbox, setLightbox] = useState(null); // index into project.photos, or null
+    const shown = project.photos.slice(0, 4);
+    const extra = project.photos.length - shown.length;
 
     return (
         <div style={{ background: PC.panel, border: "1px solid " + PC.line, borderRadius: 14, overflow: "hidden" }}>
@@ -210,11 +213,53 @@ function ProjectCard({ project }) {
                         gap: 2,
                     }}
                 >
-                    {project.photos.slice(0, 4).map((photo) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img key={photo.id} className="pf-photo" src={photo.url} alt={photo.caption || project.title} />
-                    ))}
+                    {shown.map((photo, i) => {
+                        const isLast = i === shown.length - 1;
+                        return (
+                            <button
+                                key={photo.id}
+                                onClick={() => setLightbox(i)}
+                                style={{
+                                    position: "relative",
+                                    padding: 0,
+                                    border: "none",
+                                    cursor: "pointer",
+                                    display: "block",
+                                }}
+                            >
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img className="pf-photo" src={photo.url} alt={photo.caption || project.title} />
+                                {isLast && extra > 0 && (
+                                    <div
+                                        style={{
+                                            position: "absolute",
+                                            inset: 0,
+                                            background: "rgba(0,0,0,0.55)",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            color: "#fff",
+                                            fontSize: 16,
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        +{extra}
+                                    </div>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
+            )}
+
+            {lightbox !== null && (
+                <Lightbox
+                    photos={project.photos}
+                    index={lightbox}
+                    title={project.title}
+                    onIndexChange={setLightbox}
+                    onClose={() => setLightbox(null)}
+                />
             )}
             <div style={{ padding: "18px 20px 20px" }}>
                 <h2 className="pf-serif" style={{ fontSize: 19, fontWeight: 500, margin: "0 0 6px" }}>{project.title}</h2>
@@ -241,6 +286,131 @@ function ProjectCard({ project }) {
                     )}
                 </div>
             </div>
+        </div>
+    );
+}
+
+function Lightbox({ photos, index, title, onIndexChange, onClose }) {
+    const photo = photos[index];
+    const hasPrev = index > 0;
+    const hasNext = index < photos.length - 1;
+
+    useEffect(() => {
+        function onKey(e) {
+            if (e.key === "Escape") onClose();
+            else if (e.key === "ArrowLeft" && hasPrev) onIndexChange(index - 1);
+            else if (e.key === "ArrowRight" && hasNext) onIndexChange(index + 1);
+        }
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [index, hasPrev, hasNext, onIndexChange, onClose]);
+
+    return (
+        <div
+            onClick={onClose}
+            style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(8,9,12,0.94)",
+                zIndex: 1000,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 20,
+            }}
+        >
+            <button
+                onClick={onClose}
+                aria-label="Close"
+                style={{
+                    position: "absolute",
+                    top: 16,
+                    right: 16,
+                    background: "rgba(255,255,255,0.1)",
+                    border: "none",
+                    borderRadius: 8,
+                    color: "#fff",
+                    padding: 8,
+                    cursor: "pointer",
+                }}
+            >
+                <X size={20} />
+            </button>
+
+            {photos.length > 1 && (
+                <div
+                    className="pf-mono"
+                    style={{
+                        position: "absolute",
+                        top: 20,
+                        left: 20,
+                        color: "rgba(255,255,255,0.6)",
+                        fontSize: 12,
+                    }}
+                >
+                    {index + 1} / {photos.length}
+                </div>
+            )}
+
+            {hasPrev && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onIndexChange(index - 1);
+                    }}
+                    aria-label="Previous photo"
+                    style={{
+                        position: "absolute",
+                        left: 12,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "rgba(255,255,255,0.1)",
+                        border: "none",
+                        borderRadius: 8,
+                        color: "#fff",
+                        padding: 10,
+                        cursor: "pointer",
+                    }}
+                >
+                    <ChevronLeft size={22} />
+                </button>
+            )}
+            {hasNext && (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onIndexChange(index + 1);
+                    }}
+                    aria-label="Next photo"
+                    style={{
+                        position: "absolute",
+                        right: 12,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "rgba(255,255,255,0.1)",
+                        border: "none",
+                        borderRadius: 8,
+                        color: "#fff",
+                        padding: 10,
+                        cursor: "pointer",
+                    }}
+                >
+                    <ChevronRight size={22} />
+                </button>
+            )}
+
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+                src={photo.url}
+                alt={photo.caption || title}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    maxWidth: "100%",
+                    maxHeight: "88vh",
+                    objectFit: "contain",
+                    borderRadius: 6,
+                }}
+            />
         </div>
     );
 }
