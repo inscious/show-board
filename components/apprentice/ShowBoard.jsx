@@ -181,8 +181,8 @@ const TABS = [
     ["home", "Home", LayoutDashboard],
     ["board", "Board", LayoutList],
     ["cal", "Calendar", CalendarDays],
-    ["ojt", "OJT", GraduationCap],
     ["portfolio", "Portfolio", Sparkles],
+    ["ojt", "OJT", GraduationCap],
 ];
 
 function NavBar({ tab, setTab, variant }) {
