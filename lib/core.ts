@@ -871,21 +871,25 @@ export function mergeSeed(saved: Show[]): Show[] {
     return add.length ? saved.concat(add) : saved;
 }
 
-/* July union dates & dues (from the posted July 2026 sheet) */
-export const JULY_NOTES: Array<[string, string, string]> = [
-    ["FRI JUL 3", "Independence Day — observed union holiday", C.passed],
-    [
-        "WED JUL 15",
-        "Monthly meeting · 6:00 PM · 14930 Marquardt Ave, Santa Fe Springs",
-        C.brand,
-    ],
-    [
-        "THU JUL 16",
-        "Informational meeting · 5:30 PM · 6225 Federal Blvd, San Diego",
-        C.brand,
-    ],
-    ["JUL 31", "3rd-quarter dues due", C.working],
-];
+/* Union dates & dues — the holiday/meeting/dues-deadline lines printed on
+   the monthly union sheet. Admin-editable, backed by the union_notices
+   table (see supabase/union_notices.sql) — this used to be a hardcoded
+   JULY_NOTES constant that only ever showed July and needed a code deploy
+   to update; now it's just display helpers over live data. */
+export const NOTICE_COLOR: Record<string, string> = {
+    holiday: C.passed,
+    meeting: C.brand,
+    dues: C.working,
+    notice: C.mid,
+};
+export function unionNoticesLabel(
+    notices: Array<{ sheetMonth?: string | null }>,
+): string {
+    const sm = notices.find((n) => n.sheetMonth)?.sheetMonth;
+    if (!sm) return "Union dates & dues";
+    const mo = parseInt(sm.slice(5, 7), 10);
+    return (MON_FULL[mo - 1] || "") + " union dates & dues";
+}
 
 /* ---------- apprenticeship / OJT ---------- */
 export const MON_FULL = [

@@ -8,7 +8,7 @@
    chart (HoursTooltip/MonthlyHoursChart/CAT_KEYS, and the recharts imports
    they needed) moved out to HoursChart.jsx — exclusive to that one chart,
    confirmed via grep before moving. */
-import { useContext, useMemo } from "react";
+import { useContext, useMemo, useState } from "react";
 import { Ban, Bell, Building2, CalendarDays, ChevronRight, GraduationCap, Hammer, Info, Lock, Phone, ShieldAlert, X } from "lucide-react";
 import {
     BOOKED,
@@ -41,6 +41,7 @@ import {
     num,
     ojtDue,
     ojtState,
+    NOTICE_COLOR,
     ojtTotals,
     rangePay,
     rollupEntries,
@@ -50,6 +51,7 @@ import {
     splitHours,
     statusOn,
     todayMid,
+    unionNoticesLabel,
 } from "@/lib/core";
 import { DirectoryContext } from "@/components/utils/DirectoryContext";
 import { Stat } from "@/components/ui/Stat";
@@ -78,6 +80,7 @@ export function HomeTab({
     rates,
     bookings,
     classes,
+    unionNotices,
     onCallWork,
     hasPassword,
     notifications,
@@ -85,6 +88,7 @@ export function HomeTab({
     doNotHire,
 }) {
     const { orgProfile } = useContext(DirectoryContext);
+    const [showNotices, setShowNotices] = useState(false);
     const today = todayMid();
     const roll = useMemo(() => rollupEntries(entries), [entries]);
     const mk = mKey(today.getFullYear(), today.getMonth());
@@ -1187,6 +1191,78 @@ export function HomeTab({
                         <Phone size={12} />
                         Call
                     </a>
+                </div>
+            )}
+
+            {/* union dates & dues — same data/labels as Board's panel, just
+                surfaced here too so it does not require a trip to Board to
+                notice a meeting is coming up */}
+            {unionNotices?.length > 0 && (
+                <div className="dspan">
+                    <button
+                        className="foc"
+                        onClick={() => setShowNotices((v) => !v)}
+                        style={{
+                            width: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            background: C.panel,
+                            border: "1px solid " + C.edge,
+                            borderRadius: 10,
+                            padding: "10px 12px",
+                            color: C.hi,
+                            boxShadow: SHADOW,
+                        }}
+                    >
+                        <CalendarDays size={15} color={C.brand} />
+                        <span style={{ fontWeight: 700, fontSize: 13 }}>
+                            {unionNoticesLabel(unionNotices)}
+                        </span>
+                        <ChevronRight
+                            size={16}
+                            color={C.lo}
+                            style={{
+                                marginLeft: "auto",
+                                transform: showNotices ? "rotate(90deg)" : "none",
+                                transition: "transform .15s",
+                            }}
+                        />
+                    </button>
+                    {showNotices && (
+                        <div
+                            style={{
+                                marginTop: 6,
+                                background: C.panel,
+                                border: "1px solid " + C.line,
+                                borderRadius: 10,
+                                padding: "10px 12px",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 9,
+                            }}
+                        >
+                            {unionNotices.map((n) => (
+                                <div key={n.id} style={{ display: "flex", gap: 10 }}>
+                                    <div
+                                        style={{
+                                            fontFamily: FM,
+                                            fontSize: 11,
+                                            fontWeight: 800,
+                                            color: NOTICE_COLOR[n.kind] || C.mid,
+                                            flexShrink: 0,
+                                            width: 80,
+                                        }}
+                                    >
+                                        {n.dateLabel}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: C.mid, lineHeight: 1.4 }}>
+                                        {n.body}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
 

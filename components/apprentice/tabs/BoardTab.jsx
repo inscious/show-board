@@ -31,7 +31,7 @@ import {
     C,
     FM,
     FS,
-    JULY_NOTES,
+    NOTICE_COLOR,
     REGION,
     REGION_KEYS,
     fromKey,
@@ -43,6 +43,7 @@ import {
     myCompanyTokens,
     showSpan,
     sortDate,
+    unionNoticesLabel,
 } from "@/lib/core";
 import { ShowCard } from "@/components/apprentice/tabs/ShowCard";
 
@@ -103,6 +104,7 @@ export function BoardTab({
     shows,
     entries,
     bookings,
+    unionNotices,
     view,
     setView,
     regionsOn,
@@ -385,6 +387,7 @@ export function BoardTab({
                         </div>
                     <div style={{ marginTop: 8 }}>
                         {/* union dates & dues */}
+                        {unionNotices?.length > 0 && (
                         <div style={{ marginBottom: 10 }}>
                             <button
                                 className="foc"
@@ -403,7 +406,7 @@ export function BoardTab({
                             >
                                 <CalendarDays size={15} color={C.brand} />
                                 <span style={{ fontWeight: 700, fontSize: 13 }}>
-                                    July union dates &amp; dues
+                                    {unionNoticesLabel(unionNotices)}
                                 </span>
                                 <ChevronRight
                                     size={16}
@@ -430,9 +433,9 @@ export function BoardTab({
                                         gap: 9,
                                     }}
                                 >
-                                    {JULY_NOTES.map(([d, t, col], k) => (
+                                    {unionNotices.map((n) => (
                                         <div
-                                            key={k}
+                                            key={n.id}
                                             style={{ display: "flex", gap: 10 }}
                                         >
                                             <div
@@ -440,12 +443,12 @@ export function BoardTab({
                                                     fontFamily: FM,
                                                     fontSize: 11,
                                                     fontWeight: 800,
-                                                    color: col,
+                                                    color: NOTICE_COLOR[n.kind] || C.mid,
                                                     flexShrink: 0,
                                                     width: 80,
                                                 }}
                                             >
-                                                {d}
+                                                {n.dateLabel}
                                             </div>
                                             <div
                                                 style={{
@@ -454,13 +457,14 @@ export function BoardTab({
                                                     lineHeight: 1.4,
                                                 }}
                                             >
-                                                {t}
+                                                {n.body}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             )}
                         </div>
+                        )}
 
                         <div
                             style={{

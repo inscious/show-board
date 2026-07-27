@@ -348,6 +348,7 @@ export default function App() {
     const [companies, setCompanies] = useState([]);
     const [jatcContacts, setJatcContacts] = useState([]);
     const [dc36Contacts, setDc36Contacts] = useState([]);
+    const [unionNotices, setUnionNotices] = useState([]);
     const [orgProfile, setOrgProfile] = useState({
         unionName: UNION_NAME,
         outOfWorkLine: UNION_LINE,
@@ -425,6 +426,7 @@ export default function App() {
             setCompanies(data && Array.isArray(data.companies) ? data.companies : []);
             setJatcContacts(data && Array.isArray(data.jatcContacts) ? data.jatcContacts : []);
             setDc36Contacts(data && Array.isArray(data.dc36Contacts) ? data.dc36Contacts : []);
+            setUnionNotices(data && Array.isArray(data.unionNotices) ? data.unionNotices : []);
             if (data && data.orgProfile) setOrgProfile(data.orgProfile);
             setLoaded(true);
         });
@@ -872,6 +874,7 @@ export default function App() {
                         rates={rates}
                         bookings={bookings}
                         classes={classes}
+                        unionNotices={unionNotices}
                         hasPassword={hasPassword}
                         notifications={notifications}
                         doNotHire={doNotHire}
@@ -941,6 +944,7 @@ export default function App() {
                         shows={shows}
                         entries={entries}
                         bookings={bookings}
+                        unionNotices={unionNotices}
                         view={view}
                         setView={setView}
                         regionsOn={regionsOn}

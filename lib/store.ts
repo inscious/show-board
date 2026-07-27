@@ -116,6 +116,14 @@ type JatcContactRow = {
     email: string | null;
     sms: string | null;
 };
+type UnionNoticeRow = {
+    id: string;
+    sheet_month: string | null;
+    date_label: string;
+    body: string;
+    kind: string;
+    sort_order: number;
+};
 /* the exact column list in the profiles .select() below — narrower than the
    full profiles table on purpose (SSN/member ID etc. shouldn't over-fetch),
    but do_not_hire_at/do_not_hire_reason previously weren't in that list
@@ -172,6 +180,14 @@ export type Blob = {
         ext: string;
         email: string;
         sms: string;
+    }>;
+    unionNotices?: Array<{
+        id: string;
+        sheetMonth: string | null;
+        dateLabel: string;
+        body: string;
+        kind: string;
+        sortOrder: number;
     }>;
     // admin-editable org identity (app_settings.org_profile) — first slice of
     // the "union profile" concept from the platform-vision memory. Falls
@@ -654,6 +670,7 @@ export const store = {
                 dc36Res,
                 completedClassesRes,
                 orgProfileRes,
+                unionNoticesRes,
             ] = await Promise.all([
                 supabase
                     .from("profiles")
@@ -696,6 +713,7 @@ export const store = {
                     .select("course_id")
                     .eq("user_id", user.id),
                 supabase.from("app_settings").select("org_profile").eq("id", 1).single(),
+                supabase.from("union_notices").select("*").order("sort_order", { ascending: true }),
             ]);
 
             const profile = profileRes.data as ProfileSelectRow | null;
@@ -723,6 +741,7 @@ export const store = {
             const completedClassRows = (completedClassesRes.data || []) as {
                 course_id: number;
             }[];
+            const unionNoticeRows = (unionNoticesRes.data || []) as UnionNoticeRow[];
 
             const flagById: Record<string, ShowFlagRow> = {};
             flagRows.forEach((f) => {
@@ -801,6 +820,14 @@ export const store = {
                     ext: c.ext || "",
                     email: c.email || "",
                     sms: c.sms || "",
+                })),
+                unionNotices: unionNoticeRows.map((n) => ({
+                    id: n.id,
+                    sheetMonth: n.sheet_month,
+                    dateLabel: n.date_label,
+                    body: n.body,
+                    kind: n.kind,
+                    sortOrder: n.sort_order,
                 })),
                 isAdmin: !!profile?.is_admin,
                 hasPassword: !!profile?.has_password,

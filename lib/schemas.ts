@@ -31,6 +31,16 @@ export const showImportSchema = z.object({
 });
 export const showDeleteSchema = z.object({ id });
 
+export const unionNoticeSchema = z.object({
+    id,
+    dateLabel: z.string().trim().min(1).max(40),
+    body: z.string().trim().min(1).max(300),
+    kind: z.enum(["holiday", "meeting", "dues", "notice"]),
+    sortOrder: z.number().int().optional().nullable(),
+    sheetMonth: monthStr.optional().nullable(),
+});
+export const unionNoticeDeleteSchema = z.object({ id });
+
 export const showFlagSchema = z.object({
     showId: id,
     status: z.enum(["working", "target", "passed"]).optional().nullable(),
