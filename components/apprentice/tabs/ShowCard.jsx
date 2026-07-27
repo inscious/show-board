@@ -55,7 +55,7 @@ function locBadge(highlight) {
     };
 }
 
-function Chip({ style, children }) {
+export function Chip({ style, children }) {
     return (
         <span
             style={{

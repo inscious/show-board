@@ -58,6 +58,7 @@ import { hexRgb } from "@/components/utils/hexRgb";
 import { r1 } from "@/components/utils/r1";
 import { MonthlyHoursChart } from "@/components/apprentice/tabs/HoursChart";
 import { MiniShowCard } from "@/components/apprentice/tabs/MiniShowCard";
+import { Chip } from "@/components/apprentice/tabs/ShowCard";
 
 // not a lib/core export — a tiny local also defined (separately) in
 // ShowBoard.jsx; duplicating 3 lines here beats adding an export just for
@@ -1216,7 +1217,7 @@ export function HomeTab({
                             style={{
                                 display: "flex",
                                 flexDirection: "column",
-                                gap: 6,
+                                gap: 8,
                             }}
                         >
                             {commitments.map((c) => {
@@ -1225,86 +1226,102 @@ export function HomeTab({
                                 const Ico = isClass ? GraduationCap : Hammer;
                                 const days = c.days.slice().sort();
                                 const n = daysUntil(fromKey(days[0]));
+                                const d0 = fromKey(days[0]);
+                                const bigDate = d0.getMonth() + 1 + "/" + d0.getDate();
                                 return (
-                                    <button
+                                    <div
                                         key={c.kind + c.x.id}
-                                        className="foc"
-                                        onClick={() => onOpenDay(days[0])}
                                         style={{
-                                            width: "100%",
-                                            textAlign: "left",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 9,
-                                            background: C.sunk,
-                                            border: "1px solid " + col + "3A",
-                                            borderRadius: 9,
-                                            padding: "9px 10px",
+                                            background: C.panel,
+                                            borderRadius: 13,
+                                            overflow: "hidden",
+                                            border: "1px solid " + C.edge,
+                                            boxShadow: SHADOW,
                                         }}
                                     >
-                                        <span
+                                        <button
+                                            className="foc"
+                                            onClick={() => onOpenDay(days[0])}
                                             style={{
-                                                width: 3,
-                                                alignSelf: "stretch",
-                                                borderRadius: 2,
-                                                background: col,
-                                                flexShrink: 0,
-                                            }}
-                                        />
-                                        <Ico
-                                            size={13}
-                                            color={col}
-                                            style={{ flexShrink: 0 }}
-                                        />
-                                        <div style={{ minWidth: 0, flex: 1 }}>
-                                            <div
-                                                className="truncate"
-                                                style={{
-                                                    fontSize: 13,
-                                                    fontWeight: 700,
-                                                    color: C.hi,
-                                                }}
-                                            >
-                                                {isClass
-                                                    ? c.x.name
-                                                    : c.x.show || c.x.co}
-                                            </div>
-                                            <div
-                                                className="truncate"
-                                                style={{
-                                                    fontSize: 11,
-                                                    color: C.mid,
-                                                    marginTop: 2,
-                                                }}
-                                            >
-                                                {dayRange(days)}
-                                                {isClass
-                                                    ? " · " +
-                                                      fmtClock(c.x.start) +
-                                                      " · unpaid"
-                                                    : " · " + c.x.co}
-                                            </div>
-                                        </div>
-                                        <span
-                                            style={{
-                                                flexShrink: 0,
-                                                fontFamily: FM,
-                                                fontSize: 9.5,
-                                                fontWeight: 800,
-                                                color: col,
-                                                border:
-                                                    "1px solid " + col + "55",
-                                                borderRadius: 5,
-                                                padding: "2px 5px",
+                                                width: "100%",
+                                                textAlign: "left",
+                                                background: "transparent",
+                                                border: "none",
+                                                padding: 0,
+                                                display: "flex",
+                                                alignItems: "stretch",
                                             }}
                                         >
-                                            {n === 0
-                                                ? "TODAY"
-                                                : n === 1
-                                                  ? "TMRW"
-                                                  : "IN " + n + "D"}
-                                        </span>
-                                    </button>
+                                            <div style={{ width: 6, background: col, flexShrink: 0 }} />
+                                            <div
+                                                style={{
+                                                    flexShrink: 0,
+                                                    width: 70,
+                                                    padding: "11px 8px",
+                                                    textAlign: "center",
+                                                    background: C.sunk,
+                                                    borderRight: "1px solid " + C.line,
+                                                }}
+                                            >
+                                                <div style={{ fontSize: 9, letterSpacing: 0.7, color: C.lo, fontFamily: FM }}>
+                                                    {isClass ? "CLASS" : "BOOKED"}
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        fontSize: 21,
+                                                        fontWeight: 800,
+                                                        fontFamily: FM,
+                                                        color: col,
+                                                        lineHeight: 1.1,
+                                                        marginTop: 2,
+                                                    }}
+                                                >
+                                                    {bigDate}
+                                                </div>
+                                                <div style={{ fontSize: 10, color: C.lo, fontFamily: FM, marginTop: 2 }}>
+                                                    {dayRange(days)}
+                                                </div>
+                                            </div>
+                                            <div style={{ flex: 1, padding: "11px 11px 11px 10px", minWidth: 0 }}>
+                                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                    <Ico size={13} color={col} style={{ flexShrink: 0 }} />
+                                                    <div
+                                                        className="truncate"
+                                                        style={{
+                                                            fontWeight: 750,
+                                                            fontSize: 15,
+                                                            color: C.hi,
+                                                            flex: 1,
+                                                            minWidth: 0,
+                                                            letterSpacing: -0.1,
+                                                        }}
+                                                    >
+                                                        {isClass ? c.x.name : c.x.show || c.x.co}
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    className="truncate"
+                                                    style={{ fontSize: 12, color: C.mid, marginTop: 3 }}
+                                                >
+                                                    {isClass
+                                                        ? fmtClock(c.x.start) + " · unpaid"
+                                                        : c.x.co}
+                                                </div>
+                                                <div style={{ marginTop: 8 }}>
+                                                    <Chip
+                                                        style={{
+                                                            background: "transparent",
+                                                            color: col,
+                                                            border: "1px solid " + col + "55",
+                                                            fontWeight: 800,
+                                                        }}
+                                                    >
+                                                        {n === 0 ? "TODAY" : n === 1 ? "TMRW" : "IN " + n + "D"}
+                                                    </Chip>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    </div>
                                 );
                             })}
                         </div>
