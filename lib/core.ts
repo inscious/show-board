@@ -284,23 +284,28 @@ export function showYear(s?: { sheetMonth?: string | null } | null): number {
     const y = parseInt(sm.slice(0, 4), 10);
     return y || YEAR;
 }
-export function sortDate(s: Show): Date {
+// move-in is printed as bare "M/D" and can land in December for a January
+// show ("12/26" move-in, sheetMonth "2026-01") — that's really Dec 2025,
+// not Dec 2026. Without rolling the year back here, that one show's
+// move-in date lands a full year in the future — which, depending on the
+// caller, either drags its whole month group to the front of the archive
+// (sortDate) or makes an already-passed show look like an upcoming one
+// (showSpan/showsOn, which is what "next move-ins" filters against).
+//
+// The gap has to be large (> 6 months) before this kicks in — a show
+// printed on the August sheet with a September 1st move-in (gap of 1) is
+// completely normal, not a year wraparound. An earlier version of this
+// check fired on any miMonth > sm and wrongly rolled ordinary
+// adjacent-month move-ins back a full year.
+function miYear(s: Show): number {
     const y = showYear(s);
-    // move-in is printed as bare "M/D" and can land in December for a
-    // January show ("12/26" move-in, sheetMonth "2026-01") — that's really
-    // Dec 2025, not Dec 2026. Without rolling the year back here, that one
-    // show's sort date lands a full year in the future, which drags its
-    // entire month group to the front of the archive (newest-first).
-    //
-    // The gap has to be large (> 6 months) before this kicks in — a show
-    // printed on the August sheet with a September 1st move-in (gap of 1)
-    // is completely normal, not a year wraparound. An earlier version of
-    // this check fired on any miMonth > sm and wrongly rolled ordinary
-    // adjacent-month move-ins back a full year.
     const sm = parseInt(String(s.sheetMonth || "").slice(5, 7), 10);
     const miMonth = s.mi ? parseInt(String(s.mi).split("/")[0], 10) : 0;
-    const miYear = sm && miMonth && miMonth - sm > 6 ? y - 1 : y;
-    return mkDate(s.mi, miYear) || mkDate(s.start, y) || new Date(YEAR, 11, 31);
+    return sm && miMonth && miMonth - sm > 6 ? y - 1 : y;
+}
+export function sortDate(s: Show): Date {
+    const y = showYear(s);
+    return mkDate(s.mi, miYear(s)) || mkDate(s.start, y) || new Date(YEAR, 11, 31);
 }
 export function endDate(s: Show): Date {
     return (
@@ -373,10 +378,14 @@ export function monthGrid(y: number, m: number): Date[] {
         cells.push(new Date(y, m, 1 - first.getDay() + i));
     return cells;
 }
-/* a show occupies every day from move-in through end */
+/* a show occupies every day from move-in through end — same December/
+   January year-rollover correction as sortDate on the move-in side (see
+   miYear's comment); the run itself (start/end) stays on the sheet's own
+   year, only the move-in can land in the preceding one. */
 export function showSpan(s: Show): [Date | null, Date | null] {
-    const a = mkDate(s.mi, showYear(s)) || mkDate(s.start, showYear(s));
-    const b = mkDate(s.end, showYear(s)) || mkDate(s.start, showYear(s)) || a;
+    const y = showYear(s);
+    const a = mkDate(s.mi, miYear(s)) || mkDate(s.start, y);
+    const b = mkDate(s.end, y) || mkDate(s.start, y) || a;
     return [a, b];
 }
 export function showsOn(shows: Show[], d: Date): Show[] {

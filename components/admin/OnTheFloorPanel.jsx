@@ -9,7 +9,7 @@
    splitting it further, file by file, as later admin work touches each part. */
 import { useState, useEffect, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { C, SHADOW, FM, REGION, todayMid, showsOn, sortDate, mkDate, showYear, matchCo, countdown, fmtTel } from "@/lib/core";
+import { C, SHADOW, FM, REGION, todayMid, showsOn, sortDate, matchCo, countdown, fmtTel } from "@/lib/core";
 
 export function OnTheFloorPanel({ shows, onSelectShow }) {
   const [companies, setCompanies] = useState(null);
@@ -24,7 +24,7 @@ export function OnTheFloorPanel({ shows, onSelectShow }) {
   const today = todayMid();
   const onFloor = useMemo(() => showsOn(shows, today).sort((a, b) => sortDate(a) - sortDate(b)), [shows, today.getTime()]);
   const nextUp = useMemo(() => shows
-    .filter((s) => { const mi = mkDate(s.mi, showYear(s)) || mkDate(s.start, showYear(s)); return mi && mi > today; })
+    .filter((s) => sortDate(s) > today)
     .sort((a, b) => sortDate(a) - sortDate(b))
     .slice(0, 3), [shows, today.getTime()]);
 

@@ -34,7 +34,6 @@ import {
     keyOf,
     levelIndex,
     mAdd,
-    mkDate,
     mKey,
     mMed,
     mParse,
@@ -47,7 +46,6 @@ import {
     rollupEntries,
     sameDay,
     showsOn,
-    showYear,
     sortDate,
     splitHours,
     statusOn,
@@ -178,10 +176,7 @@ export function HomeTab({
     const nextUp = useMemo(
         () =>
             shows
-                .filter((s) => {
-                    const mi = mkDate(s.mi, showYear(s)) || mkDate(s.start, showYear(s));
-                    return mi && mi > today;
-                })
+                .filter((s) => sortDate(s) > today)
                 .sort((a, b) => sortDate(a) - sortDate(b))
                 .slice(0, 3),
         [shows],
