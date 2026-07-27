@@ -670,14 +670,16 @@ export default function App() {
     .sb ::-webkit-scrollbar-thumb{ background: #2B323D; border-radius: 3px; }
     .sb .foc:focus-visible{ box-shadow: 0 0 0 2px ${C.bg}, 0 0 0 4px ${C.brand}; }
     .sb .signout-btn:hover:not(:disabled){ background: ${C.raise}; color: ${C.hi}; border-color: ${C.danger}66; }
-    /* Desktop only — a mouse can hover, a touchscreen cannot, so this stays
-       invisible on the phone-in-a-convention-hall case this app is built
-       for. transform/filter instead of background/border so it layers
+    /* Gated on the input device, not screen width — a mouse can hover, a
+       touchscreen cannot, so this stays invisible on the phone-in-a-
+       convention-hall case this app is built for even at a narrow width
+       (a desktop browser resized small still has a real mouse and still
+       gets it). transform/filter instead of background/border so it layers
        cleanly over every .foc element without a fight over its own inline
        colors. .navfoc opts a .foc element out of this treatment — the nav
        pills get their own hover (icon/label color, handled in NavBar via its
        own state) instead, since the lift/shadow read wrong on a nav bar. */
-    @media (min-width: 900px) and (hover: hover) and (pointer: fine){
+    @media (hover: hover) and (pointer: fine){
       .sb .foc{ transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease; }
       .sb .foc:hover:not(:disabled){ filter: brightness(1.28); transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,0.45); }
       .sb .foc:active:not(:disabled){ transform: translateY(0); filter: brightness(1.1); }
