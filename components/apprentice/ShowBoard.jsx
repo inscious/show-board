@@ -186,16 +186,20 @@ const TABS = [
 ];
 
 function NavBar({ tab, setTab, variant }) {
+    const [hovered, setHovered] = useState(null);
     if (variant === "bottom") {
         return (
             <div style={{ display: "flex" }}>
                 {TABS.map(([k, lab, Ico]) => {
                     const on = tab === k;
+                    const hi = !on && hovered === k;
                     return (
                         <button
                             key={k}
-                            className="foc"
+                            className="foc navfoc"
                             onClick={() => setTab(k)}
+                            onMouseEnter={() => setHovered(k)}
+                            onMouseLeave={() => setHovered(null)}
                             style={{
                                 flex: 1,
                                 position: "relative",
@@ -222,13 +226,13 @@ function NavBar({ tab, setTab, variant }) {
                                     }}
                                 />
                             )}
-                            <Ico size={19} color={on ? C.brand : C.lo} />
+                            <Ico size={19} color={on ? C.brand : hi ? C.hi : C.lo} />
                             <span
                                 style={{
                                     fontSize: 10.5,
                                     fontWeight: 800,
                                     letterSpacing: 0.2,
-                                    color: on ? C.brand : C.lo,
+                                    color: on ? C.brand : hi ? C.hi : C.lo,
                                 }}
                             >
                                 {lab}
@@ -253,11 +257,14 @@ function NavBar({ tab, setTab, variant }) {
         >
             {TABS.map(([k, lab, Ico]) => {
                 const on = tab === k;
+                const hi = !on && hovered === k;
                 return (
                     <button
                         key={k}
-                        className="foc"
+                        className="foc navfoc"
                         onClick={() => setTab(k)}
+                        onMouseEnter={() => setHovered(k)}
+                        onMouseLeave={() => setHovered(null)}
                         style={{
                             flex: 1,
                             display: "flex",
@@ -269,7 +276,7 @@ function NavBar({ tab, setTab, variant }) {
                             fontSize: 13.5,
                             fontWeight: 800,
                             background: on ? C.brand : "transparent",
-                            color: on ? C.ink : C.mid,
+                            color: on ? C.ink : hi ? C.hi : C.mid,
                             border: "none",
                         }}
                     >
@@ -667,11 +674,15 @@ export default function App() {
        invisible on the phone-in-a-convention-hall case this app is built
        for. transform/filter instead of background/border so it layers
        cleanly over every .foc element without a fight over its own inline
-       colors. */
+       colors. .navfoc opts a .foc element out of this treatment — the nav
+       pills get their own hover (icon/label color, handled in NavBar via its
+       own state) instead, since the lift/shadow read wrong on a nav bar. */
     @media (min-width: 900px) and (hover: hover) and (pointer: fine){
       .sb .foc{ transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease; }
-      .sb .foc:hover:not(:disabled){ filter: brightness(1.14); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.32); }
-      .sb .foc:active:not(:disabled){ transform: translateY(0); filter: brightness(1.05); }
+      .sb .foc:hover:not(:disabled){ filter: brightness(1.28); transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,0.45); }
+      .sb .foc:active:not(:disabled){ transform: translateY(0); filter: brightness(1.1); }
+      .sb .navfoc:hover:not(:disabled){ filter: none; transform: none; box-shadow: none; }
+      .sb .navfoc:active:not(:disabled){ filter: none; transform: none; }
     }
     .sb .truncate{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .sb .noscroll{ scrollbar-width:none; } .sb .noscroll::-webkit-scrollbar{ display:none; }
