@@ -32,7 +32,7 @@ function AdminNavBar({ pathname, variant }) {
         {ADMIN_TABS.map(([href, label, Icon]) => {
           const on = isActive(href);
           return (
-            <Link key={href} href={href} className="foc"
+            <Link key={href} href={href} className="foc navfoc"
               style={{ flex: 1, position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "9px 0 8px", background: "transparent", border: "none", textDecoration: "none" }}>
               {on && <span style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 26, height: 2.5, borderRadius: 2, background: C.brand }} />}
               <Icon size={19} color={on ? C.brand : C.lo} />
@@ -48,7 +48,7 @@ function AdminNavBar({ pathname, variant }) {
       {ADMIN_TABS.map(([href, label, Icon]) => {
         const on = isActive(href);
         return (
-          <Link key={href} href={href} className="foc tab-btn" data-active={on}
+          <Link key={href} href={href} className="foc tab-btn navfoc" data-active={on}
             style={{ flex: 1, whiteSpace: "nowrap", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", borderRadius: 9, fontSize: 13, fontWeight: 800, background: on ? C.brand : "transparent", color: on ? C.ink : C.mid, border: "none", textDecoration: "none" }}>
             <Icon size={15} /> {label}
           </Link>
@@ -230,12 +230,28 @@ export default function AdminLayout({ children }) {
         .admin-shell .icon-btn:hover{ background: ${C.raise}; color: ${C.hi}; }
         .admin-shell .roster-row:hover{ border-color: ${C.brand}66; background: ${C.raise}; }
         .admin-shell .tab-btn:hover:not([data-active="true"]){ background: rgba(255,255,255,0.04); color: ${C.hi}; }
+        /* Same treatment as the apprentice side: gated on the input device
+           (a mouse can hover, a touchscreen cannot), not screen width — a
+           narrow desktop window still gets it. .navfoc opts a .foc element
+           out, for the nav links (which already have their own .tab-btn
+           hover above) and anything else where a lift/shadow reads wrong. */
+        @media (hover: hover) and (pointer: fine){
+          .admin-shell .foc{ transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease; }
+          .admin-shell .foc:hover:not(:disabled){ filter: brightness(1.28); transform: translateY(-2px); box-shadow: 0 10px 22px rgba(0,0,0,0.45); }
+          .admin-shell .foc:active:not(:disabled){ transform: translateY(0); filter: brightness(1.1); }
+          .admin-shell .navfoc:hover:not(:disabled){ filter: none; transform: none; box-shadow: none; }
+          .admin-shell .navfoc:active:not(:disabled){ filter: none; transform: none; }
+        }
+        @keyframes pulse-dot{ 0%, 100%{ opacity: 1; transform: scale(1); } 50%{ opacity: 0.45; transform: scale(0.8); } }
+        .admin-shell .pulse-dot{ animation: pulse-dot 1.6s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce){ .admin-shell *{ transition: none !important; animation: none !important; } }
         .admin-shell .wrap{ max-width: 720px; margin: 0 auto; padding: 24px 16px 96px; }
         .admin-shell .navtop{ display: none; }
         .admin-shell .navbot{ display: block; padding-bottom: env(safe-area-inset-bottom, 0px); }
         .admin-shell .dnum{ font-size: 15px; }
         .admin-shell .dcap{ font-size: 10px; }
         .admin-shell .dcap-unit{ display: none; font-size: 10px; font-weight: 600; color: ${C.mid}; margin-left: 3px; }
+        .admin-shell .floor-grid{ display: flex; flex-direction: column; gap: 8px; }
         @media (min-width: 900px){
           .admin-shell .wrap{ max-width: 1160px; padding-bottom: 60px; }
           .admin-shell .navtop{ display: block; margin-bottom: 16px; }
@@ -243,6 +259,7 @@ export default function AdminLayout({ children }) {
           .admin-shell .dnum{ font-size: 15px; }
           .admin-shell .dcap{ font-size: 10px; }
           .admin-shell .dcap-unit{ display: inline; }
+          .admin-shell .floor-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         }
       `}</style>
       <div className="wrap">

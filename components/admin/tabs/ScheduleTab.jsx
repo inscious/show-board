@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { ChevronRight, Plus, Upload, Search, Trash2 } from "lucide-react";
-import { C, SHADOW, FM, FS, REGION, sortDate, monthLabel, monthKey, isPast, countdown } from "@/lib/core";
+import { C, SHADOW, FM, FS, REGION, sortDate, monthLabel, monthKey, isPast } from "@/lib/core";
 import { ShowForm, ImportForm, EMPTY } from "@/components/ShowEditor";
 import { Modal, ConfirmModal, req, Stat } from "@/components/admin/shared";
+import { ShowCardHeader } from "@/components/apprentice/tabs/ShowCard";
 
 /* ---------- schedule ---------- */
 export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
@@ -82,8 +83,14 @@ export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
   // individually-collapsed rows — each stays independently expandable once revealed
   const { pastGroups, currentGroups } = useMemo(() => {
     const past = [], current = [];
-    groups.forEach((g) => (g.list.every(isPast) ? past : current).push(g));
-    return { pastGroups: past, currentGroups: current };
+    groups.forEach((g) => (g.list.every(isPast) ? past.push(g) : current.push(g)));
+    // archive reads newest first — same reverse-chronological convention as
+    // the apprentice Board's Past view; upcoming stays chronological as-is.
+    const pastReversed = past
+      .slice()
+      .reverse()
+      .map((g) => ({ ...g, list: g.list.slice().reverse() }));
+    return { pastGroups: pastReversed, currentGroups: current };
   }, [groups]);
   const pastShowCount = useMemo(() => pastGroups.reduce((s, g) => s + g.list.length, 0), [pastGroups]);
 
@@ -92,7 +99,7 @@ export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
     const isOpen = !(collapsed[g.label] ?? allPast);
     return (
       <div key={g.label}>
-        <button className="foc tab-btn" onClick={() => setCollapsed((p) => ({ ...p, [g.label]: !(p[g.label] ?? allPast) }))}
+        <button className="foc tab-btn navfoc" onClick={() => setCollapsed((p) => ({ ...p, [g.label]: !(p[g.label] ?? allPast) }))}
           style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, background: "transparent", border: "none", padding: "6px 2px", color: allPast ? C.lo : C.hi }}>
           <ChevronRight size={14} color={C.lo} style={{ transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s", flexShrink: 0 }} />
           <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.6, fontFamily: FM }}>{g.label.toUpperCase()}</span>
@@ -100,37 +107,23 @@ export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
           {allPast && <span style={{ fontSize: 9.5, fontFamily: FM, color: C.lo, marginLeft: "auto" }}>PAST</span>}
         </button>
         {isOpen && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>
             {g.list.map((s) => {
               const past = isPast(s);
-              const region = REGION[s.region] || REGION.OTHER;
               const open = expandedId === s.id;
-              const cd = !past ? countdown(s) : null;
               return (
-                <div key={s.id} id={"show-" + s.id} style={{ background: C.panel, border: "1px solid " + (open ? C.brand + "66" : C.edge), borderRadius: 10, opacity: past ? 0.55 : 1, overflow: "hidden" }}>
-                  <button className="foc" onClick={() => setExpandedId(open ? null : s.id)}
-                    style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: "none", padding: "10px 12px" }}>
-                    <div style={{ flexShrink: 0, width: 38, textAlign: "center" }}>
-                      <div style={{ fontFamily: FM, fontSize: 15, fontWeight: 800, color: past ? C.mid : C.brand, lineHeight: 1.1 }}>{s.mi || s.start || "—"}</div>
-                      <div style={{ fontFamily: FM, fontSize: 7.5, color: C.mid, marginTop: 1 }}>{s.mi ? "MOVE IN" : "START"}</div>
-                    </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: past ? C.mid : C.hi }}>{s.name}</div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3, flexWrap: "wrap" }}>
-                        <span style={{ fontFamily: FM, fontSize: 9, fontWeight: 800, color: region.color, background: region.color + "1C", border: "1px solid " + region.color + "55", borderRadius: 5, padding: "1px 5px" }}>{region.label}</span>
-                        <span className="truncate" style={{ fontSize: 10.5, color: C.mid }}>{s.loc}{s.co ? " · " + s.co : ""}</span>
-                      </div>
-                    </div>
-                    {cd && (
-                      <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: cd.c, border: "1px solid " + cd.c + "55", borderRadius: 5, padding: "2px 6px" }}>
-                        {cd.t}
-                      </span>
-                    )}
-                    <ChevronRight size={15} color={C.mid} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s", flexShrink: 0 }} />
-                  </button>
+                <div key={s.id} id={"show-" + s.id} style={{
+                  background: C.panel,
+                  borderRadius: 13,
+                  overflow: "hidden",
+                  opacity: past ? 0.66 : 1,
+                  border: "1px solid " + (open ? "rgba(127,178,255,0.45)" : C.edge),
+                  boxShadow: open ? "0 6px 20px rgba(0,0,0,0.5)" : SHADOW,
+                }}>
+                  <ShowCardHeader show={s} onClick={() => setExpandedId(open ? null : s.id)} />
                   {open && (
-                    <div style={{ padding: "0 12px 12px" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+                    <div style={{ padding: "0 12px 12px", borderTop: "1px solid " + C.line }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 12, marginBottom: 10 }}>
                         <Stat label="MOVE IN" value={s.mi || "—"} />
                         <Stat label="START" value={s.start || "—"} />
                         <Stat label="END" value={s.end || "—"} />

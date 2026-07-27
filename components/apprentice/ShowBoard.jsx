@@ -690,6 +690,8 @@ export default function App() {
     }
     .sb .truncate{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .sb .noscroll{ scrollbar-width:none; } .sb .noscroll::-webkit-scrollbar{ display:none; }
+    @keyframes pulse-dot{ 0%, 100%{ opacity: 1; transform: scale(1); } 50%{ opacity: 0.45; transform: scale(0.8); } }
+    .sb .pulse-dot{ animation: pulse-dot 1.6s ease-in-out infinite; }
     @media (prefers-reduced-motion: reduce){ .sb *{ transition:none !important; animation:none !important; } }
   `;
 

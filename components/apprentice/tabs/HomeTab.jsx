@@ -1542,6 +1542,7 @@ export function HomeTab({
                             }}
                         >
                             <span
+                                className="pulse-dot"
                                 style={{
                                     width: 7,
                                     height: 7,
