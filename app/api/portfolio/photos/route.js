@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { guardedRoute } from "@/lib/apiGuard";
+import { portfolioPhotoCoverSchema } from "@/lib/schemas";
 
 /* Photo upload/delete — can't go through guardedRoute for POST (multipart
    body, not JSON), so auth + rate limit here mirror what it does internally,
@@ -66,6 +68,32 @@ export async function POST(request) {
 
   const { data: signed } = await supabase.storage.from("portfolio").createSignedUrl(path, 3600);
   return Response.json({ ok: true, id: photoId, url: signed?.signedUrl || null });
+}
+
+/* Set-as-cover — a plain JSON body, so this one goes through guardedRoute
+   unlike POST/DELETE above. "Cover" isn't its own column: it's just
+   whichever photo has the lowest sort_order, since the shared route and
+   every gallery already read photos in that order — making a photo the
+   cover just means giving it a sort_order lower than anything else in the
+   project, same "simple reorder, not drag-and-drop" convention as project
+   ordering elsewhere in this feature. */
+export async function PATCH(request) {
+  return guardedRoute(request, "portfolio:photos:patch", { schema: portfolioPhotoCoverSchema }, async ({ supabase, data }) => {
+    const { data: photos } = await supabase
+      .from("portfolio_project_photos")
+      .select("id, sort_order")
+      .eq("project_id", data.projectId);
+    if (!photos?.some((p) => p.id === data.id)) {
+      return Response.json({ error: "Photo not found" }, { status: 404 });
+    }
+    const minOrder = Math.min(0, ...photos.map((p) => p.sort_order));
+    const { error } = await supabase
+      .from("portfolio_project_photos")
+      .update({ sort_order: minOrder - 1 })
+      .eq("id", data.id);
+    if (error) return Response.json({ error: "Could not update" }, { status: 400 });
+    return Response.json({ ok: true });
+  });
 }
 
 export async function DELETE(request) {

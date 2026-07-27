@@ -12,6 +12,8 @@ export async function POST(request) {
     };
     if (data.displayName !== undefined) patch.display_name = data.displayName || null;
     if (data.bio !== undefined) patch.bio = data.bio || null;
+    if (data.contactEmail !== undefined) patch.contact_email = data.contactEmail || null;
+    if (data.contactPhone !== undefined) patch.contact_phone = data.contactPhone || null;
 
     if (data.shared !== undefined) {
       if (data.shared) {

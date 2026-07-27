@@ -10,7 +10,7 @@
    is already scoped server-side to be safe to show a stranger. */
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, HardHat, MapPin, ShieldCheck, Wrench, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, HardHat, Mail, MapPin, Phone, ShieldCheck, Wrench, X } from "lucide-react";
 
 const PC = {
     bg: "#12151B",
@@ -43,6 +43,25 @@ function fmtDateRange(days) {
     if (dates.length === 0) return "";
     if (dates.length === 1 || dates[0] === dates[dates.length - 1]) return fmtDate(dates[0]);
     return fmtDate(dates[0]) + " – " + fmtDate(dates[dates.length - 1]);
+}
+
+// groups consecutive-by-first-appearance, not alphabetically — projects keep
+// the apprentice's own sort_order within and across groups; an ungrouped
+// (section: null) project gets no header at all, not an "Other" label.
+function groupProjects(projects) {
+    const groups = [];
+    const bySection = new Map();
+    for (const p of projects) {
+        const key = p.section || "";
+        let group = bySection.get(key);
+        if (!group) {
+            group = { section: p.section || null, projects: [] };
+            bySection.set(key, group);
+            groups.push(group);
+        }
+        group.projects.push(p);
+    }
+    return groups;
 }
 
 export default function SharedPortfolioPage() {
@@ -101,8 +120,9 @@ export default function SharedPortfolioPage() {
 }
 
 function PortfolioContent({ data }) {
-    const { displayName, bio, credentials, projects } = data;
+    const { displayName, bio, credentials, projects, contactEmail, contactPhone } = data;
     const years = credentials?.yearsInTrade;
+    const groups = groupProjects(projects);
 
     return (
         <div className="pf-wrap">
@@ -148,6 +168,29 @@ function PortfolioContent({ data }) {
                 </div>
             </header>
 
+            {(contactEmail || contactPhone) && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 18, fontSize: 13 }}>
+                    {contactEmail && (
+                        <a
+                            href={`mailto:${contactEmail}`}
+                            style={{ display: "flex", alignItems: "center", gap: 6, color: PC.gold, textDecoration: "none" }}
+                        >
+                            <Mail size={13} />
+                            {contactEmail}
+                        </a>
+                    )}
+                    {contactPhone && (
+                        <a
+                            href={`tel:${contactPhone.replace(/[^\d+]/g, "")}`}
+                            style={{ display: "flex", alignItems: "center", gap: 6, color: PC.gold, textDecoration: "none" }}
+                        >
+                            <Phone size={13} />
+                            {contactPhone}
+                        </a>
+                    )}
+                </div>
+            )}
+
             {bio && (
                 <p style={{ fontSize: 14.5, lineHeight: 1.65, color: PC.mid, margin: "0 0 22px" }}>{bio}</p>
             )}
@@ -182,9 +225,29 @@ function PortfolioContent({ data }) {
                 </div>
             )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 34 }}>
-                {projects.map((p) => (
-                    <ProjectCard key={p.id} project={p} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 40 }}>
+                {groups.map((group, i) => (
+                    <div key={group.section || `_ungrouped_${i}`} style={{ display: "flex", flexDirection: "column", gap: 34 }}>
+                        {group.section && (
+                            <h2
+                                className="pf-mono"
+                                style={{
+                                    fontSize: 11.5,
+                                    letterSpacing: 1.2,
+                                    textTransform: "uppercase",
+                                    color: PC.gold,
+                                    margin: 0,
+                                    paddingBottom: 8,
+                                    borderBottom: "1px solid " + PC.line,
+                                }}
+                            >
+                                {group.section}
+                            </h2>
+                        )}
+                        {group.projects.map((p) => (
+                            <ProjectCard key={p.id} project={p} />
+                        ))}
+                    </div>
                 ))}
             </div>
 

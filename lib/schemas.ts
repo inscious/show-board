@@ -350,10 +350,13 @@ export const portfolioProjectSchema = z.object({
     id,
     title: z.string().trim().min(1).max(200),
     notes: note,
+    section: shortText,
     sortOrder: z.number().int().optional(),
     includeInPortfolio: z.boolean().optional(),
 });
 export const portfolioProjectDeleteSchema = z.object({ id });
+
+export const portfolioPhotoCoverSchema = z.object({ id, projectId: id });
 
 export const portfolioProjectDaySchema = z.object({
     projectId: id,
@@ -375,6 +378,8 @@ export const portfolioShareSchema = z.object({
 export const portfolioSettingsSchema = z.object({
     displayName: shortText,
     bio: note,
+    contactEmail: z.string().trim().toLowerCase().email().max(254).optional().nullable().or(z.literal("")),
+    contactPhone: shortText,
     shared: z.boolean().optional(),
 });
 

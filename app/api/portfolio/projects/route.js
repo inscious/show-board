@@ -8,7 +8,7 @@ export async function GET(request) {
   return guardedRoute(request, "portfolio:projects:get", {}, async ({ supabase, user }) => {
     const { data, error } = await supabase
       .from("portfolio_projects")
-      .select("id, title, notes, sort_order, include_in_portfolio, share_token, created_at")
+      .select("id, title, notes, section, sort_order, include_in_portfolio, share_token, created_at")
       .eq("user_id", user.id)
       .order("sort_order", { ascending: true });
     if (error) return Response.json({ error: "Could not load" }, { status: 400 });
@@ -18,11 +18,17 @@ export async function GET(request) {
 
 export async function POST(request) {
   return guardedRoute(request, "portfolio:projects:post", { schema: portfolioProjectSchema }, async ({ supabase, user, data }) => {
+    // every field but id/title is conditional on purpose — moveProject()
+    // and toggleInclude() only ever send {id, title, sortOrder} or
+    // {id, title, includeInPortfolio}. Unconditionally including notes/
+    // section here would silently null them out on every reorder or
+    // include-toggle, since those calls never send them.
     const { error } = await supabase.from("portfolio_projects").upsert({
       id: data.id,
       user_id: user.id,
       title: data.title,
-      notes: data.notes || null,
+      ...(data.notes !== undefined ? { notes: data.notes || null } : {}),
+      ...(data.section !== undefined ? { section: data.section || null } : {}),
       ...(data.sortOrder !== undefined ? { sort_order: data.sortOrder } : {}),
       ...(data.includeInPortfolio !== undefined ? { include_in_portfolio: data.includeInPortfolio } : {}),
     });

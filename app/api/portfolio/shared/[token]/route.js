@@ -67,6 +67,7 @@ async function projectPayload(admin, project) {
     id: project.id,
     title: project.title,
     notes: project.notes,
+    section: project.section || null,
     days: (days || []).map((d) => ({
       workType: d.work_type,
       date: d.work_entries?.worked_on || null,
@@ -91,13 +92,17 @@ export async function GET(request, { params }) {
 
   const admin = createAdminClient();
 
-  const { data: settings } = await admin.from("portfolio_settings").select("user_id, display_name, bio").eq("share_token", token).maybeSingle();
+  const { data: settings } = await admin
+    .from("portfolio_settings")
+    .select("user_id, display_name, bio, contact_email, contact_phone")
+    .eq("share_token", token)
+    .maybeSingle();
 
   if (settings) {
     const context = await credentialContext(admin, settings.user_id);
     const { data: projects } = await admin
       .from("portfolio_projects")
-      .select("id, title, notes")
+      .select("id, title, notes, section")
       .eq("user_id", settings.user_id)
       .eq("include_in_portfolio", true)
       .order("sort_order", { ascending: true });
@@ -110,24 +115,37 @@ export async function GET(request, { params }) {
       scope: "portfolio",
       displayName: settings.display_name || context.displayName,
       bio: settings.bio || null,
+      contactEmail: settings.contact_email || null,
+      contactPhone: settings.contact_phone || null,
       credentials: context,
       projects: payload,
     });
   }
 
-  const { data: project } = await admin.from("portfolio_projects").select("id, title, notes, user_id").eq("share_token", token).maybeSingle();
+  const { data: project } = await admin.from("portfolio_projects").select("id, title, notes, section, user_id").eq("share_token", token).maybeSingle();
   if (!project) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
   const context = await credentialContext(admin, project.user_id);
   const payload = await projectPayload(admin, project);
+  // a per-project share link has no settings row of its own to source
+  // contact info from — fall back to the owner's whole-portfolio settings,
+  // if they've set any, so a hiring manager who only got one project link
+  // can still reach out.
+  const { data: ownerSettings } = await admin
+    .from("portfolio_settings")
+    .select("contact_email, contact_phone")
+    .eq("user_id", project.user_id)
+    .maybeSingle();
 
   return Response.json({
     ok: true,
     scope: "project",
     displayName: context.displayName,
     bio: null,
+    contactEmail: ownerSettings?.contact_email || null,
+    contactPhone: ownerSettings?.contact_phone || null,
     credentials: context,
     projects: [payload],
   });

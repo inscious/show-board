@@ -25,6 +25,7 @@ import {
     Image as ImageIcon,
     Link2,
     Loader2,
+    Star,
     Trash2,
     Wrench,
     X,
@@ -114,6 +115,21 @@ function ProjectPhotos({ project, detail, onChange }) {
         }
     }
 
+    // "cover" isn't its own field — it's whichever photo sorts first, so
+    // promoting one just means moving it to the front locally (matching what
+    // the PATCH does server-side via sort_order) rather than re-fetching.
+    async function setCover(photoId) {
+        const target = detail.photos.find((p) => p.id === photoId);
+        if (!target) return;
+        const rest = detail.photos.filter((p) => p.id !== photoId);
+        onChange({ ...detail, photos: [target, ...rest] });
+        try {
+            await req("PATCH", "/api/portfolio/photos", { id: photoId, projectId: project.id });
+        } catch {
+            // best-effort — a stale order is harmless, it resyncs next full load
+        }
+    }
+
     return (
         <div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
@@ -157,6 +173,46 @@ function ProjectPhotos({ project, detail, onChange }) {
                         >
                             <X size={11} />
                         </button>
+                        {i === 0 ? (
+                            <div
+                                style={{
+                                    position: "absolute",
+                                    bottom: 3,
+                                    left: 3,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 3,
+                                    background: "rgba(13,15,19,0.75)",
+                                    borderRadius: 6,
+                                    color: C.brand,
+                                    padding: "2px 5px",
+                                    fontSize: 8.5,
+                                    fontWeight: 800,
+                                    letterSpacing: 0.3,
+                                }}
+                            >
+                                <Star size={9} fill="currentColor" />
+                                COVER
+                            </div>
+                        ) : (
+                            <button
+                                className="foc"
+                                onClick={() => setCover(p.id)}
+                                title="Set as cover photo"
+                                style={{
+                                    position: "absolute",
+                                    bottom: 3,
+                                    left: 3,
+                                    background: "rgba(13,15,19,0.75)",
+                                    border: "none",
+                                    borderRadius: 6,
+                                    color: C.hi,
+                                    padding: 3,
+                                }}
+                            >
+                                <Star size={11} />
+                            </button>
+                        )}
                     </div>
                 ))}
                 <label
@@ -366,8 +422,9 @@ function PhotoLightbox({ photos, index, onIndexChange, onClose }) {
     );
 }
 
-function ProjectRow({ project, index, count, detail, expanded, onToggle, onMove, onDelete, onIncludeToggle, onShareToggle, onDetailChange }) {
+function ProjectRow({ project, index, count, detail, expanded, onToggle, onMove, onDelete, onIncludeToggle, onShareToggle, onSectionChange, onDetailChange }) {
     const [busy, setBusy] = useState(false);
+    const [section, setSection] = useState(project.section || "");
     return (
         <div
             style={{
@@ -423,6 +480,22 @@ function ProjectRow({ project, index, count, detail, expanded, onToggle, onMove,
 
             {expanded && (
                 <div style={{ padding: "0 12px 14px", borderTop: "1px solid " + C.line }}>
+                    <input
+                        value={section}
+                        onChange={(e) => setSection(e.target.value)}
+                        onBlur={() => section !== (project.section || "") && onSectionChange(project, section)}
+                        placeholder={`Section (optional) — e.g. "2026" or the general's name, to group booths on your shared page`}
+                        style={{
+                            width: "100%",
+                            background: C.sunk,
+                            border: "1px solid " + C.line,
+                            borderRadius: 8,
+                            padding: "8px 10px",
+                            color: C.hi,
+                            fontSize: 12,
+                            marginTop: 12,
+                        }}
+                    />
                     <div style={{ marginTop: 12 }}>
                         {detail ? (
                             <ProjectPhotos project={project} detail={detail} onChange={(d) => onDetailChange(project.id, d)} />
@@ -519,6 +592,8 @@ export function PortfolioSection() {
     const [confirmDelete, setConfirmDelete] = useState(null);
     const [name, setName] = useState("");
     const [bio, setBio] = useState("");
+    const [contactEmail, setContactEmail] = useState("");
+    const [contactPhone, setContactPhone] = useState("");
     const [settingsSaving, setSettingsSaving] = useState(false);
 
     async function loadAll() {
@@ -531,6 +606,8 @@ export function PortfolioSection() {
         setSettings(sett || null);
         setName(sett?.display_name || "");
         setBio(sett?.bio || "");
+        setContactEmail(sett?.contact_email || "");
+        setContactPhone(sett?.contact_phone || "");
     }
 
     useEffect(() => {
@@ -599,6 +676,15 @@ export function PortfolioSection() {
         setProjects((ps) => ps.map((p) => (p.id === project.id ? { ...p, include_in_portfolio: next } : p)));
         try {
             await req("POST", "/api/portfolio/projects", { id: project.id, title: project.title, includeInPortfolio: next });
+        } catch {
+            loadAll();
+        }
+    }
+
+    async function updateSection(project, section) {
+        setProjects((ps) => ps.map((p) => (p.id === project.id ? { ...p, section } : p)));
+        try {
+            await req("POST", "/api/portfolio/projects", { id: project.id, title: project.title, section });
         } catch {
             loadAll();
         }
@@ -689,6 +775,42 @@ export function PortfolioSection() {
                                 fontFamily: "inherit",
                             }}
                         />
+                        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                            <input
+                                value={contactEmail}
+                                onChange={(e) => setContactEmail(e.target.value)}
+                                onBlur={() => contactEmail !== (settings?.contact_email || "") && saveSettings({ contactEmail })}
+                                placeholder="Contact email (optional)"
+                                type="email"
+                                style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    background: C.sunk,
+                                    border: "1px solid " + C.line,
+                                    borderRadius: 8,
+                                    padding: "9px 10px",
+                                    color: C.hi,
+                                    fontSize: 12.5,
+                                }}
+                            />
+                            <input
+                                value={contactPhone}
+                                onChange={(e) => setContactPhone(e.target.value)}
+                                onBlur={() => contactPhone !== (settings?.contact_phone || "") && saveSettings({ contactPhone })}
+                                placeholder="Phone (optional)"
+                                type="tel"
+                                style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    background: C.sunk,
+                                    border: "1px solid " + C.line,
+                                    borderRadius: 8,
+                                    padding: "9px 10px",
+                                    color: C.hi,
+                                    fontSize: 12.5,
+                                }}
+                            />
+                        </div>
                         <button
                             className="foc"
                             disabled={settingsSaving}
@@ -730,6 +852,7 @@ export function PortfolioSection() {
                                 onDelete={setConfirmDelete}
                                 onIncludeToggle={toggleInclude}
                                 onShareToggle={toggleShare}
+                                onSectionChange={updateSection}
                                 onDetailChange={(id, d) => setDetail((cur) => ({ ...cur, [id]: d }))}
                             />
                         ))}
