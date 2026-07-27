@@ -145,6 +145,7 @@ export const adminSetPasswordSchema = z.object({ userId, password });
 export const adminResetWelcomeSchema = z.object({ userId });
 export const adminSelfSignupSchema = z.object({ enabled: z.boolean() });
 export const adminOjtAutoApproveSchema = z.object({ enabled: z.boolean() });
+export const adminApprenticeAvatarUploadSchema = z.object({ enabled: z.boolean() });
 export const adminOrgProfileSchema = z.object({
     unionName: z.string().trim().min(1).max(120),
     outOfWorkLine: z.string().trim().regex(/^\d{10}$/, "expected 10 digits, no punctuation"),

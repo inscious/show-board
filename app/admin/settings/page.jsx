@@ -12,6 +12,7 @@ import { OjtAutoApprovePanel } from "@/components/admin/OjtAutoApprovePanel";
 import { OrgProfilePanel } from "@/components/admin/OrgProfilePanel";
 import { NewAdminForm } from "@/components/admin/NewAdminForm";
 import { UnionNoticesPanel } from "@/components/admin/UnionNoticesPanel";
+import { ApprenticeAvatarUploadPanel } from "@/components/admin/ApprenticeAvatarUploadPanel";
 
 export default function AdminSettingsPage() {
   const { email, isCentralAdmin, load } = useAdmin();
@@ -22,6 +23,7 @@ export default function AdminSettingsPage() {
 
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, margin: "8px 0 8px" }}>ACCESS</div>
       <SelfSignupPanel />
+      <ApprenticeAvatarUploadPanel />
       <NewAdminForm onCreated={load} isCentralAdmin={isCentralAdmin} />
       <AdminAccountsPanel currentEmail={email} isCentralAdmin={isCentralAdmin} />
 

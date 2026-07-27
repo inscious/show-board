@@ -340,6 +340,7 @@ export default function App() {
         local: "IUPAT Local 831",
         rsiCredits: 0,
         joined: "",
+        avatarUrl: null,
     });
     const [doNotHire, setDoNotHire] = useState({ on: false, reason: "", since: null });
     const [certs, setCerts] = useState([]);
@@ -409,6 +410,7 @@ export default function App() {
                           local: "IUPAT Local 831",
                           rsiCredits: 0,
                           joined: "",
+                          avatarUrl: null,
                       },
             );
             setDoNotHire(
@@ -926,6 +928,9 @@ export default function App() {
                         email={email}
                         isAdmin={isAdmin}
                         profile={profile}
+                        onAvatarChange={(avatarUrl) =>
+                            setProfile((p) => ({ ...p, avatarUrl }))
+                        }
                         certs={certs}
                         onSaveCert={saveCert}
                         completedClasses={completedClasses}

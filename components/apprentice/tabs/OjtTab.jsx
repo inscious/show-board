@@ -60,6 +60,7 @@ import {
 } from "@/lib/core";
 import { store } from "@/lib/store";
 import { Modal } from "@/components/ui/Modal";
+import { AvatarUpload } from "@/components/apprentice/AvatarUpload";
 import { Stat } from "@/components/ui/Stat";
 import { ClassCurriculum } from "@/components/ojt/ClassCurriculum";
 import { LevelList } from "@/components/ojt/LevelList";
@@ -97,6 +98,7 @@ export function OjtTab({
     isAdmin,
     onSignOut,
     profile,
+    onAvatarChange,
     onPasswordSet,
     certs,
     onSaveCert,
@@ -183,6 +185,11 @@ export function OjtTab({
                 }}
             >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <AvatarUpload
+                        name={profile.name}
+                        avatarUrl={profile.avatarUrl}
+                        onChange={onAvatarChange}
+                    />
                     <div style={{ minWidth: 0, flex: 1 }}>
                         <div
                             className="truncate"
