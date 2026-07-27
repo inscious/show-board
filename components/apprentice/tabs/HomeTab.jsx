@@ -26,23 +26,18 @@ import {
     STATUS,
     bookingOn,
     classOn,
-    countdown,
     daysUntil,
     fmtClock,
-    fmtTel,
     fromKey,
     hrsFmt,
-    isMine,
     isPast,
     keyOf,
     levelIndex,
     mAdd,
-    matchCo,
     mkDate,
     mKey,
     mMed,
     mParse,
-    myCompanyTokens,
     nextDates,
     num,
     ojtDue,
@@ -64,6 +59,7 @@ import { SplitChips } from "@/components/ui/SplitChips";
 import { hexRgb } from "@/components/utils/hexRgb";
 import { r1 } from "@/components/utils/r1";
 import { MonthlyHoursChart } from "@/components/apprentice/tabs/HoursChart";
+import { MiniShowCard } from "@/components/apprentice/tabs/MiniShowCard";
 
 // not a lib/core export — a tiny local also defined (separately) in
 // ShowBoard.jsx; duplicating 3 lines here beats adding an export just for
@@ -89,10 +85,9 @@ export function HomeTab({
     onClearNotification,
     doNotHire,
 }) {
-    const { companies, orgProfile } = useContext(DirectoryContext);
+    const { orgProfile } = useContext(DirectoryContext);
     const today = todayMid();
     const roll = useMemo(() => rollupEntries(entries), [entries]);
-    const mine = useMemo(() => myCompanyTokens(entries), [entries]);
     const mk = mKey(today.getFullYear(), today.getMonth());
     const m = roll[mk] || {
         a: 0,
@@ -290,80 +285,6 @@ export function HomeTab({
         a[k].cos.push(n);
         return a;
     }, {});
-
-    const ShowLine = (s, i) => {
-        const st = s.status ? STATUS[s.status] : null;
-        const col = st ? st.color : C.gc;
-        const gc = matchCo(s.co, s.region, companies);
-        return (
-            <button
-                key={s.id}
-                className="foc"
-                onClick={() => onGoto("board", s.id)}
-                style={{
-                    width: "100%",
-                    textAlign: "left",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    background: C.sunk,
-                    border: "1px solid " + col + "3A",
-                    borderRadius: 9,
-                    padding: "9px 10px",
-                }}
-            >
-                <span
-                    style={{
-                        width: 3,
-                        alignSelf: "stretch",
-                        borderRadius: 2,
-                        background: col,
-                        flexShrink: 0,
-                    }}
-                />
-                <div style={{ minWidth: 0, flex: 1 }}>
-                    <div
-                        className="truncate"
-                        style={{ fontSize: 13, fontWeight: 700, color: C.hi }}
-                    >
-                        {s.name}
-                    </div>
-                    <div
-                        className="truncate"
-                        style={{ fontSize: 11, color: C.mid, marginTop: 2 }}
-                    >
-                        {s.loc}
-                        {s.booth && s.booth !== "TBD" ? " · " + s.booth : ""}
-                    </div>
-                </div>
-                <div style={{ flexShrink: 0, textAlign: "right", maxWidth: 130 }}>
-                    <div
-                        className="truncate"
-                        style={{
-                            fontFamily: FM,
-                            fontSize: 10.5,
-                            fontWeight: 800,
-                            color: isMine(s.co, mine) ? C.brand : C.gc,
-                        }}
-                    >
-                        {gc?.name || (s.co || "TBD").toUpperCase()}
-                    </div>
-                    {gc && gc.tel && (
-                        <div
-                            style={{
-                                fontFamily: FM,
-                                fontSize: 10,
-                                color: C.lo,
-                                marginTop: 2,
-                            }}
-                        >
-                            {fmtTel(gc.tel)}
-                        </div>
-                    )}
-                </div>
-            </button>
-        );
-    };
 
     const dayRange = (days) => {
         const a = fromKey(days[0]);
@@ -1567,10 +1488,16 @@ export function HomeTab({
                             style={{
                                 display: "flex",
                                 flexDirection: "column",
-                                gap: 6,
+                                gap: 8,
                             }}
                         >
-                            {onFloor.slice(0, 3).map(ShowLine)}
+                            {onFloor.slice(0, 3).map((s) => (
+                                <MiniShowCard
+                                    key={s.id}
+                                    show={s}
+                                    onClick={() => onGoto("board", s.id)}
+                                />
+                            ))}
                         </div>
                     </div>
                 )}
@@ -1592,103 +1519,16 @@ export function HomeTab({
                             style={{
                                 display: "flex",
                                 flexDirection: "column",
-                                gap: 6,
+                                gap: 8,
                             }}
                         >
-                            {nextUp.map((s) => {
-                                const cd = countdown(s);
-                                const gc = matchCo(s.co, s.region, companies);
-                                const st = s.status ? STATUS[s.status] : null;
-                                return (
-                                    <button
-                                        key={s.id}
-                                        className="foc"
-                                        onClick={() => onGoto("board", s.id)}
-                                        style={{
-                                            width: "100%",
-                                            textAlign: "left",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            gap: 9,
-                                            background: C.sunk,
-                                            border: "1px solid " + C.line,
-                                            borderRadius: 9,
-                                            padding: "9px 10px",
-                                        }}
-                                    >
-                                        <div
-                                            style={{
-                                                flexShrink: 0,
-                                                width: 42,
-                                                textAlign: "center",
-                                            }}
-                                        >
-                                            <div
-                                                style={{
-                                                    fontFamily: FM,
-                                                    fontSize: 14,
-                                                    fontWeight: 800,
-                                                    color: st ? st.color : C.hi,
-                                                    lineHeight: 1.1,
-                                                }}
-                                            >
-                                                {s.mi}
-                                            </div>
-                                            <div
-                                                style={{
-                                                    fontFamily: FM,
-                                                    fontSize: 8.5,
-                                                    color: C.lo,
-                                                    marginTop: 1,
-                                                }}
-                                            >
-                                                MOVE IN
-                                            </div>
-                                        </div>
-                                        <div style={{ minWidth: 0, flex: 1 }}>
-                                            <div
-                                                className="truncate"
-                                                style={{
-                                                    fontSize: 13,
-                                                    fontWeight: 700,
-                                                    color: C.hi,
-                                                }}
-                                            >
-                                                {s.name}
-                                            </div>
-                                            <div
-                                                className="truncate"
-                                                style={{
-                                                    fontSize: 11,
-                                                    color: C.mid,
-                                                    marginTop: 2,
-                                                }}
-                                            >
-                                                {s.loc} · {gc ? gc.name : s.co}
-                                            </div>
-                                        </div>
-                                        {cd && (
-                                            <span
-                                                style={{
-                                                    flexShrink: 0,
-                                                    fontFamily: FM,
-                                                    fontSize: 9.5,
-                                                    fontWeight: 800,
-                                                    color: cd.c,
-                                                    border:
-                                                        "1px solid " +
-                                                        cd.c +
-                                                        "55",
-                                                    borderRadius: 5,
-                                                    padding: "2px 5px",
-                                                }}
-                                            >
-                                                {cd.t}
-                                            </span>
-                                        )}
-                                    </button>
-                                );
-                            })}
+                            {nextUp.map((s) => (
+                                <MiniShowCard
+                                    key={s.id}
+                                    show={s}
+                                    onClick={() => onGoto("board", s.id)}
+                                />
+                            ))}
                         </div>
                     </div>
                 )}

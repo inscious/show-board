@@ -663,10 +663,11 @@ export default function App() {
     .sb ::-webkit-scrollbar-thumb{ background: #2B323D; border-radius: 3px; }
     .sb .foc:focus-visible{ box-shadow: 0 0 0 2px ${C.bg}, 0 0 0 4px ${C.brand}; }
     .sb .signout-btn:hover:not(:disabled){ background: ${C.raise}; color: ${C.hi}; border-color: ${C.danger}66; }
-    /* Desktop only — a mouse can hover, a touchscreen can't, so this stays
+    /* Desktop only — a mouse can hover, a touchscreen cannot, so this stays
        invisible on the phone-in-a-convention-hall case this app is built
        for. transform/filter instead of background/border so it layers
-       cleanly over every .foc element's own inline colors. */
+       cleanly over every .foc element without a fight over its own inline
+       colors. */
     @media (min-width: 900px) and (hover: hover) and (pointer: fine){
       .sb .foc{ transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease; }
       .sb .foc:hover:not(:disabled){ filter: brightness(1.14); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.32); }

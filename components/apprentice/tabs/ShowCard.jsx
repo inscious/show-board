@@ -109,6 +109,226 @@ function GCChip({ co }) {
     );
 }
 
+/* The collapsed card header — spine, date block, name/location/badges/chips.
+   Pulled out so the Home dashboard's mini cards ("On the Floor Today",
+   "Next Move-ins") can share the exact same markup instead of an
+   approximation of it — real continuity, not just similar-looking CSS. */
+export function ShowCardHeader({ show, onClick, logged, books }) {
+    const past = isPast(show);
+    const st = show.status ? STATUS[show.status] : null;
+    const spine = st ? st.color : C.line;
+    const cd = past ? null : countdown(show);
+    const bigLabel = show.mi ? "MOVE IN" : "SHOW";
+    const bigDate = show.mi || show.start || "—";
+    const run = (show.start || "?") + "–" + (show.end || "?");
+    const venue = venueName(show.loc);
+    const bi = boothInfo(show.booth);
+    const bookedDays = (books || []).reduce(
+        (a, b) => a + (b.dates || []).length,
+        0,
+    );
+
+    return (
+        <button
+            className="foc"
+            onClick={onClick}
+            style={{
+                width: "100%",
+                textAlign: "left",
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                display: "flex",
+                alignItems: "stretch",
+            }}
+        >
+            <div style={{ width: 6, background: spine, flexShrink: 0 }} />
+            <div
+                style={{
+                    flexShrink: 0,
+                    width: 70,
+                    padding: "11px 8px",
+                    textAlign: "center",
+                    background: C.sunk,
+                    borderRight: "1px solid " + C.line,
+                }}
+            >
+                <div
+                    style={{
+                        fontSize: 9,
+                        letterSpacing: 0.7,
+                        color: C.lo,
+                        fontFamily: FM,
+                    }}
+                >
+                    {bigLabel}
+                </div>
+                <div
+                    style={{
+                        fontSize: 21,
+                        fontWeight: 800,
+                        fontFamily: FM,
+                        color: st ? st.color : C.hi,
+                        lineHeight: 1.1,
+                        marginTop: 2,
+                    }}
+                >
+                    {bigDate}
+                </div>
+                <div
+                    style={{
+                        fontSize: 10,
+                        color: C.lo,
+                        fontFamily: FM,
+                        marginTop: 2,
+                    }}
+                >
+                    {run}
+                </div>
+            </div>
+            <div
+                className="min-w-0"
+                style={{
+                    flex: 1,
+                    padding: "11px 11px 11px 10px",
+                    minWidth: 0,
+                }}
+            >
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                    }}
+                >
+                    <div
+                        className="truncate"
+                        style={{
+                            fontWeight: 750,
+                            fontSize: 15,
+                            color: C.hi,
+                            flex: 1,
+                            minWidth: 0,
+                            letterSpacing: -0.1,
+                        }}
+                    >
+                        {show.name || "Untitled show"}
+                    </div>
+                    {st && (
+                        <span
+                            style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: 9,
+                                background: st.color,
+                                flexShrink: 0,
+                                boxShadow: "0 0 8px " + st.color,
+                            }}
+                        />
+                    )}
+                </div>
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        rowGap: 3,
+                        columnGap: 6,
+                        color: C.mid,
+                        fontSize: 12,
+                        marginTop: 3,
+                    }}
+                >
+                    <span
+                        className="truncate"
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            minWidth: 0,
+                        }}
+                    >
+                        <MapPin
+                            size={11}
+                            color={C.lo}
+                            style={{ flexShrink: 0 }}
+                        />
+                        <span className="truncate">{venue || "—"}</span>
+                    </span>
+                    {bi?.full && (
+                        <span style={locBadge(true)}>FULL FACILITY</span>
+                    )}
+                    {bi?.hall && (
+                        <span style={locBadge(false)}>{bi.hall}</span>
+                    )}
+                    {bi?.num && (
+                        <span style={locBadge(true)}>
+                            {bi.num} BOOTHS
+                        </span>
+                    )}
+                    {bi?.note && (
+                        <span style={locBadge(true)}>
+                            {bi.note.toUpperCase()}
+                        </span>
+                    )}
+                </div>
+                <div
+                    style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 5,
+                        marginTop: 8,
+                    }}
+                >
+                    <RegionChip region={show.region} />
+                    <GCChip co={show.co} />
+                    {cd && (
+                        <Chip
+                            style={{
+                                background: "transparent",
+                                color: cd.c,
+                                border: "1px solid " + cd.c + "55",
+                                fontWeight: 800,
+                            }}
+                        >
+                            {cd.t}
+                        </Chip>
+                    )}
+                    {bookedDays > 0 && (
+                        <Chip
+                            style={{
+                                background: "rgba(180,155,240,0.14)",
+                                color: BOOKED,
+                                border: "1px solid rgba(180,155,240,0.35)",
+                                fontWeight: 800,
+                            }}
+                        >
+                            <CalendarDays size={10} />
+                            {bookedDays}D
+                            {(books || []).length > 1
+                                ? " · " + books.length + " SHOPS"
+                                : ""}
+                        </Chip>
+                    )}
+                    {logged > 0 && (
+                        <Chip
+                            style={{
+                                background: "rgba(47,176,122,0.14)",
+                                color: C.working,
+                                border: "1px solid rgba(47,176,122,0.3)",
+                                fontWeight: 800,
+                            }}
+                        >
+                            <Clock size={10} />
+                            {hrsFmt(logged)}H
+                        </Chip>
+                    )}
+                </div>
+            </div>
+        </button>
+    );
+}
+
 export function ShowCard({
     show,
     expanded,
@@ -123,22 +343,10 @@ export function ShowCard({
 }) {
     const { companies, orgProfile } = useContext(DirectoryContext);
     const past = isPast(show);
-    const st = show.status ? STATUS[show.status] : null;
-    const spine = st ? st.color : C.line;
-    const cd = past ? null : countdown(show);
-    const bigLabel = show.mi ? "MOVE IN" : "SHOW";
-    const bigDate = show.mi || show.start || "—";
-    const run = (show.start || "?") + "–" + (show.end || "?");
-    const venue = venueName(show.loc);
-    const bi = boothInfo(show.booth);
     const [note, setNote] = useState(show.note || "");
     useEffect(() => {
         setNote(show.note || "");
     }, [show.id, show.note]);
-    const bookedDays = (books || []).reduce(
-        (a, b) => a + (b.dates || []).length,
-        0,
-    );
 
     return (
         <div
@@ -155,203 +363,7 @@ export function ShowCard({
                 boxShadow: expanded ? "0 6px 20px rgba(0,0,0,0.5)" : SHADOW,
             }}
         >
-            <button
-                className="foc"
-                onClick={onToggle}
-                style={{
-                    width: "100%",
-                    textAlign: "left",
-                    background: "transparent",
-                    border: "none",
-                    padding: 0,
-                    display: "flex",
-                    alignItems: "stretch",
-                }}
-            >
-                <div style={{ width: 6, background: spine, flexShrink: 0 }} />
-                <div
-                    style={{
-                        flexShrink: 0,
-                        width: 70,
-                        padding: "11px 8px",
-                        textAlign: "center",
-                        background: C.sunk,
-                        borderRight: "1px solid " + C.line,
-                    }}
-                >
-                    <div
-                        style={{
-                            fontSize: 9,
-                            letterSpacing: 0.7,
-                            color: C.lo,
-                            fontFamily: FM,
-                        }}
-                    >
-                        {bigLabel}
-                    </div>
-                    <div
-                        style={{
-                            fontSize: 21,
-                            fontWeight: 800,
-                            fontFamily: FM,
-                            color: st ? st.color : C.hi,
-                            lineHeight: 1.1,
-                            marginTop: 2,
-                        }}
-                    >
-                        {bigDate}
-                    </div>
-                    <div
-                        style={{
-                            fontSize: 10,
-                            color: C.lo,
-                            fontFamily: FM,
-                            marginTop: 2,
-                        }}
-                    >
-                        {run}
-                    </div>
-                </div>
-                <div
-                    className="min-w-0"
-                    style={{
-                        flex: 1,
-                        padding: "11px 11px 11px 10px",
-                        minWidth: 0,
-                    }}
-                >
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                        }}
-                    >
-                        <div
-                            className="truncate"
-                            style={{
-                                fontWeight: 750,
-                                fontSize: 15,
-                                color: C.hi,
-                                flex: 1,
-                                minWidth: 0,
-                                letterSpacing: -0.1,
-                            }}
-                        >
-                            {show.name || "Untitled show"}
-                        </div>
-                        {st && (
-                            <span
-                                style={{
-                                    width: 8,
-                                    height: 8,
-                                    borderRadius: 9,
-                                    background: st.color,
-                                    flexShrink: 0,
-                                    boxShadow: "0 0 8px " + st.color,
-                                }}
-                            />
-                        )}
-                    </div>
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            flexWrap: "wrap",
-                            rowGap: 3,
-                            columnGap: 6,
-                            color: C.mid,
-                            fontSize: 12,
-                            marginTop: 3,
-                        }}
-                    >
-                        <span
-                            className="truncate"
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 4,
-                                minWidth: 0,
-                            }}
-                        >
-                            <MapPin
-                                size={11}
-                                color={C.lo}
-                                style={{ flexShrink: 0 }}
-                            />
-                            <span className="truncate">{venue || "—"}</span>
-                        </span>
-                        {bi?.full && (
-                            <span style={locBadge(true)}>FULL FACILITY</span>
-                        )}
-                        {bi?.hall && (
-                            <span style={locBadge(false)}>{bi.hall}</span>
-                        )}
-                        {bi?.num && (
-                            <span style={locBadge(true)}>
-                                {bi.num} BOOTHS
-                            </span>
-                        )}
-                        {bi?.note && (
-                            <span style={locBadge(true)}>
-                                {bi.note.toUpperCase()}
-                            </span>
-                        )}
-                    </div>
-                    <div
-                        style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 5,
-                            marginTop: 8,
-                        }}
-                    >
-                        <RegionChip region={show.region} />
-                        <GCChip co={show.co} />
-                        {cd && (
-                            <Chip
-                                style={{
-                                    background: "transparent",
-                                    color: cd.c,
-                                    border: "1px solid " + cd.c + "55",
-                                    fontWeight: 800,
-                                }}
-                            >
-                                {cd.t}
-                            </Chip>
-                        )}
-                        {bookedDays > 0 && (
-                            <Chip
-                                style={{
-                                    background: "rgba(180,155,240,0.14)",
-                                    color: BOOKED,
-                                    border: "1px solid rgba(180,155,240,0.35)",
-                                    fontWeight: 800,
-                                }}
-                            >
-                                <CalendarDays size={10} />
-                                {bookedDays}D
-                                {(books || []).length > 1
-                                    ? " · " + books.length + " SHOPS"
-                                    : ""}
-                            </Chip>
-                        )}
-                        {logged > 0 && (
-                            <Chip
-                                style={{
-                                    background: "rgba(47,176,122,0.14)",
-                                    color: C.working,
-                                    border: "1px solid rgba(47,176,122,0.3)",
-                                    fontWeight: 800,
-                                }}
-                            >
-                                <Clock size={10} />
-                                {hrsFmt(logged)}H
-                            </Chip>
-                        )}
-                    </div>
-                </div>
-            </button>
+            <ShowCardHeader show={show} onClick={onToggle} logged={logged} books={books} />
 
             {expanded && (
                 <div
