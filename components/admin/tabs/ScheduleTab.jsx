@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { ChevronRight, Plus, Upload, Search, Trash2 } from "lucide-react";
-import { C, SHADOW, FM, FS, REGION, sortDate, monthLabel, monthKey, isPast } from "@/lib/core";
+import { C, SHADOW, FM, FS, REGION, sortDate, monthLabel, monthKey, monthKeyNow, labelFromKey, isPast } from "@/lib/core";
 import { ShowForm, ImportForm, EMPTY } from "@/components/ShowEditor";
 import { Modal, ConfirmModal, req, Stat } from "@/components/admin/shared";
 import { ShowCardHeader } from "@/components/apprentice/tabs/ShowCard";
@@ -27,7 +27,11 @@ export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
     if (target) {
       setQ("");
       setRegionFilter("");
-      setCollapsed((prev) => ({ ...prev, [monthLabel(target)]: false }));
+      // matches how currentGroups labels a still-running show that started
+      // last month — clamp to "now" the same way, or this would try to
+      // open a group label nothing is actually rendered under.
+      const label = isPast(target) ? monthLabel(target) : labelFromKey(Math.max(monthKey(target), monthKeyNow()));
+      setCollapsed((prev) => ({ ...prev, [label]: false }));
       setExpandedId(focusId);
       requestAnimationFrame(() => {
         document.getElementById("show-" + focusId)?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -67,31 +71,40 @@ export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
     onChanged();
   };
 
-  // grouped by month, chronological — past months start collapsed so a
-  // season's worth of history doesn't bury what's coming up.
-  const groups = useMemo(() => {
-    const sorted = filteredShows.slice().sort((a, b) => sortDate(a) - sortDate(b));
-    const byMonth = {};
-    sorted.forEach((s) => {
-      const label = monthLabel(s);
-      (byMonth[label] = byMonth[label] || { key: monthKey(s), label, list: [] }).list.push(s);
-    });
-    return Object.values(byMonth).sort((a, b) => a.key - b.key);
-  }, [filteredShows]);
-
-  // one toggle for the whole block of past months instead of a wall of
-  // individually-collapsed rows — each stays independently expandable once revealed
+  // Split into past/current PER SHOW first, then group each bucket by
+  // month separately — a show that's already ended has to disappear into
+  // Past the moment it ends, not wait for every other show sharing its
+  // calendar month to end too. Grouping-then-classifying-the-whole-group
+  // (the previous approach) left already-ended shows sitting in the open
+  // "current" section for as long as anything else that month hadn't
+  // happened yet. Same split the apprentice Board tab already does.
   const { pastGroups, currentGroups } = useMemo(() => {
-    const past = [], current = [];
-    groups.forEach((g) => (g.list.every(isPast) ? past.push(g) : current.push(g)));
+    const now = monthKeyNow();
+    const buildGroups = (list, reverseOrder) => {
+      const byMonth = {};
+      const order = [];
+      list.forEach((s) => {
+        // a show still running that started last month belongs under THIS
+        // month's header, not a stale one — only matters for the current
+        // (non-reversed) bucket; past shows use their own real month.
+        const mk = reverseOrder ? monthKey(s) : Math.max(monthKey(s), now);
+        const label = mk === 999999 ? "SCHEDULED" : labelFromKey(mk);
+        if (!byMonth[label]) {
+          byMonth[label] = { key: mk, label, list: [] };
+          order.push(label);
+        }
+        byMonth[label].list.push(s);
+      });
+      const out = order.map((label) => byMonth[label]);
+      out.sort((a, b) => (reverseOrder ? b.key - a.key : a.key - b.key));
+      return out;
+    };
+    const current = filteredShows.filter((s) => !isPast(s)).sort((a, b) => sortDate(a) - sortDate(b));
     // archive reads newest first — same reverse-chronological convention as
-    // the apprentice Board's Past view; upcoming stays chronological as-is.
-    const pastReversed = past
-      .slice()
-      .reverse()
-      .map((g) => ({ ...g, list: g.list.slice().reverse() }));
-    return { pastGroups: pastReversed, currentGroups: current };
-  }, [groups]);
+    // the apprentice Board's Past view.
+    const past = filteredShows.filter(isPast).sort((a, b) => sortDate(b) - sortDate(a));
+    return { pastGroups: buildGroups(past, true), currentGroups: buildGroups(current, false) };
+  }, [filteredShows]);
   const pastShowCount = useMemo(() => pastGroups.reduce((s, g) => s + g.list.length, 0), [pastGroups]);
 
   const renderGroup = (g) => {
