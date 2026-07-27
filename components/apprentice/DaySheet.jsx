@@ -28,6 +28,7 @@ import { SplitChips } from "@/components/ui/SplitChips";
 import { CoPicker } from "@/components/apprentice/CoPicker";
 import { PortfolioProjectPicker } from "@/components/apprentice/PortfolioProjectPicker";
 import { TimeTicketPhotoPicker } from "@/components/apprentice/TimeTicketPhotoPicker";
+import { createClient } from "@/lib/supabase/client";
 import {
     BOOKED,
     BREAK_SLOTS,
@@ -133,6 +134,7 @@ export function DaySheet({
     const [brk, setBrk] = useState(0);
     const [touched, setTouched] = useState(false);
     const [justSaved, setJustSaved] = useState(false);
+    const [ticketedIds, setTicketedIds] = useState(() => new Set()); // entry ids with >=1 time-ticket photo
 
     const booked = bookingOn(bookings, dayKey);
     const klass = classOn(classes, dayKey);
@@ -151,6 +153,28 @@ export function DaySheet({
         }
         return null;
     }, [dd, entries]);
+    // which of this day's logged entries already have a time-ticket photo —
+    // so the camera button can show that without opening the picker first.
+    const entryIds = useMemo(() => list.map((e) => e.id).sort().join(","), [list]);
+    useEffect(() => {
+        if (!entryIds) {
+            setTicketedIds(new Set());
+            return;
+        }
+        let cancelled = false;
+        createClient()
+            .from("time_ticket_photos")
+            .select("work_entry_id")
+            .in("work_entry_id", entryIds.split(","))
+            .then(({ data }) => {
+                if (cancelled) return;
+                setTicketedIds(new Set((data || []).map((r) => r.work_entry_id)));
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [entryIds, addingPhotoFor]);
+
     const copyFromDay = (key) => {
         const src = (entries[key] || [])[0];
         if (!src) return;
@@ -986,13 +1010,18 @@ export function DaySheet({
                                 <button
                                     className="foc"
                                     onClick={() => setAddingPhotoFor(e)}
-                                    title="Attach a photo of the time ticket"
+                                    title={
+                                        ticketedIds.has(e.id)
+                                            ? "Time ticket photo attached — tap to view"
+                                            : "Attach a photo of the time ticket"
+                                    }
                                     style={{
+                                        position: "relative",
                                         flexShrink: 0,
-                                        background: "rgba(127,178,255,0.12)",
-                                        border: "1px solid rgba(127,178,255,0.35)",
+                                        background: ticketedIds.has(e.id) ? C.gc : "rgba(127,178,255,0.12)",
+                                        border: "1px solid " + (ticketedIds.has(e.id) ? C.gc : "rgba(127,178,255,0.35)"),
                                         borderRadius: 7,
-                                        color: C.gc,
+                                        color: ticketedIds.has(e.id) ? C.bg : C.gc,
                                         padding: "5px 6px",
                                     }}
                                 >
