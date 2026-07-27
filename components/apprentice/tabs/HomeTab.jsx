@@ -1347,7 +1347,7 @@ export function HomeTab({
                                                         fontSize: 21,
                                                         fontWeight: 800,
                                                         fontFamily: FM,
-                                                        color: col,
+                                                        color: C.hi,
                                                         lineHeight: 1.1,
                                                         marginTop: 2,
                                                     }}
