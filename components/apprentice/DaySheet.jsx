@@ -135,6 +135,7 @@ export function DaySheet({
     const [touched, setTouched] = useState(false);
     const [justSaved, setJustSaved] = useState(false);
     const [ticketedIds, setTicketedIds] = useState(() => new Set()); // entry ids with >=1 time-ticket photo
+    const [taggedIds, setTaggedIds] = useState(() => new Set()); // entry ids already linked to a portfolio project
 
     const booked = bookingOn(bookings, dayKey);
     const klass = classOn(classes, dayKey);
@@ -153,27 +154,39 @@ export function DaySheet({
         }
         return null;
     }, [dd, entries]);
-    // which of this day's logged entries already have a time-ticket photo —
-    // so the camera button can show that without opening the picker first.
+    // which of this day's logged entries already have a time-ticket photo,
+    // or are already tagged to a portfolio project — so those two buttons
+    // can show that without opening either picker first.
     const entryIds = useMemo(() => list.map((e) => e.id).sort().join(","), [list]);
     useEffect(() => {
         if (!entryIds) {
             setTicketedIds(new Set());
+            setTaggedIds(new Set());
             return;
         }
         let cancelled = false;
-        createClient()
+        const ids = entryIds.split(",");
+        const supabase = createClient();
+        supabase
             .from("time_ticket_photos")
             .select("work_entry_id")
-            .in("work_entry_id", entryIds.split(","))
+            .in("work_entry_id", ids)
             .then(({ data }) => {
                 if (cancelled) return;
                 setTicketedIds(new Set((data || []).map((r) => r.work_entry_id)));
             });
+        supabase
+            .from("portfolio_project_days")
+            .select("work_entry_id")
+            .in("work_entry_id", ids)
+            .then(({ data }) => {
+                if (cancelled) return;
+                setTaggedIds(new Set((data || []).map((r) => r.work_entry_id)));
+            });
         return () => {
             cancelled = true;
         };
-    }, [entryIds, addingPhotoFor]);
+    }, [entryIds, addingPhotoFor, addingProjectFor]);
 
     const copyFromDay = (key) => {
         const src = (entries[key] || [])[0];
@@ -995,13 +1008,17 @@ export function DaySheet({
                                 <button
                                     className="foc"
                                     onClick={() => setAddingProjectFor(e)}
-                                    title="Add to a portfolio project"
+                                    title={
+                                        taggedIds.has(e.id)
+                                            ? "Already tagged to a portfolio project — tap to manage"
+                                            : "Add to a portfolio project"
+                                    }
                                     style={{
                                         flexShrink: 0,
-                                        background: "rgba(185,166,255,0.12)",
-                                        border: "1px solid rgba(185,166,255,0.35)",
+                                        background: taggedIds.has(e.id) ? C.folio : "rgba(185,166,255,0.12)",
+                                        border: "1px solid " + (taggedIds.has(e.id) ? C.folio : "rgba(185,166,255,0.35)"),
                                         borderRadius: 7,
-                                        color: C.folio,
+                                        color: taggedIds.has(e.id) ? C.inkFolio : C.folio,
                                         padding: "5px 6px",
                                     }}
                                 >
