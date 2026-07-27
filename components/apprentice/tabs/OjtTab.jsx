@@ -184,19 +184,21 @@ export function OjtTab({
                     boxShadow: SHADOW,
                 }}
             >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                     <AvatarUpload
                         name={profile.name}
                         avatarUrl={profile.avatarUrl}
                         onChange={onAvatarChange}
+                        size={76}
                     />
                     <div style={{ minWidth: 0, flex: 1 }}>
                         <div
                             className="truncate"
                             style={{
-                                fontSize: 14.5,
-                                fontWeight: 750,
+                                fontSize: 17,
+                                fontWeight: 800,
                                 color: C.hi,
+                                letterSpacing: -0.1,
                             }}
                         >
                             {profile.name || "—"}
@@ -213,48 +215,49 @@ export function OjtTab({
                             ID {profile.memberId || "—"} · SSN ··
                             {profile.last4 || "----"} · {profile.local}
                         </div>
-                    </div>
-                    <span
-                        style={{
-                            flexShrink: 0,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            fontFamily: FM,
-                            fontSize: 10,
-                            fontWeight: 800,
-                            color: C.working,
-                            background: "rgba(47,176,122,0.12)",
-                            border: "1px solid rgba(47,176,122,0.35)",
-                            borderRadius: 6,
-                            padding: "4px 7px",
-                        }}
-                    >
-                        <Check size={11} />
-                        RSI {profile.rsiCredits}/{RSI_REQUIRED}
-                    </span>
-                </div>
-                {profile.joined && (
-                    <div
-                        style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 12,
-                            marginTop: 9,
-                            paddingTop: 9,
-                            borderTop: "1px solid " + C.line,
-                            fontSize: 11,
-                            color: C.mid,
-                        }}
-                    >
-                        <span>
-                            Joined{" "}
-                            <span style={{ fontFamily: FM, color: C.hi }}>
-                                {profile.joined}
+                        <div
+                            style={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                alignItems: "center",
+                                gap: 6,
+                                marginTop: 8,
+                            }}
+                        >
+                            <span
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 5,
+                                    fontFamily: FM,
+                                    fontSize: 10,
+                                    fontWeight: 800,
+                                    color: C.working,
+                                    background: "rgba(47,176,122,0.12)",
+                                    border: "1px solid rgba(47,176,122,0.35)",
+                                    borderRadius: 6,
+                                    padding: "4px 7px",
+                                }}
+                            >
+                                <Check size={11} />
+                                RSI {profile.rsiCredits}/{RSI_REQUIRED}
                             </span>
-                        </span>
+                            {profile.joined && (
+                                <span
+                                    style={{
+                                        fontSize: 11,
+                                        color: C.mid,
+                                    }}
+                                >
+                                    Joined{" "}
+                                    <span style={{ fontFamily: FM, color: C.hi }}>
+                                        {profile.joined}
+                                    </span>
+                                </span>
+                            )}
+                        </div>
                     </div>
-                )}
+                </div>
             </div>
 
             {/* no OJT history at all yet — nudge toward backfilling it, don't require it */}
