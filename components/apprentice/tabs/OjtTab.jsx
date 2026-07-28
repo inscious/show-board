@@ -179,23 +179,23 @@ export function OjtTab({
                 style={{
                     background: C.panel,
                     border: "1px solid " + C.edge,
-                    borderRadius: 12,
-                    padding: "16px 17px",
+                    borderRadius: 14,
+                    padding: "20px 18px",
                     boxShadow: SHADOW,
                 }}
             >
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     <AvatarUpload
                         name={profile.name}
                         avatarUrl={profile.avatarUrl}
                         onChange={onAvatarChange}
-                        size={76}
+                        size={100}
                     />
                     <div style={{ minWidth: 0, flex: 1 }}>
                         <div
                             className="truncate"
                             style={{
-                                fontSize: 17,
+                                fontSize: 19,
                                 fontWeight: 800,
                                 color: C.hi,
                                 letterSpacing: -0.1,
@@ -206,10 +206,10 @@ export function OjtTab({
                         <div
                             className="truncate"
                             style={{
-                                fontSize: 11,
+                                fontSize: 11.5,
                                 color: C.lo,
                                 fontFamily: FM,
-                                marginTop: 3,
+                                marginTop: 4,
                             }}
                         >
                             ID {profile.memberId || "—"} · SSN ··

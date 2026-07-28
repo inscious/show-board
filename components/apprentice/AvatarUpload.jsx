@@ -6,10 +6,17 @@
    controlled switch (app_settings.apprentice_avatar_upload_enabled,
    fetched once here) — the admin/avatar route apprentices can't reach
    still lets an admin set anyone's photo regardless of this toggle, same
-   as before; this only adds the apprentice's own self-service path. */
-import { useState, useEffect } from "react";
-import { Camera, Loader2, X } from "lucide-react";
-import { C, FM } from "@/lib/core";
+   as before; this only adds the apprentice's own self-service path.
+
+   Tapping the photo views it full-size (works even when upload is off —
+   an admin-set photo should still be viewable); a separate pencil badge
+   is the only way to replace or remove it, so a tap never accidentally
+   opens the file picker over a photo someone just wanted to look at. */
+import { useEffect, useRef, useState } from "react";
+import { Camera, Loader2, Pencil, X } from "lucide-react";
+import { C, FM, SHADOW } from "@/lib/core";
+import { Modal } from "@/components/ui/Modal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 function initials(name) {
     const parts = (name || "").trim().split(/\s+/).filter(Boolean);
@@ -24,6 +31,10 @@ export function AvatarUpload({ name, avatarUrl, onChange, size = 52 }) {
     const [uploadEnabled, setUploadEnabled] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState("");
+    const [viewing, setViewing] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [confirmRemove, setConfirmRemove] = useState(false);
+    const fileRef = useRef(null);
 
     useEffect(() => {
         fetch("/api/settings/apprentice-avatar-upload")
@@ -63,6 +74,7 @@ export function AvatarUpload({ name, avatarUrl, onChange, size = 52 }) {
             // best-effort — a stale photo left in storage is harmless
         } finally {
             setBusy(false);
+            setConfirmRemove(false);
         }
     }
 
@@ -98,56 +110,180 @@ export function AvatarUpload({ name, avatarUrl, onChange, size = 52 }) {
         </div>
     );
 
-    if (!uploadEnabled) return circle;
+    const openPicker = () => fileRef.current?.click();
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-            <label
+        <div style={{ position: "relative", flexShrink: 0 }}>
+            <button
+                type="button"
                 className="foc"
-                style={{ position: "relative", cursor: busy ? "default" : "pointer", borderRadius: "50%" }}
+                onClick={() => (avatarUrl ? setViewing(true) : uploadEnabled && openPicker())}
+                disabled={busy}
+                style={{
+                    display: "block",
+                    background: "transparent",
+                    border: "none",
+                    padding: 0,
+                    borderRadius: "50%",
+                    cursor: avatarUrl || uploadEnabled ? "pointer" : "default",
+                }}
             >
                 {circle}
-                {!busy && (
-                    <div
-                        style={{
-                            position: "absolute",
-                            bottom: -2,
-                            right: -2,
-                            width: 20,
-                            height: 20,
-                            borderRadius: "50%",
-                            background: C.brand,
-                            border: "2px solid " + C.panel,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                        }}
-                    >
-                        <Camera size={11} color={C.ink} />
-                    </div>
-                )}
-                <input
-                    type="file"
-                    accept={ACCEPT}
-                    style={{ display: "none" }}
-                    disabled={busy}
-                    onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        e.target.value = "";
-                        if (f) upload(f);
-                    }}
-                />
-            </label>
-            {avatarUrl && !busy && (
+            </button>
+
+            {uploadEnabled && !busy && (
                 <button
+                    type="button"
                     className="foc"
-                    onClick={remove}
-                    style={{ display: "flex", alignItems: "center", gap: 3, background: "transparent", border: "none", color: C.lo, fontSize: 9.5, padding: 0 }}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpen(true);
+                    }}
+                    style={{
+                        position: "absolute",
+                        bottom: -2,
+                        right: -2,
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        background: C.brand,
+                        border: "2px solid " + C.panel,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                    }}
                 >
-                    <X size={9} /> Remove
+                    <Pencil size={12} color={C.ink} />
                 </button>
             )}
-            {error && <div style={{ fontSize: 9.5, color: C.danger, maxWidth: 90, textAlign: "center" }}>{error}</div>}
+
+            <input
+                ref={fileRef}
+                type="file"
+                accept={ACCEPT}
+                style={{ display: "none" }}
+                disabled={busy}
+                onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) upload(f);
+                }}
+            />
+
+            {error && (
+                <div style={{ position: "absolute", top: "100%", left: 0, marginTop: 4, fontSize: 10, color: C.danger, width: 130 }}>
+                    {error}
+                </div>
+            )}
+
+            {viewing && avatarUrl && (
+                <div
+                    onClick={() => setViewing(false)}
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        zIndex: 60,
+                        background: "rgba(0,0,0,0.85)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 24,
+                    }}
+                >
+                    <button
+                        className="foc"
+                        onClick={() => setViewing(false)}
+                        style={{
+                            position: "absolute",
+                            top: 18,
+                            right: 18,
+                            background: C.raise,
+                            border: "1px solid " + C.line,
+                            borderRadius: 8,
+                            padding: 8,
+                            color: C.hi,
+                        }}
+                    >
+                        <X size={18} />
+                    </button>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={avatarUrl}
+                        alt=""
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            maxWidth: "min(90vw, 480px)",
+                            maxHeight: "80vh",
+                            borderRadius: 16,
+                            boxShadow: SHADOW,
+                            objectFit: "contain",
+                        }}
+                    />
+                </div>
+            )}
+
+            {menuOpen && (
+                <Modal title="Profile photo" onClose={() => setMenuOpen(false)}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <button
+                            className="foc"
+                            onClick={() => {
+                                setMenuOpen(false);
+                                openPicker();
+                            }}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 9,
+                                padding: "13px 14px",
+                                borderRadius: 10,
+                                background: C.raise,
+                                border: "1px solid " + C.line,
+                                color: C.hi,
+                                fontWeight: 700,
+                                fontSize: 14,
+                            }}
+                        >
+                            <Camera size={16} color={C.brand} />
+                            {avatarUrl ? "Replace photo" : "Add a photo"}
+                        </button>
+                        {avatarUrl && (
+                            <button
+                                className="foc"
+                                onClick={() => {
+                                    setMenuOpen(false);
+                                    setConfirmRemove(true);
+                                }}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 9,
+                                    padding: "13px 14px",
+                                    borderRadius: 10,
+                                    background: "rgba(232,146,124,0.08)",
+                                    border: "1px solid " + C.danger + "55",
+                                    color: C.danger,
+                                    fontWeight: 700,
+                                    fontSize: 14,
+                                }}
+                            >
+                                <X size={16} />
+                                Remove photo
+                            </button>
+                        )}
+                    </div>
+                </Modal>
+            )}
+
+            {confirmRemove && (
+                <ConfirmModal
+                    title="Remove your photo?"
+                    message="You can add a new one any time — this only removes what is showing now."
+                    confirmLabel="Remove photo"
+                    onClose={() => setConfirmRemove(false)}
+                    onConfirm={remove}
+                />
+            )}
         </div>
     );
 }
