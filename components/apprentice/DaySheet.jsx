@@ -9,6 +9,7 @@ import { useContext, useEffect, useMemo, useState } from "react";
 import {
     Ban,
     Building2,
+    Calendar,
     Camera,
     Check,
     ChevronRight,
@@ -37,6 +38,7 @@ import {
     FM,
     FS,
     KLASS,
+    NOTICE_COLOR,
     PAY,
     STATUS,
     TIME_SLOTS,
@@ -62,6 +64,12 @@ import {
 
 const CATS = ["A", "B", "C", "D"];
 const HOUR_CHIPS = [4, 6, 8, 10, 12];
+const NOTICE_KIND_LABEL = {
+    meeting: "Union meeting",
+    dues: "Dues",
+    holiday: "Holiday",
+    notice: "Union notice",
+};
 
 function money(n) {
     return "$" + num(n).toFixed(2);
@@ -107,12 +115,14 @@ export function DaySheet({
     rates,
     bookings,
     classes,
+    unionNotices,
     onDelBooking,
     onSaveBooking,
 }) {
     const { companies } = useContext(DirectoryContext);
     const d = fromKey(dayKey);
     const list = entries[dayKey] || [];
+    const dayNotices = (unionNotices || []).filter((n) => n.noticeDate === dayKey);
     const rank = { working: 0, target: 1 };
     const onBoard = showsOn(shows, d).sort((a, b) => {
         const ra = rank[a.status] === undefined ? 2 : rank[a.status];
@@ -363,6 +373,39 @@ export function DaySheet({
                     </span>
                 </div>
             )}
+
+            {dayNotices.map((n) => {
+                const nc = NOTICE_COLOR[n.kind] || C.mid;
+                return (
+                    <div
+                        key={n.id}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            background: nc + "1A",
+                            border: "1px solid " + nc + "55",
+                            borderRadius: 9,
+                            padding: "9px 11px",
+                            marginBottom: 12,
+                        }}
+                    >
+                        <Calendar
+                            size={13}
+                            color={nc}
+                            style={{ flexShrink: 0 }}
+                        />
+                        <span
+                            style={{ fontSize: 12, color: C.mid, lineHeight: 1.4 }}
+                        >
+                            <span style={{ fontWeight: 700, color: nc }}>
+                                {NOTICE_KIND_LABEL[n.kind] || "Union notice"}
+                            </span>{" "}
+                            — {n.body}
+                        </span>
+                    </div>
+                );
+            })}
 
             {klass.map((c) => (
                 <div

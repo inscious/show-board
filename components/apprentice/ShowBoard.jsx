@@ -1351,6 +1351,7 @@ export default function App() {
                         rates={rates}
                         bookings={bookings}
                         classes={classes}
+                        unionNotices={unionNotices}
                         onDelBooking={delBooking}
                         onSaveBooking={saveBooking}
                         onSave={(k, e) => {
