@@ -39,16 +39,23 @@ export default function PlatformLayout({ children }) {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/login"; return; }
-      const { data: platformAdmin } = await supabase.from("platform_admins").select("id").eq("id", user.id).maybeSingle();
+      // the platform_admin check and the organizations fetch each need
+      // nothing but the session getUser() already confirmed (RLS handles
+      // auth.uid() implicitly on the org query) — run them concurrently
+      // instead of one after another, cuts a full round-trip off the
+      // critical path before this page can render anything.
+      const [{ data: platformAdmin }, { data: orgs }] = await Promise.all([
+        supabase.from("platform_admins").select("id").eq("id", user.id).maybeSingle(),
+        supabase.from("organizations").select("*").order("id"),
+      ]);
       if (!platformAdmin) { window.location.href = "/login"; return; }
       if (!live) return;
       setEmail(user.email);
-      await load();
-      if (!live) return;
+      setOrganizations(orgs || []);
       setState("ready");
     })();
     return () => { live = false; };
-  }, [load]);
+  }, []);
 
   const signOut = async () => {
     if (signingOut) return;

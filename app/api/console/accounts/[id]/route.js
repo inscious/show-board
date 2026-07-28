@@ -4,44 +4,38 @@ import { createAdminClient } from "@/lib/supabase/admin";
 /* One account's detail for the Platform Console — same platform_admins-gated
    + service-role pattern as the sibling search route. Deliberately not a
    full data dump: enough to troubleshoot (identity, org, role flags, a
-   light activity signal), not every row the account has ever touched. */
+   light activity signal), not every row the account has ever touched.
+
+   Two batches instead of five sequential round-trips: the platform_admin
+   check runs alongside the profile fetch (same reasoning as the sibling
+   routes), then the org name / last-worked / last-OJT-month queries — each
+   independent of one another, only needing the id already in hand — run
+   together as a second batch. */
 export async function GET(request, { params }) {
   return guardedRoute(request, "console:accounts:detail:get", { rateLimit: { max: 60, windowSeconds: 60 } }, async ({ supabase, user }) => {
-    const { data: platformAdmin } = await supabase.from("platform_admins").select("id").eq("id", user.id).maybeSingle();
-    if (!platformAdmin) return Response.json({ error: "Not authorized" }, { status: 403 });
-
     const id = params?.id;
     if (!id) return Response.json({ error: "Missing id" }, { status: 400 });
 
     const admin = createAdminClient();
-    const { data: profile, error } = await admin
-      .from("profiles")
-      .select("id, email, name, member_id, ssn_last4, local, is_admin, is_central_admin, foreman_of_company_id, graduated_at, organization_id, do_not_hire_at, do_not_hire_reason, archived_at, approved_at, joined_on, avatar_url, has_password")
-      .eq("id", id)
-      .maybeSingle();
+    const [{ data: platformAdmin }, { data: profile, error }] = await Promise.all([
+      supabase.from("platform_admins").select("id").eq("id", user.id).maybeSingle(),
+      admin
+        .from("profiles")
+        .select("id, email, name, member_id, ssn_last4, local, is_admin, is_central_admin, foreman_of_company_id, graduated_at, organization_id, do_not_hire_at, do_not_hire_reason, archived_at, approved_at, joined_on, avatar_url, has_password")
+        .eq("id", id)
+        .maybeSingle(),
+    ]);
+    if (!platformAdmin) return Response.json({ error: "Not authorized" }, { status: 403 });
     if (error || !profile) return Response.json({ error: "Not found" }, { status: 404 });
 
-    let orgName = null;
-    if (profile.organization_id) {
-      const { data: org } = await admin.from("organizations").select("name").eq("id", profile.organization_id).maybeSingle();
-      orgName = org?.name || null;
-    }
-
-    const { data: lastEntry } = await admin
-      .from("work_entries")
-      .select("worked_on, company")
-      .eq("user_id", id)
-      .order("worked_on", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const { data: lastMonth } = await admin
-      .from("ojt_months")
-      .select("month, status")
-      .eq("user_id", id)
-      .order("month", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const [{ data: org }, { data: lastEntry }, { data: lastMonth }] = await Promise.all([
+      profile.organization_id
+        ? admin.from("organizations").select("name").eq("id", profile.organization_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      admin.from("work_entries").select("worked_on, company").eq("user_id", id).order("worked_on", { ascending: false }).limit(1).maybeSingle(),
+      admin.from("ojt_months").select("month, status").eq("user_id", id).order("month", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    const orgName = org?.name || null;
 
     return Response.json({
       ok: true,

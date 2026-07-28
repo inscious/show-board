@@ -22,11 +22,21 @@ function MetricsStrip() {
     return () => { live = false; };
   }, []);
 
+  if (!metrics) {
+    return (
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <div className="skeleton" style={{ flex: 1, height: 62, borderRadius: 12 }} />
+        <div className="skeleton" style={{ flex: 1, height: 62, borderRadius: 12 }} />
+        <div className="skeleton" style={{ flex: 1, height: 62, borderRadius: 12 }} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-      <Stat label="ORGANIZATIONS" value={metrics ? metrics.organizations : "—"} />
-      <Stat label="ACCOUNTS" value={metrics ? metrics.accounts : "—"} />
-      <Stat label="PLATFORM ADMINS" value={metrics ? metrics.platformAdmins : "—"} />
+      <Stat label="ORGANIZATIONS" value={metrics.organizations} />
+      <Stat label="ACCOUNTS" value={metrics.accounts} />
+      <Stat label="PLATFORM ADMINS" value={metrics.platformAdmins} />
     </div>
   );
 }
