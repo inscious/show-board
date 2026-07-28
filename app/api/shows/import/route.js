@@ -8,7 +8,7 @@ export async function POST(request) {
     request,
     "shows:import",
     { schema: showImportSchema, requireAdmin: true, rateLimit: { max: 10, windowSeconds: 60 } },
-    async ({ supabase, user, data }) => {
+    async ({ supabase, user, profile, data }) => {
       const rows = data.shows.map((s) => ({
         id: s.id,
         name: s.name,
@@ -22,6 +22,7 @@ export async function POST(request) {
         source: s.src || "union",
         sheet_month: s.sheetMonth || null,
         created_by: user.id,
+        organization_id: profile.organization_id,
       }));
       const { error } = await supabase.from("shows").upsert(rows);
       if (error) return Response.json({ error: "Could not import" }, { status: 400 });

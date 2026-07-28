@@ -6,7 +6,7 @@ import { showSchema, showDeleteSchema } from "@/lib/schemas";
 export async function POST(request) {
   // higher than the default 30/60s — same reasoning as app/api/show-flags:
   // a full-catalog resync can legitimately touch every show in one pass.
-  return guardedRoute(request, "shows:post", { schema: showSchema, requireAdmin: true, rateLimit: { max: 200, windowSeconds: 60 } }, async ({ supabase, user, data }) => {
+  return guardedRoute(request, "shows:post", { schema: showSchema, requireAdmin: true, rateLimit: { max: 200, windowSeconds: 60 } }, async ({ supabase, user, profile, data }) => {
     const { error } = await supabase.from("shows").upsert({
       id: data.id,
       name: data.name,
@@ -20,6 +20,7 @@ export async function POST(request) {
       source: data.src || "user",
       sheet_month: data.sheetMonth || null,
       created_by: user.id,
+      organization_id: profile.organization_id,
     });
     if (error) return Response.json({ error: "Could not save" }, { status: 400 });
 
