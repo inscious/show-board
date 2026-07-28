@@ -25,6 +25,8 @@ export default function PlatformLayout({ children }) {
   const [state, setState] = useState("loading"); // loading | ready
   const [email, setEmail] = useState(null);
   const [organizations, setOrganizations] = useState([]);
+  const [metrics, setMetrics] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [signingOut, setSigningOut] = useState(false);
 
   const load = useCallback(async () => {
@@ -33,25 +35,35 @@ export default function PlatformLayout({ children }) {
     setOrganizations(data || []);
   }, []);
 
+  // Organizations/metrics/settings all live here, fetched once for the whole
+  // console session, instead of each page's own component fetching them
+  // fresh every time — /console, /console/accounts, /console/audit are
+  // separate route segments, so navigating between them remounts the page
+  // (this shared layout does not remount), and a component-local fetch on
+  // mount was refiring — and re-flashing its skeleton — on every switch back.
   useEffect(() => {
     let live = true;
     (async () => {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { window.location.href = "/login"; return; }
-      // the platform_admin check and the organizations fetch each need
-      // nothing but the session getUser() already confirmed (RLS handles
-      // auth.uid() implicitly on the org query) — run them concurrently
-      // instead of one after another, cuts a full round-trip off the
-      // critical path before this page can render anything.
-      const [{ data: platformAdmin }, { data: orgs }] = await Promise.all([
+      // the platform_admin check and every read below need nothing but the
+      // session getUser() already confirmed (RLS handles auth.uid()
+      // implicitly) — run them all concurrently instead of one after
+      // another, cuts several round-trips off the critical path before this
+      // page can render anything.
+      const [{ data: platformAdmin }, { data: orgs }, metricsRes, { data: appSettings }] = await Promise.all([
         supabase.from("platform_admins").select("id").eq("id", user.id).maybeSingle(),
         supabase.from("organizations").select("*").order("id"),
+        fetch("/api/console/metrics").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        supabase.from("app_settings").select("*").eq("id", 1).maybeSingle(),
       ]);
       if (!platformAdmin) { window.location.href = "/login"; return; }
       if (!live) return;
       setEmail(user.email);
       setOrganizations(orgs || []);
+      setMetrics(metricsRes);
+      setSettings(appSettings || null);
       setState("ready");
     })();
     return () => { live = false; };
@@ -65,7 +77,7 @@ export default function PlatformLayout({ children }) {
     window.location.href = "/login";
   };
 
-  const ctx = { email, organizations, load };
+  const ctx = { email, organizations, metrics, settings, load };
 
   if (state === "loading") {
     return (

@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { C, SHADOW, FM } from "@/lib/core";
 import { usePlatform } from "@/lib/PlatformContext";
-import { Stat, req } from "@/components/admin/shared";
-import { createClient } from "@/lib/supabase/client";
+import { Stat } from "@/components/admin/shared";
 
 const TYPE_LABEL = {
   union: "Union",
@@ -14,14 +12,7 @@ const TYPE_LABEL = {
   training_center: "Training center",
 };
 
-function MetricsStrip() {
-  const [metrics, setMetrics] = useState(null);
-  useEffect(() => {
-    let live = true;
-    req("GET", "/api/console/metrics").then((j) => { if (live) setMetrics(j); }).catch(() => {});
-    return () => { live = false; };
-  }, []);
-
+function MetricsStrip({ metrics }) {
   if (!metrics) {
     return (
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
@@ -41,21 +32,7 @@ function MetricsStrip() {
   );
 }
 
-function PlatformSettingsCard() {
-  const [settings, setSettings] = useState(null);
-  useEffect(() => {
-    let live = true;
-    (async () => {
-      const supabase = createClient();
-      // app_settings has an "anyone can read" RLS policy (using(true)) —
-      // login/signup need it pre-auth — so this works from a platform
-      // admin's plain session with no profiles row, unlike profiles itself.
-      const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
-      if (live) setSettings(data);
-    })();
-    return () => { live = false; };
-  }, []);
-
+function PlatformSettingsCard({ settings }) {
   return (
     <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "14px 16px", boxShadow: SHADOW, marginBottom: 16 }}>
       <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 4 }}>PLATFORM SETTINGS</div>
@@ -80,12 +57,12 @@ function PlatformSettingsCard() {
 }
 
 export default function PlatformHqPage() {
-  const { organizations } = usePlatform();
+  const { organizations, metrics, settings } = usePlatform();
 
   return (
     <div>
-      <MetricsStrip />
-      <PlatformSettingsCard />
+      <MetricsStrip metrics={metrics} />
+      <PlatformSettingsCard settings={settings} />
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, color: C.mid, fontFamily: FM, marginBottom: 8 }}>
         ORGANIZATIONS — {organizations.length}
       </div>

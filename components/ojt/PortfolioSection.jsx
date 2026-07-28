@@ -646,11 +646,23 @@ function ProjectRow({ project, index, count, detail, thumbUrl, expanded, onToggl
     );
 }
 
+// Module-level, not component state — Portfolio is its own top-level tab in
+// ShowBoard, conditionally rendered (not hidden via CSS), so it fully
+// unmounts every time you switch to another tab and remounts fresh when you
+// come back. Without this, that remount re-ran the whole load every time,
+// including re-signing a storage URL per project for the thumbnails — the
+// most expensive part of this tab. Caching just the list-view data (not
+// settings/profile fields, which stay a fresh fetch each mount since they're
+// a single cheap row and caching them risks clobbering an in-progress edit
+// on return) turns a revisit into an instant paint from cache, still
+// refreshed in the background so it doesn't go stale.
+let projectsCache = null; // { projects, coverPhotos }
+
 export function PortfolioSection() {
-    const [projects, setProjects] = useState(null); // null = loading
+    const [projects, setProjects] = useState(projectsCache?.projects ?? null); // null = loading
     const [settings, setSettings] = useState(null);
     const [detail, setDetail] = useState({});
-    const [coverPhotos, setCoverPhotos] = useState({}); // projectId -> signed url, for the collapsed-row thumbnail
+    const [coverPhotos, setCoverPhotos] = useState(projectsCache?.coverPhotos ?? {}); // projectId -> signed url, for the collapsed-row thumbnail
     const [expandedId, setExpandedId] = useState(null);
     const [confirmDelete, setConfirmDelete] = useState(null);
     const [name, setName] = useState("");
@@ -671,7 +683,8 @@ export function PortfolioSection() {
         setBio(sett?.bio || "");
         setContactEmail(sett?.contact_email || "");
         setContactPhone(sett?.contact_phone || "");
-        if (proj?.length) loadCoverPhotos(supabase, proj.map((p) => p.id));
+        if (proj?.length) loadCoverPhotos(supabase, proj);
+        else { setCoverPhotos({}); projectsCache = { projects: proj || [], coverPhotos: {} }; }
     }
 
     // one thumbnail per project for the collapsed list — so the row-list
@@ -679,11 +692,11 @@ export function PortfolioSection() {
     // paying for every project's full photo set up front the way expanding
     // a row does. Lowest sort_order photo per project, deduped client-side
     // since Supabase has no native "first row per group" for this shape.
-    async function loadCoverPhotos(supabase, projectIds) {
+    async function loadCoverPhotos(supabase, projList) {
         const { data: photos } = await supabase
             .from("portfolio_project_photos")
             .select("id, project_id, storage_path, sort_order")
-            .in("project_id", projectIds)
+            .in("project_id", projList.map((p) => p.id))
             .order("sort_order", { ascending: true });
         const firstPerProject = {};
         for (const p of photos || []) {
@@ -695,7 +708,9 @@ export function PortfolioSection() {
                 return [p.project_id, signed?.signedUrl || null];
             }),
         );
-        setCoverPhotos(Object.fromEntries(entries));
+        const coverMap = Object.fromEntries(entries);
+        setCoverPhotos(coverMap);
+        projectsCache = { projects: projList, coverPhotos: coverMap };
     }
 
     useEffect(() => {
