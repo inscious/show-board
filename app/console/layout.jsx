@@ -8,13 +8,15 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, LayoutGrid, Settings as SettingsIcon } from "lucide-react";
+import { Boxes, LayoutGrid, ScrollText, Search, Settings as SettingsIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM, FS } from "@/lib/core";
 import { PlatformContext } from "@/lib/PlatformContext";
 
 const CONSOLE_TABS = [
   ["/console", "Organizations", LayoutGrid],
+  ["/console/accounts", "Accounts", Search],
+  ["/console/audit", "Audit Log", ScrollText],
   ["/console/settings", "Settings", SettingsIcon],
 ];
 
