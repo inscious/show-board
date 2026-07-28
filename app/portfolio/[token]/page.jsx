@@ -94,14 +94,27 @@ export default function SharedPortfolioPage() {
                 .pf-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
                 .pf-wrap { max-width: 720px; margin: 0 auto; padding: 40px 20px 70px; }
                 .pf-photo { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: ${PC.panelSoft}; }
+                @keyframes pf-pulse{ 0%, 100%{ opacity: 0.5; } 50%{ opacity: 0.9; } }
+                .pf-skeleton { background: ${PC.panelSoft}; border-radius: 8px; animation: pf-pulse 1.5s ease-in-out infinite; }
                 @media (max-width: 480px) { .pf-wrap { padding: 28px 16px 50px; } }
             `,
                 }}
             />
 
             {state.status === "loading" && (
-                <div style={{ padding: "80px 20px", textAlign: "center", color: PC.lo, fontSize: 13 }}>
-                    Loading…
+                <div className="pf-wrap">
+                    <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 22 }}>
+                        <div className="pf-skeleton" style={{ width: 62, height: 62, borderRadius: "50%" }} />
+                        <div style={{ flex: 1 }}>
+                            <div className="pf-skeleton" style={{ width: "60%", height: 20, marginBottom: 8 }} />
+                            <div className="pf-skeleton" style={{ width: "40%", height: 13 }} />
+                        </div>
+                    </div>
+                    <div style={{ height: 1, background: PC.line, margin: "0 0 28px" }} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 34 }}>
+                        <div className="pf-skeleton" style={{ height: 220, borderRadius: 13 }} />
+                        <div className="pf-skeleton" style={{ height: 220, borderRadius: 13 }} />
+                    </div>
                 </div>
             )}
 

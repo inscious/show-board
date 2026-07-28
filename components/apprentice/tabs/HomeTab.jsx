@@ -1002,6 +1002,7 @@ export function HomeTab({
                 <Stat
                     label="THIS WEEK"
                     value={hrsFmt(r1(weekHrs))}
+                    unit="hrs"
                     sub={
                         weekPay.gross
                             ? "~$" + weekPay.gross.toFixed(0)

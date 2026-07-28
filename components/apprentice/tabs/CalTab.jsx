@@ -7,7 +7,7 @@
    as a second dynamic() pointed at this same module, so both share one
    lazy-loaded chunk instead of Summary sitting as shell dead weight. */
 import { useState, useMemo } from "react";
-import { Check, ChevronLeft, ChevronRight, Copy, Trash2 } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Copy, Trash2 } from "lucide-react";
 import {
     BOOKED,
     C,
@@ -16,6 +16,7 @@ import {
     FM,
     KLASS,
     MONTHS,
+    NOTICE_COLOR,
     PAY,
     PAY_COLOR,
     SHADOW,
@@ -34,6 +35,7 @@ import {
     showsOn,
     statusOn,
     todayMid,
+    unionNoticesLabel,
 } from "@/lib/core";
 import { hexRgb } from "@/components/utils/hexRgb";
 import { r1 } from "@/components/utils/r1";
@@ -56,10 +58,12 @@ export function CalTab({
     rates,
     bookings,
     classes,
+    unionNotices,
     onOpenSummary,
     onClearMonth,
 }) {
     const [armed, setArmed] = useState(false);
+    const [showNotices, setShowNotices] = useState(false);
     const today = todayMid();
     const cells = useMemo(() => monthGrid(cur.y, cur.m), [cur]);
     const prefix = cur.y + "-" + String(cur.m + 1).padStart(2, "0");
@@ -185,6 +189,78 @@ export function CalTab({
                     <ChevronRight size={18} />
                 </button>
             </div>
+
+            {/* union dates & dues — same data/labels as Home and Board's
+                panels, so the meeting/dues dates apprentices are checking
+                a calendar for are actually reachable from the calendar. */}
+            {unionNotices?.length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                    <button
+                        className="foc"
+                        onClick={() => setShowNotices((v) => !v)}
+                        style={{
+                            width: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            background: C.panel,
+                            border: "1px solid " + C.edge,
+                            borderRadius: 10,
+                            padding: "10px 12px",
+                            color: C.hi,
+                            boxShadow: SHADOW,
+                        }}
+                    >
+                        <CalendarDays size={15} color={C.brand} />
+                        <span style={{ fontWeight: 700, fontSize: 13 }}>
+                            {unionNoticesLabel(unionNotices)}
+                        </span>
+                        <ChevronRight
+                            size={16}
+                            color={C.lo}
+                            style={{
+                                marginLeft: "auto",
+                                transform: showNotices ? "rotate(90deg)" : "none",
+                                transition: "transform .15s",
+                            }}
+                        />
+                    </button>
+                    {showNotices && (
+                        <div
+                            style={{
+                                marginTop: 6,
+                                background: C.panel,
+                                border: "1px solid " + C.line,
+                                borderRadius: 10,
+                                padding: "10px 12px",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: 9,
+                            }}
+                        >
+                            {unionNotices.map((n) => (
+                                <div key={n.id} style={{ display: "flex", gap: 10 }}>
+                                    <div
+                                        style={{
+                                            fontFamily: FM,
+                                            fontSize: 11,
+                                            fontWeight: 800,
+                                            color: NOTICE_COLOR[n.kind] || C.mid,
+                                            flexShrink: 0,
+                                            width: 80,
+                                        }}
+                                    >
+                                        {n.dateLabel}
+                                    </div>
+                                    <div style={{ fontSize: 12, color: C.mid, lineHeight: 1.4 }}>
+                                        {n.body}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* month stats */}
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>

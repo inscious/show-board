@@ -500,7 +500,11 @@ function ProjectRow({ project, index, count, detail, expanded, onToggle, onMove,
                         {detail ? (
                             <ProjectPhotos project={project} detail={detail} onChange={(d) => onDetailChange(project.id, d)} />
                         ) : (
-                            <div style={{ fontSize: 12, color: C.lo, padding: "10px 0" }}>Loading…</div>
+                            <div style={{ display: "flex", gap: 8 }}>
+                                <div className="skeleton" style={{ width: 76, height: 76, borderRadius: 9 }} />
+                                <div className="skeleton" style={{ width: 76, height: 76, borderRadius: 9 }} />
+                                <div className="skeleton" style={{ width: 76, height: 76, borderRadius: 9 }} />
+                            </div>
                         )}
                     </div>
 
@@ -725,7 +729,11 @@ export function PortfolioSection() {
     return (
         <div>
             {projects === null ? (
-                <div style={{ fontSize: 12, color: C.lo, padding: "10px 0" }}>Loading…</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div className="skeleton" style={{ height: 158, borderRadius: 14 }} />
+                    <div className="skeleton" style={{ height: 68, borderRadius: 10 }} />
+                    <div className="skeleton" style={{ height: 68, borderRadius: 10 }} />
+                </div>
             ) : (
                 <>
                     <div

@@ -78,7 +78,7 @@ export function TimeTicketPhotoPicker({ dayKey, entry, onClose }) {
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
                 {photos === null && (
-                    <div style={{ fontSize: 12, color: C.lo, padding: "10px 0" }}>Loading…</div>
+                    <div className="skeleton" style={{ width: 84, height: 84, borderRadius: 9 }} />
                 )}
                 {(photos || []).map((p, i) => (
                     <div

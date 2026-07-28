@@ -319,7 +319,10 @@ export default function PendingPage() {
             MONTHS ADDED{months ? " — " + months.length : ""}
           </div>
           {months === null ? (
-            <div style={{ fontSize: 12.5, color: C.lo }}>Loading…</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="skeleton" style={{ height: 44, borderRadius: 9 }} />
+              <div className="skeleton" style={{ height: 44, borderRadius: 9 }} />
+            </div>
           ) : months.length === 0 ? (
             <div style={{ fontSize: 12.5, color: C.lo }}>Nothing added yet — that's fine, you can also just start logging once you're approved.</div>
           ) : (

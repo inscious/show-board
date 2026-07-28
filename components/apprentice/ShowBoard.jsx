@@ -15,6 +15,30 @@ import { CoPicker } from "@/components/apprentice/CoPicker";
 // only add a loading flicker, not a real payload saving.
 import { HomeTab } from "@/components/apprentice/tabs/HomeTab";
 
+// shimmer placeholders for the code-split boundary below — shown while the
+// chunk itself downloads (matters most exactly when this app matters most:
+// no bars). TabLoading roughly matches a full tab's shape; ModalLoading
+// matches a bottom-sheet form's. Plain "Loading…" text used to sit here for
+// all eight of these regardless of destination shape.
+function TabLoading() {
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div className="skeleton" style={{ height: 148 }} />
+            <div className="skeleton" style={{ height: 160 }} />
+            <div className="skeleton" style={{ height: 260 }} />
+        </div>
+    );
+}
+function ModalLoading() {
+    return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "4px 0" }}>
+            <div className="skeleton" style={{ height: 48, borderRadius: 9 }} />
+            <div className="skeleton" style={{ height: 48, borderRadius: 9 }} />
+            <div className="skeleton" style={{ height: 48, borderRadius: 9 }} />
+        </div>
+    );
+}
+
 // loaded only when the OJT tab is actually opened — it's the single largest
 // tab (rules reference, curriculum, pay-scale panels), no reason a Home-tab
 // visit should pay to parse it. No SSR needed either: this only ever
@@ -22,11 +46,7 @@ import { HomeTab } from "@/components/apprentice/tabs/HomeTab";
 // tab here.
 const OjtTab = dynamic(() => import("@/components/apprentice/tabs/OjtTab").then((m) => m.OjtTab), {
     ssr: false,
-    loading: () => (
-        <div style={{ padding: "40px 0", textAlign: "center", color: "#6B7383", fontSize: 13 }}>
-            Loading…
-        </div>
-    ),
+    loading: TabLoading,
 });
 
 // same treatment for Calendar — Summary is its own dynamic() pointed at the
@@ -35,11 +55,7 @@ const OjtTab = dynamic(() => import("@/components/apprentice/tabs/OjtTab").then(
 // bundle just because something outside the lazy boundary references it.
 const CalTab = dynamic(() => import("@/components/apprentice/tabs/CalTab").then((m) => m.CalTab), {
     ssr: false,
-    loading: () => (
-        <div style={{ padding: "40px 0", textAlign: "center", color: "#6B7383", fontSize: 13 }}>
-            Loading…
-        </div>
-    ),
+    loading: TabLoading,
 });
 const Summary = dynamic(() => import("@/components/apprentice/tabs/CalTab").then((m) => m.Summary), { ssr: false });
 
@@ -48,11 +64,7 @@ const Summary = dynamic(() => import("@/components/apprentice/tabs/CalTab").then
 // blob-synced tabs above.
 const PortfolioSection = dynamic(() => import("@/components/ojt/PortfolioSection").then((m) => m.PortfolioSection), {
     ssr: false,
-    loading: () => (
-        <div style={{ padding: "40px 0", textAlign: "center", color: "#6B7383", fontSize: 13 }}>
-            Loading…
-        </div>
-    ),
+    loading: TabLoading,
 });
 
 // Board is the last tab to get this treatment — unlike the other three it
@@ -62,11 +74,7 @@ const PortfolioSection = dynamic(() => import("@/components/ojt/PortfolioSection
 // down as controlled props, rather than moving into the tab itself).
 const BoardTab = dynamic(() => import("@/components/apprentice/tabs/BoardTab").then((m) => m.BoardTab), {
     ssr: false,
-    loading: () => (
-        <div style={{ padding: "40px 0", textAlign: "center", color: "#6B7383", fontSize: 13 }}>
-            Loading…
-        </div>
-    ),
+    loading: TabLoading,
 });
 
 // DaySheet only ever opens on demand (tap a day, or "Log today") — never on
@@ -75,43 +83,27 @@ const BoardTab = dynamic(() => import("@/components/apprentice/tabs/BoardTab").t
 // to ship in the first bundle just because they're used soon after.
 const DaySheet = dynamic(() => import("@/components/apprentice/DaySheet").then((m) => m.DaySheet), {
     ssr: false,
-    loading: () => (
-        <div style={{ padding: "40px 0", textAlign: "center", color: "#6B7383", fontSize: 13 }}>
-            Loading…
-        </div>
-    ),
+    loading: ModalLoading,
 });
 
 // same on-demand treatment — "I got scheduled" only opens from a Board-tab
 // action, not initial paint.
 const BookingForm = dynamic(() => import("@/components/apprentice/BookingForm").then((m) => m.BookingForm), {
     ssr: false,
-    loading: () => (
-        <div style={{ padding: "40px 0", textAlign: "center", color: "#6B7383", fontSize: 13 }}>
-            Loading…
-        </div>
-    ),
+    loading: ModalLoading,
 });
 
 // same on-demand treatment — the "Companies & labor lines" directory only
 // opens from a button, never on initial paint.
 const DirList = dynamic(() => import("@/components/apprentice/DirList").then((m) => m.DirList), {
     ssr: false,
-    loading: () => (
-        <div style={{ padding: "40px 0", textAlign: "center", color: "#6B7383", fontSize: 13 }}>
-            Loading…
-        </div>
-    ),
+    loading: ModalLoading,
 });
 
 // same on-demand treatment — "Add month" / editing a submitted month.
 const MonthForm = dynamic(() => import("@/components/apprentice/MonthForm").then((m) => m.MonthForm), {
     ssr: false,
-    loading: () => (
-        <div style={{ padding: "40px 0", textAlign: "center", color: "#6B7383", fontSize: 13 }}>
-            Loading…
-        </div>
-    ),
+    loading: ModalLoading,
 });
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import {
@@ -468,6 +460,28 @@ export default function App() {
        (rate limit, offline, server error) reads as "will retry" instead of
        looking identical to a working save. */
     useEffect(() => subscribeSyncStatus(setSyncStatus), []);
+
+    /* The data for every tab is already sitting in memory after the one
+       store.load() above — every tab's felt lag on first visit is the JS
+       chunk itself downloading (Board/Calendar/OJT/Portfolio are all
+       next/dynamic, split out of the main bundle on purpose). Warming
+       those chunks in the background, once, right after Home's own paint
+       is done, means the first tap on any of them resolves from cache
+       instead of a fresh network round trip — the exact case ("often with
+       no signal") this app can least afford a stall in. requestIdleCallback
+       isn't in Safari, hence the setTimeout fallback. */
+    useEffect(() => {
+        if (!loaded) return;
+        const idle = window.requestIdleCallback || ((cb) => setTimeout(cb, 300));
+        const cancelIdle = window.cancelIdleCallback || clearTimeout;
+        const id = idle(() => {
+            import("@/components/apprentice/tabs/BoardTab");
+            import("@/components/apprentice/tabs/CalTab");
+            import("@/components/apprentice/tabs/OjtTab");
+            import("@/components/ojt/PortfolioSection");
+        });
+        return () => cancelIdle(id);
+    }, [loaded]);
 
     /* clear just the hours for one month — bookings, classes and the board stay put */
     const clearMonth = (prefix) =>
@@ -897,6 +911,7 @@ export default function App() {
                         rates={rates}
                         bookings={bookings}
                         classes={classes}
+                        unionNotices={unionNotices}
                         onOpenSummary={() => setModal({ type: "summary" })}
                         onClearMonth={clearMonth}
                         onOpenDay={(k) => setModal({ type: "day", key: k })}

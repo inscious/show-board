@@ -6,7 +6,7 @@
    import back through ShowBoard.jsx. */
 import { C, SHADOW, FM } from "@/lib/core";
 
-export function Stat({ label, value, sub, color }) {
+export function Stat({ label, value, unit, sub, color }) {
     return (
         <div
             style={{
@@ -40,6 +40,18 @@ export function Stat({ label, value, sub, color }) {
                 }}
             >
                 {value}
+                {unit && (
+                    <span
+                        style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: C.lo,
+                            marginLeft: 3,
+                        }}
+                    >
+                        {unit}
+                    </span>
+                )}
             </div>
             {sub && (
                 <div
