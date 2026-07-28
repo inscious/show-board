@@ -6,10 +6,14 @@ import { C, SHADOW, FM, FS, REGION, sortDate, monthLabel, monthKey, monthKeyNow,
 import { ShowForm, ImportForm, EMPTY } from "@/components/ShowEditor";
 import { Modal, ConfirmModal, req, Stat } from "@/components/admin/shared";
 import { ShowCardHeader } from "@/components/apprentice/tabs/ShowCard";
+import { NoticeForm } from "@/components/admin/UnionNoticesPanel";
 
 /* ---------- schedule ---------- */
 export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
   const [modal, setModal] = useState(null); // "add" | "edit" | "import"
+  const [importStep, setImportStep] = useState("shows"); // "shows" | "notices", only while modal === "import"
+  const [importSheetMonth, setImportSheetMonth] = useState(null);
+  const [importedNotices, setImportedNotices] = useState([]);
   const [editing, setEditing] = useState(null);
   const [collapsed, setCollapsed] = useState({}); // monthLabel -> bool, overrides the default
   const [expandedId, setExpandedId] = useState(null);
@@ -65,10 +69,21 @@ export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
     onChanged();
   };
   const [confirmRemoveShow, setConfirmRemoveShow] = useState(null); // show row, or null
-  const addImported = async (rows) => {
+  const addImported = async (rows, sheetMonth) => {
     const withIds = rows.map((r, i) => ({ id: genId("i") + i, ...r }));
     await req("POST", "/api/shows/import", { shows: withIds });
     onChanged();
+    // same sheet the notices are printed on — chain straight into that step
+    // instead of closing, so the admin does not need a second trip to
+    // Settings to keep the calendar's union-notice dots current.
+    setImportSheetMonth(sheetMonth);
+    setImportStep("notices");
+  };
+  const closeImport = () => {
+    setModal(null);
+    setImportStep("shows");
+    setImportSheetMonth(null);
+    setImportedNotices([]);
   };
 
   // Split into past/current PER SHOW first, then group each bucket by
@@ -172,7 +187,7 @@ export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
           style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.panel, color: C.hi, border: "1px dashed " + C.line, fontWeight: 700, fontSize: 13.5 }}>
           <Plus size={15} /> Add show
         </button>
-        <button className="foc" onClick={() => setModal("import")}
+        <button className="foc" onClick={() => { setImportStep("shows"); setImportedNotices([]); setModal("import"); }}
           style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 13.5, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}>
           <Upload size={15} /> Import schedule
         </button>
@@ -223,9 +238,37 @@ export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
           <ShowForm initial={editing ? { ...EMPTY, ...editing } : undefined} onClose={() => setModal(null)} onSave={saveOne} />
         </Modal>
       )}
-      {modal === "import" && (
-        <Modal title="Import from schedule" onClose={() => setModal(null)}>
-          <ImportForm onClose={() => setModal(null)} onAdd={addImported} />
+      {modal === "import" && importStep === "shows" && (
+        <Modal title="Import from schedule" onClose={closeImport}>
+          <ImportForm onAdd={addImported} />
+        </Modal>
+      )}
+      {modal === "import" && importStep === "notices" && (
+        <Modal title="This sheet's union dates & dues" onClose={closeImport}>
+          <div style={{ color: C.mid, fontSize: 12.5, marginBottom: 12, lineHeight: 1.5 }}>
+            Same sheet the shows just came off — add any meeting, dues, or holiday lines
+            printed on it so they show up on the calendar too. Skip if there is nothing new.
+          </div>
+          {importedNotices.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14 }}>
+              {importedNotices.map((n) => (
+                <div key={n.id} style={{ display: "flex", alignItems: "center", gap: 9, background: C.raise, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px" }}>
+                  <div style={{ flexShrink: 0, width: 78, fontFamily: FM, fontSize: 10.5, fontWeight: 800, color: C.brand }}>{n.dateLabel}</div>
+                  <div className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{n.body}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          <NoticeForm
+            resetAfterSave
+            defaultSheetMonth={importSheetMonth}
+            onSaved={(saved) => setImportedNotices((p) => [...p, saved])}
+            onClose={closeImport}
+          />
+          <button className="foc" onClick={closeImport}
+            style={{ width: "100%", marginTop: 10, padding: "11px", borderRadius: 10, background: "transparent", color: C.mid, border: "1px solid " + C.line, fontWeight: 700, fontSize: 13.5 }}>
+            {importedNotices.length > 0 ? "Done" : "Skip — nothing new"}
+          </button>
         </Modal>
       )}
       {confirmRemoveShow && (

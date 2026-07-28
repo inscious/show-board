@@ -34,6 +34,7 @@ export const showDeleteSchema = z.object({ id });
 export const unionNoticeSchema = z.object({
     id,
     dateLabel: z.string().trim().min(1).max(40),
+    noticeDate: dateStr.optional().nullable(),
     body: z.string().trim().min(1).max(300),
     kind: z.enum(["holiday", "meeting", "dues", "notice"]),
     sortOrder: z.number().int().optional().nullable(),

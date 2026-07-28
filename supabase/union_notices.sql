@@ -15,6 +15,7 @@ create table union_notices (
   id          text primary key,
   sheet_month text,                     -- '2026-08' — which sheet this came off, same convention as shows.sheet_month
   date_label  text not null,            -- printed exactly as on the sheet: "WED AUG 19" or "AUG 31"
+  notice_date date,                     -- actual calendar date, so the Calendar tab can dot the right day. Nullable: older/typed-only rows may not have one.
   body        text not null,            -- "Monthly meeting · 6:00 PM · 14930 Marquardt Ave, Santa Fe Springs"
   kind        text not null default 'notice' check (kind in ('holiday', 'meeting', 'dues', 'notice')),
   sort_order  bigint not null default 0,  -- client-assigned via Date.now(), same id-generation convention as elsewhere in this app — needs bigint, not a 32-bit int
@@ -22,6 +23,9 @@ create table union_notices (
   created_at  timestamptz not null default now()
 );
 create index on union_notices (sheet_month);
+
+-- migration note: if union_notices already exists in a deployed environment, run:
+--   alter table union_notices add column notice_date date;
 
 alter table union_notices enable row level security;
 

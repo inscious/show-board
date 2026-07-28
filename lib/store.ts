@@ -120,6 +120,7 @@ type UnionNoticeRow = {
     id: string;
     sheet_month: string | null;
     date_label: string;
+    notice_date: string | null;
     body: string;
     kind: string;
     sort_order: number;
@@ -186,6 +187,7 @@ export type Blob = {
         id: string;
         sheetMonth: string | null;
         dateLabel: string;
+        noticeDate: string | null;
         body: string;
         kind: string;
         sortOrder: number;
@@ -827,6 +829,7 @@ export const store = {
                     id: n.id,
                     sheetMonth: n.sheet_month,
                     dateLabel: n.date_label,
+                    noticeDate: n.notice_date,
                     body: n.body,
                     kind: n.kind,
                     sortOrder: n.sort_order,

@@ -9,6 +9,7 @@ export async function POST(request) {
     const { error } = await supabase.from("union_notices").upsert({
       id: data.id,
       date_label: data.dateLabel,
+      notice_date: data.noticeDate || null,
       body: data.body,
       kind: data.kind,
       sort_order: data.sortOrder ?? 0,

@@ -67,6 +67,14 @@ export function CalTab({
     const today = todayMid();
     const cells = useMemo(() => monthGrid(cur.y, cur.m), [cur]);
     const prefix = cur.y + "-" + String(cur.m + 1).padStart(2, "0");
+    const noticesByDay = useMemo(() => {
+        const map = {};
+        (unionNotices || []).forEach((n) => {
+            if (!n.noticeDate) return;
+            (map[n.noticeDate] = map[n.noticeDate] || []).push(n);
+        });
+        return map;
+    }, [unionNotices]);
 
     const stats = useMemo(() => {
         let hrs = 0,
@@ -448,6 +456,7 @@ export function CalTab({
                         const hasBook = bookingOn(bookings, k).length > 0;
                         const onBoard = showsOn(shows, d).length > 0;
                         const flag = statusOn(shows, d);
+                        const dayNotices = noticesByDay[k] || [];
 
                         /* FILL = your day. worked beats scheduled beats class. */
                         const fill = hrs
@@ -480,6 +489,9 @@ export function CalTab({
                         /* DOTS = markers */
                         const dots = [];
                         if (onBoard) dots.push(C.gc);
+                        dayNotices.forEach((n) =>
+                            dots.push(NOTICE_COLOR[n.kind] || C.brand),
+                        );
 
                         return (
                             <button
@@ -1024,6 +1036,17 @@ export function CalTab({
                         }}
                     />
                     On the board
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span
+                        style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: 9,
+                            background: C.brand,
+                        }}
+                    />
+                    Union meeting / dues
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <span

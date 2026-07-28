@@ -26,10 +26,17 @@ const curMonthStr = () => {
   return t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0");
 };
 
-function NoticeForm({ onSaved, onClose, initial }) {
+/* exported so the "Import schedule" flow (ScheduleTab.jsx) can chain
+   straight into adding this same sheet's notices — same monthly sheet as
+   the shows, per union_notices.sql's own comment, so one import session
+   should be able to cover both instead of the admin having to remember a
+   second trip to Settings. resetAfterSave keeps the form open and blanks
+   it for the next row instead of closing, for that quick-add flow. */
+export function NoticeForm({ onSaved, onClose, initial, resetAfterSave, defaultSheetMonth }) {
+  const blank = { dateLabel: "", noticeDate: "", body: "", kind: "meeting", sheetMonth: defaultSheetMonth || curMonthStr() };
   const [form, setForm] = useState(() => initial
-    ? { dateLabel: initial.date_label || "", body: initial.body || "", kind: initial.kind || "notice", sheetMonth: initial.sheet_month || curMonthStr() }
-    : { dateLabel: "", body: "", kind: "meeting", sheetMonth: curMonthStr() });
+    ? { dateLabel: initial.date_label || "", noticeDate: initial.notice_date || "", body: initial.body || "", kind: initial.kind || "notice", sheetMonth: initial.sheet_month || curMonthStr() }
+    : blank);
   const [state, setState] = useState("idle");
   const [msg, setMsg] = useState("");
   const fieldStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14 };
@@ -37,20 +44,30 @@ function NoticeForm({ onSaved, onClose, initial }) {
   const submit = async (e) => {
     e.preventDefault();
     if (!form.dateLabel.trim() || !form.body.trim()) { setState("error"); setMsg("Needs a date and a description."); return; }
+    if (!form.noticeDate) { setState("error"); setMsg("Pick the actual calendar date — that's what puts the dot on the right day."); return; }
     setState("saving");
     setMsg("");
     try {
-      await req("POST", "/api/union-notices", {
+      const saved = {
         id: initial?.id || "un" + Date.now().toString(36),
         dateLabel: form.dateLabel.trim(),
+        noticeDate: form.noticeDate,
         body: form.body.trim(),
         kind: form.kind,
         sheetMonth: form.sheetMonth || null,
         sortOrder: initial?.sort_order ?? Date.now(),
-      });
+      };
+      await req("POST", "/api/union-notices", saved);
       setState("done");
-      onSaved();
-      setTimeout(onClose, 700);
+      onSaved(saved);
+      if (resetAfterSave) {
+        setTimeout(() => {
+          setForm({ ...blank, sheetMonth: form.sheetMonth });
+          setState("idle");
+        }, 500);
+      } else {
+        setTimeout(onClose, 700);
+      }
     } catch (e2) {
       setState("error");
       setMsg(e2.message);
@@ -65,11 +82,16 @@ function NoticeForm({ onSaved, onClose, initial }) {
           <input required autoFocus value={form.dateLabel} onChange={(e) => setForm((f) => ({ ...f, dateLabel: e.target.value }))}
             placeholder="WED AUG 19" style={{ ...fieldStyle, width: "100%" }} />
         </div>
-        <div style={{ flex: "0 1 140px" }}>
-          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>SHEET MONTH</div>
-          <input value={form.sheetMonth} onChange={(e) => setForm((f) => ({ ...f, sheetMonth: e.target.value }))}
-            placeholder="2026-08" style={{ ...fieldStyle, width: "100%", fontFamily: FM }} />
+        <div style={{ flex: "0 1 150px" }}>
+          <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CALENDAR DATE</div>
+          <input required type="date" value={form.noticeDate} onChange={(e) => setForm((f) => ({ ...f, noticeDate: e.target.value }))}
+            style={{ ...fieldStyle, width: "100%", fontFamily: FM }} />
         </div>
+      </div>
+      <div style={{ flex: "0 1 140px", marginBottom: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>SHEET MONTH</div>
+        <input value={form.sheetMonth} onChange={(e) => setForm((f) => ({ ...f, sheetMonth: e.target.value }))}
+          placeholder="2026-08" style={{ ...fieldStyle, width: "100%", fontFamily: FM, maxWidth: 150 }} />
       </div>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>DESCRIPTION</div>
       <input required value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
@@ -141,6 +163,9 @@ export function UnionNoticesPanel() {
                 {n.date_label}
               </div>
               <div className="truncate" style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: C.hi }}>{n.body}</div>
+              {!n.notice_date && (
+                <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: C.danger }}>no calendar date</span>
+              )}
               <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); setRemoving(n); }} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
             </div>
           ))}

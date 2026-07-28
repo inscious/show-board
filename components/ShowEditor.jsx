@@ -80,13 +80,13 @@ export function parseImport(text) {
     });
 }
 
-export function ImportForm({ onAdd, onClose }) {
+export function ImportForm({ onAdd }) {
   const [text, setText] = useState("");
   const [sheetMonth, setSheetMonth] = useState(curMonthStr());
   const [rows, setRows] = useState(null);
   const [skip, setSkip] = useState({});
   const parse = () => { const r = parseImport(text); setRows(r); setSkip({}); };
-  const add = () => { onAdd(rows.filter((_, i) => !skip[i]).map((r) => ({ ...r, sheetMonth }))); onClose(); };
+  const add = () => { onAdd(rows.filter((_, i) => !skip[i]).map((r) => ({ ...r, sheetMonth })), sheetMonth); };
   return (
     <div>
       <div style={{ color: C.mid, fontSize: 12.5, marginBottom: 10, lineHeight: 1.5 }}>
