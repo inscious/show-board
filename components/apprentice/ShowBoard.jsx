@@ -655,6 +655,8 @@ export default function App() {
     .sb .navtop{ display: none; }
     .sb .navbot{ display: block; padding-bottom: env(safe-area-inset-bottom, 0px); }
     .sb .dgrid{ display: flex; flex-direction: column; gap: 10px; }
+    .sb .hero-grid{ display: flex; flex-direction: column; gap: 10px; }
+    .sb .hero-chart-plot{ width: 100%; height: 160px; }
     .sb .bgrid{ display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
     .sb .dcell{ height: 54px; }
     .sb .wcell{ height: 58px; }
@@ -670,6 +672,9 @@ export default function App() {
       .sb .navbot{ display: none; }
       .sb .dgrid{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
       .sb .dspan{ grid-column: 1 / -1; }
+      .sb .hero-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
+      .sb .hero-chart-card{ display: flex; flex-direction: column; }
+      .sb .hero-chart-plot{ flex: 1; height: auto; min-height: 160px; }
       .sb .bgrid{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: start; }
       .sb .m4{ grid-template-columns: repeat(4, 1fr) !important; }
       .sb .dcell{ height: 84px; }

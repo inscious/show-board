@@ -549,10 +549,14 @@ export function HomeTab({
             )}
 
             {/* the month, in money and hours — sits beside the chart on
-                desktop now (paired via lib/core's dgrid/.dspan convention,
-                same as everywhere else this session); stacks above it on
-                mobile same as before, since dgrid is a single flex column
-                there. */}
+                desktop now, both wrapped in their own hero-grid pairing
+                (not the shared dgrid, so this stays isolated from every
+                other card pair on this tab); stacks above it on mobile
+                same as before, since hero-grid is a single flex column
+                there. Desktop-only: the pair stretches to equal height and
+                the chart card grows to fill it — mobile keeps its existing
+                fixed chart height untouched. */}
+            <div className="dspan hero-grid">
             <div
                 style={{
                     background: C.panel,
@@ -833,6 +837,7 @@ export function HomeTab({
             </div>
 
             <MonthlyHoursChart series={monthlySeries} />
+            </div>
 
             {/* this week */}
             <div

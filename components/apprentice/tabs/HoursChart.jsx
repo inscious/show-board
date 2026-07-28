@@ -87,6 +87,7 @@ function HoursTooltip({ active, payload, label }) {
 export function MonthlyHoursChart({ series }) {
     return (
         <div
+            className="hero-chart-card"
             style={{
                 background: C.panel,
                 border: "1px solid " + C.edge,
@@ -150,7 +151,7 @@ export function MonthlyHoursChart({ series }) {
                 </div>
             </div>
             <div
-                style={{ width: "100%", height: 160 }}
+                className="hero-chart-plot"
                 role="img"
                 aria-label={
                     "Monthly hours worked in " +
