@@ -1737,26 +1737,47 @@ export function DaySheet({
                     >
                         TRAVEL PAY — OPTIONAL
                     </div>
-                    <input
+                    <button
+                        type="button"
                         className="foc"
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="0.01"
-                        value={travel}
-                        onChange={(e) => setTravel(e.target.value)}
-                        placeholder="e.g. 20.00"
+                        onClick={() => setTravel(num(travel) ? "" : "10")}
                         style={{
                             width: "100%",
-                            background: C.sunk,
-                            color: C.hi,
-                            border: "1px solid " + C.line,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 9,
+                            background: num(travel) ? "rgba(47,176,122,0.14)" : C.sunk,
+                            color: num(travel) ? C.working : C.mid,
+                            border:
+                                "1px solid " +
+                                (num(travel) ? C.working + "66" : C.line),
                             borderRadius: 9,
                             padding: "11px",
                             fontSize: 13.5,
-                            fontFamily: FS,
+                            fontWeight: 700,
                         }}
-                    />
+                    >
+                        <span
+                            style={{
+                                width: 18,
+                                height: 18,
+                                borderRadius: 5,
+                                border:
+                                    "1px solid " +
+                                    (num(travel) ? C.working : C.line),
+                                background: num(travel) ? C.working : "transparent",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                            }}
+                        >
+                            {num(travel) > 0 && <Check size={12} color={C.inkGood} />}
+                        </span>
+                        {num(travel) > 0
+                            ? "$" + num(travel).toFixed(2) + " travel pay"
+                            : "Add $10 travel pay"}
+                    </button>
                     <div
                         style={{
                             fontSize: 10.5,
@@ -1767,7 +1788,8 @@ export function DaySheet({
                     >
                         A flat stipend, not part of your ST/OT/DT hours — whatever
                         shows up as its own line on your check. Adds straight to
-                        gross below.
+                        gross below. Most companies pay $10/day; tap off if
+                        this one doesn't.
                     </div>
 
                     {touched && !ok && (
