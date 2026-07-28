@@ -21,6 +21,7 @@ import {
     ChevronRight,
     ChevronUp,
     Copy,
+    ExternalLink,
     HardHat,
     Image as ImageIcon,
     Link2,
@@ -55,31 +56,57 @@ function CopyLink({ token }) {
     const url = shareUrl(token);
     if (!token) return null;
     return (
-        <button
-            className="foc"
-            onClick={() => {
-                navigator.clipboard?.writeText(url).then(() => {
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1600);
-                });
-            }}
-            style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: C.sunk,
-                border: "1px solid " + C.line,
-                borderRadius: 8,
-                padding: "8px 10px",
-                fontSize: 11,
-                fontFamily: FM,
-                color: copied ? C.working : C.mid,
-                minWidth: 0,
-            }}
-        >
-            {copied ? <Check size={12} /> : <Copy size={12} />}
-            <span className="truncate">{copied ? "Copied" : url}</span>
-        </button>
+        <div style={{ display: "flex", gap: 6, minWidth: 0 }}>
+            <button
+                className="foc"
+                onClick={() => {
+                    navigator.clipboard?.writeText(url).then(() => {
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 1600);
+                    });
+                }}
+                style={{
+                    flex: 1,
+                    minWidth: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: C.sunk,
+                    border: "1px solid " + C.line,
+                    borderRadius: 8,
+                    padding: "8px 10px",
+                    fontSize: 11,
+                    fontFamily: FM,
+                    color: copied ? C.working : C.mid,
+                    overflow: "hidden",
+                }}
+            >
+                {copied ? <Check size={12} /> : <Copy size={12} />}
+                <span className="truncate" style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+                    {copied ? "Copied" : url}
+                </span>
+            </button>
+            <a
+                className="foc"
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Open your public portfolio page"
+                style={{
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 32,
+                    background: C.sunk,
+                    border: "1px solid " + C.line,
+                    borderRadius: 8,
+                    color: C.folio,
+                }}
+            >
+                <ExternalLink size={13} />
+            </a>
+        </div>
     );
 }
 
