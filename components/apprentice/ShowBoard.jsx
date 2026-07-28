@@ -153,6 +153,7 @@ import {
 } from "@/lib/core";
 import { OjtImportFlow } from "@/components/ojt/OjtImportFlow";
 import { WelcomeModal } from "@/components/apprentice/WelcomeModal";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 import { ClassCurriculum } from "@/components/ojt/ClassCurriculum";
 import { JatcRulesModal } from "@/components/ojt/JatcRulesModal";
 
@@ -757,6 +758,7 @@ export default function App() {
             }}
         >
             <style>{css}</style>
+            <ImpersonationBanner />
             <div className="wrap page mx-auto">
                 {/* header */}
                 <div style={{ paddingTop: 18, paddingBottom: 18 }}>

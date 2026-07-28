@@ -409,6 +409,10 @@ export const platformSetRolesSchema = z.object({
     graduatedAt: z.union([dateStr, z.literal("")]).optional().nullable(),
 });
 
+export const platformImpersonateSchema = z.object({
+    targetUserId: z.string().uuid(),
+});
+
 /* -------- inferred types --------
    Real TS types generated from the schemas above, not hand-duplicated —
    if a bound or field changes here, every consumer's type updates with it.

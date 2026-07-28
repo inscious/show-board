@@ -16,6 +16,7 @@ import { C, SHADOW, FM, FS } from "@/lib/core";
 import { AdminContext } from "@/lib/AdminContext";
 import { NewApprenticeForm, AssignClassForm, BulkDnhForm, BulkArchiveForm } from "@/components/admin/tabs/RosterTab";
 import { Modal, groupByUser } from "@/components/admin/shared";
+import { ImpersonationBanner } from "@/components/ImpersonationBanner";
 
 const ADMIN_TABS = [
   ["/admin", "Dashboard", LayoutDashboard],
@@ -262,6 +263,7 @@ export default function AdminLayout({ children }) {
           .admin-shell .floor-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         }
       `}</style>
+      <ImpersonationBanner />
       <div className="wrap">
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <HardHat size={20} color={C.brand} />

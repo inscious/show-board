@@ -8,9 +8,9 @@
    there's no client-loaded "every account platform-wide" list to filter,
    unlike the union-level Roster search this mirrors visually. */
 import { useEffect, useRef, useState } from "react";
-import { Search, ChevronRight, ShieldCheck, HardHat, Check, Ban, Archive as ArchiveIcon } from "lucide-react";
+import { Search, ChevronRight, ShieldCheck, HardHat, Check, Ban, Archive as ArchiveIcon, UserCog } from "lucide-react";
 import { C, SHADOW, FM, FS } from "@/lib/core";
-import { Avatar, Modal, req } from "@/components/admin/shared";
+import { Avatar, Modal, ConfirmModal, req } from "@/components/admin/shared";
 
 const inputStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px", color: C.hi, fontSize: 12.5, fontFamily: FS };
 
@@ -57,12 +57,27 @@ function DetailRow({ label, value }) {
 function AccountDetail({ id, onClose }) {
   const [account, setAccount] = useState(null);
   const [error, setError] = useState("");
+  const [confirmImpersonate, setConfirmImpersonate] = useState(false);
+  const [impersonating, setImpersonating] = useState(false);
+  const [impersonateError, setImpersonateError] = useState("");
 
   useEffect(() => {
     let live = true;
     req("GET", `/api/console/accounts/${id}`).then((j) => { if (live) setAccount(j.account); }).catch((e) => { if (live) setError(e.message); });
     return () => { live = false; };
   }, [id]);
+
+  const impersonate = async () => {
+    setImpersonating(true);
+    setImpersonateError("");
+    try {
+      const j = await req("POST", "/api/console/impersonate", { targetUserId: id });
+      window.location.href = `/impersonate/verify?token_hash=${encodeURIComponent(j.tokenHash)}`;
+    } catch (e) {
+      setImpersonateError(e.message);
+      setImpersonating(false);
+    }
+  };
 
   return (
     <Modal title={account?.name || account?.email || "Account"} onClose={onClose}>
@@ -102,10 +117,35 @@ function AccountDetail({ id, onClose }) {
           <DetailRow label="Last OJT month" value={account.lastOjtMonth ? `${account.lastOjtMonth} (${account.lastOjtStatus})` : "None submitted"} />
           {account.doNotHireAt && <DetailRow label="DNH reason" value={account.doNotHireReason} />}
 
+          <button
+            className="foc"
+            disabled={impersonating}
+            onClick={() => setConfirmImpersonate(true)}
+            style={{
+              width: "100%", marginTop: 16, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              padding: "12px", borderRadius: 10, background: "rgba(127,178,255,0.1)", border: "1px solid " + C.gc + "66",
+              color: C.gc, fontWeight: 800, fontSize: 13.5, opacity: impersonating ? 0.6 : 1,
+            }}
+          >
+            <UserCog size={15} />
+            {impersonating ? "Starting session…" : "Impersonate — view as this account"}
+          </button>
+          {impersonateError && <div style={{ fontSize: 12, color: C.danger, marginTop: 8 }}>{impersonateError}</div>}
+
           <div style={{ fontSize: 10.5, color: C.lo, marginTop: 14, lineHeight: 1.5 }}>
             To change this account's roles, use the Role Assignment tool on the Settings tab with this email — {account.email}.
           </div>
         </div>
+      )}
+      {confirmImpersonate && (
+        <ConfirmModal
+          title="Impersonate this account?"
+          message={`You'll get a real, 30-minute session as ${account.name || account.email}, landing on their actual app — every action taken is logged, and anything you do (or they see logged) is attributed to them, not you. Use "End session" in the banner to return to the console.`}
+          confirmLabel="Start impersonating"
+          danger={false}
+          onClose={() => setConfirmImpersonate(false)}
+          onConfirm={() => { setConfirmImpersonate(false); impersonate(); }}
+        />
       )}
     </Modal>
   );
