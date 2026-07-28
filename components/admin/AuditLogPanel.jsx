@@ -7,6 +7,9 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM } from "@/lib/core";
+import { getCached, setCached } from "@/lib/clientCache";
+
+const CACHE_KEY = "admin:audit-log";
 
 const AUDIT_ACTION_META = {
   archive: { label: "Archived", color: C.mid },
@@ -20,13 +23,13 @@ const AUDIT_ACTION_META = {
 };
 
 export function AuditLogPanel() {
-  const [rows, setRows] = useState(null); // null = loading
+  const [rows, setRows] = useState(() => getCached(CACHE_KEY)); // null = loading
   useEffect(() => {
     let live = true;
     (async () => {
       const supabase = createClient();
       const { data } = await supabase.from("admin_audit_log").select("*").order("created_at", { ascending: false }).limit(50);
-      if (live) setRows(data || []);
+      if (live) { setRows(data || []); setCached(CACHE_KEY, data || []); }
     })();
     return () => { live = false; };
   }, []);

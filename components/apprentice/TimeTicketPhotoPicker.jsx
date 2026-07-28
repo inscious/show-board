@@ -25,11 +25,12 @@ export function TimeTicketPhotoPicker({ dayKey, entry, onClose }) {
             .select("id, storage_path")
             .eq("work_entry_id", entry.id)
             .order("created_at", { ascending: true });
-        const signed = [];
-        for (const p of data || []) {
-            const { data: s } = await supabase.storage.from("time_tickets").createSignedUrl(p.storage_path, 3600);
-            signed.push({ id: p.id, url: s?.signedUrl || null });
-        }
+        const signed = await Promise.all(
+            (data || []).map(async (p) => {
+                const { data: s } = await supabase.storage.from("time_tickets").createSignedUrl(p.storage_path, 3600);
+                return { id: p.id, url: s?.signedUrl || null };
+            }),
+        );
         setPhotos(signed);
     }
 

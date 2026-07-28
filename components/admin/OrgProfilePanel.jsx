@@ -12,18 +12,24 @@ import { useState, useEffect } from "react";
 import { Save } from "lucide-react";
 import { C, SHADOW, FM, fmtTel } from "@/lib/core";
 import { req } from "@/components/admin/shared";
+import { getCached, setCached } from "@/lib/clientCache";
 
+const CACHE_KEY = "admin:org-profile";
 const fieldStyle = { width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 };
 
 export function OrgProfilePanel() {
-  const [form, setForm] = useState(null); // null = loading
+  const [form, setForm] = useState(() => getCached(CACHE_KEY)); // null = loading
   const [state, setState] = useState("idle"); // idle | saving | done | error
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
     fetch("/api/settings/org-profile")
       .then((r) => r.json())
-      .then((d) => setForm({ unionName: d.unionName, outOfWorkLine: d.outOfWorkLinePretty || fmtTel(d.outOfWorkLine), jatcOfficeAddress: d.jatcOfficeAddress }))
+      .then((d) => {
+        const next = { unionName: d.unionName, outOfWorkLine: d.outOfWorkLinePretty || fmtTel(d.outOfWorkLine), jatcOfficeAddress: d.jatcOfficeAddress };
+        setForm(next);
+        setCached(CACHE_KEY, next);
+      })
       .catch(() => setForm({ unionName: "", outOfWorkLine: "", jatcOfficeAddress: "" }));
   }, []);
 

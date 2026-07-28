@@ -13,6 +13,7 @@ import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM, NOTICE_COLOR } from "@/lib/core";
 import { Modal, ConfirmModal, req } from "@/components/admin/shared";
+import { getCached, setCached } from "@/lib/clientCache";
 
 const KINDS = [
   { k: "meeting", label: "Meeting" },
@@ -120,8 +121,10 @@ export function NoticeForm({ onSaved, onClose, initial, resetAfterSave, defaultS
   );
 }
 
+const CACHE_KEY = "admin:union-notices";
+
 export function UnionNoticesPanel() {
-  const [rows, setRows] = useState(null);
+  const [rows, setRows] = useState(() => getCached(CACHE_KEY));
   const [formOpen, setFormOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
   const [removing, setRemoving] = useState(null);
@@ -130,6 +133,7 @@ export function UnionNoticesPanel() {
     const supabase = createClient();
     const { data } = await supabase.from("union_notices").select("*").order("sort_order", { ascending: true });
     setRows(data || []);
+    setCached(CACHE_KEY, data || []);
   };
   useEffect(() => { load(); }, []);
 

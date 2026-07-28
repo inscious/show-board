@@ -19,9 +19,11 @@ import { LEVELS, ojtTotals, levelIndex } from "@/lib/core";
 const TOKEN_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function credentialContext(admin, userId) {
-  const { data: profile } = await admin.from("profiles").select("name, local, joined_on").eq("id", userId).single();
-  const { data: monthRows } = await admin.from("ojt_months").select("cat_a, cat_b, cat_c, cat_d").eq("user_id", userId).eq("status", "approved");
-  const { data: certifications } = await admin.from("certifications").select("name, exp").eq("user_id", userId).order("exp", { ascending: false });
+  const [{ data: profile }, { data: monthRows }, { data: certifications }] = await Promise.all([
+    admin.from("profiles").select("name, local, joined_on").eq("id", userId).single(),
+    admin.from("ojt_months").select("cat_a, cat_b, cat_c, cat_d").eq("user_id", userId).eq("status", "approved"),
+    admin.from("certifications").select("name, exp").eq("user_id", userId).order("exp", { ascending: false }),
+  ]);
 
   const months = (monthRows || []).map((m) => ({ a: Number(m.cat_a), b: Number(m.cat_b), c: Number(m.cat_c), d: Number(m.cat_d) }));
   const totals = ojtTotals(months);
@@ -46,22 +48,26 @@ async function credentialContext(admin, userId) {
 }
 
 async function projectPayload(admin, project) {
-  const { data: days } = await admin
-    .from("portfolio_project_days")
-    .select("work_type, work_entries(worked_on, company)")
-    .eq("project_id", project.id);
+  const [{ data: days }, { data: photos }] = await Promise.all([
+    admin
+      .from("portfolio_project_days")
+      .select("work_type, work_entries(worked_on, company)")
+      .eq("project_id", project.id),
+    admin
+      .from("portfolio_project_photos")
+      .select("id, storage_path, caption, sort_order")
+      .eq("project_id", project.id)
+      .order("sort_order", { ascending: true }),
+  ]);
 
-  const { data: photos } = await admin
-    .from("portfolio_project_photos")
-    .select("id, storage_path, caption, sort_order")
-    .eq("project_id", project.id)
-    .order("sort_order", { ascending: true });
-
-  const signedPhotos = [];
-  for (const p of photos || []) {
-    const { data: signed } = await admin.storage.from("portfolio").createSignedUrl(p.storage_path, 3600);
-    if (signed?.signedUrl) signedPhotos.push({ id: p.id, url: signed.signedUrl, caption: p.caption });
-  }
+  const signedPhotos = (
+    await Promise.all(
+      (photos || []).map(async (p) => {
+        const { data: signed } = await admin.storage.from("portfolio").createSignedUrl(p.storage_path, 3600);
+        return signed?.signedUrl ? { id: p.id, url: signed.signedUrl, caption: p.caption } : null;
+      }),
+    )
+  ).filter(Boolean);
 
   return {
     id: project.id,
@@ -100,16 +106,17 @@ export async function GET(request, { params }) {
     .maybeSingle();
 
   if (settings) {
-    const context = await credentialContext(admin, settings.user_id);
-    const { data: projects } = await admin
-      .from("portfolio_projects")
-      .select("id, title, notes, section, location")
-      .eq("user_id", settings.user_id)
-      .eq("include_in_portfolio", true)
-      .order("sort_order", { ascending: true });
+    const [context, { data: projects }] = await Promise.all([
+      credentialContext(admin, settings.user_id),
+      admin
+        .from("portfolio_projects")
+        .select("id, title, notes, section, location")
+        .eq("user_id", settings.user_id)
+        .eq("include_in_portfolio", true)
+        .order("sort_order", { ascending: true }),
+    ]);
 
-    const payload = [];
-    for (const p of projects || []) payload.push(await projectPayload(admin, p));
+    const payload = await Promise.all((projects || []).map((p) => projectPayload(admin, p)));
 
     return Response.json({
       ok: true,
@@ -128,17 +135,22 @@ export async function GET(request, { params }) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  const context = await credentialContext(admin, project.user_id);
-  const payload = await projectPayload(admin, project);
-  // a per-project share link has no settings row of its own to source
-  // contact info from — fall back to the owner's whole-portfolio settings,
-  // if they've set any, so a hiring manager who only got one project link
-  // can still reach out.
-  const { data: ownerSettings } = await admin
-    .from("portfolio_settings")
-    .select("contact_email, contact_phone")
-    .eq("user_id", project.user_id)
-    .maybeSingle();
+  // context, payload, and ownerSettings each only need `project` (already in
+  // hand) — independent of one another, so run them concurrently instead of
+  // one after another.
+  const [context, payload, { data: ownerSettings }] = await Promise.all([
+    credentialContext(admin, project.user_id),
+    projectPayload(admin, project),
+    // a per-project share link has no settings row of its own to source
+    // contact info from — fall back to the owner's whole-portfolio settings,
+    // if they've set any, so a hiring manager who only got one project link
+    // can still reach out.
+    admin
+      .from("portfolio_settings")
+      .select("contact_email, contact_phone")
+      .eq("user_id", project.user_id)
+      .maybeSingle(),
+  ]);
 
   return Response.json({
     ok: true,

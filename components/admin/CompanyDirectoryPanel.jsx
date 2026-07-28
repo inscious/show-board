@@ -11,6 +11,7 @@ import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM, coColor } from "@/lib/core";
 import { Modal, ConfirmModal, req } from "@/components/admin/shared";
+import { getCached, setCached } from "@/lib/clientCache";
 
 function CompanyForm({ onSaved, onClose, initial }) {
   const [form, setForm] = useState(() => initial
@@ -67,8 +68,10 @@ function CompanyForm({ onSaved, onClose, initial }) {
   );
 }
 
+const CACHE_KEY = "admin:companies";
+
 export function CompanyDirectoryPanel() {
-  const [rows, setRows] = useState(null);
+  const [rows, setRows] = useState(() => getCached(CACHE_KEY));
   const [formOpen, setFormOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
   const [removing, setRemoving] = useState(null); // company row, or null
@@ -77,6 +80,7 @@ export function CompanyDirectoryPanel() {
     const supabase = createClient();
     const { data } = await supabase.from("companies").select("*").order("name");
     setRows(data || []);
+    setCached(CACHE_KEY, data || []);
   };
   useEffect(() => { load(); }, []);
 

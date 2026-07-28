@@ -10,16 +10,19 @@
 import { useState, useEffect } from "react";
 import { C, SHADOW, FM } from "@/lib/core";
 import { req, ConfirmModal } from "@/components/admin/shared";
+import { getCached, setCached } from "@/lib/clientCache";
+
+const CACHE_KEY = "admin:self-signup";
 
 export function SelfSignupPanel() {
-  const [enabled, setEnabled] = useState(null); // null = loading
+  const [enabled, setEnabled] = useState(() => getCached(CACHE_KEY)); // null = loading
   const [confirming, setConfirming] = useState(false);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
     fetch("/api/settings/self-signup")
       .then((r) => r.json())
-      .then((d) => setEnabled(!!d.enabled))
+      .then((d) => { setEnabled(!!d.enabled); setCached(CACHE_KEY, !!d.enabled); })
       .catch(() => setEnabled(true));
   }, []);
 
@@ -29,6 +32,7 @@ export function SelfSignupPanel() {
     try {
       await req("POST", "/api/admin/self-signup", { enabled: next });
       setEnabled(next);
+      setCached(CACHE_KEY, next);
       setConfirming(false);
     } catch (e) {
       setMsg(e.message);

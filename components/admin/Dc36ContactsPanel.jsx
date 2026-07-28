@@ -11,6 +11,7 @@ import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM } from "@/lib/core";
 import { Modal, ConfirmModal, Avatar, req } from "@/components/admin/shared";
+import { getCached, setCached } from "@/lib/clientCache";
 
 function Dc36ContactForm({ onSaved, onClose, initial }) {
   const [form, setForm] = useState(() => initial
@@ -66,8 +67,10 @@ function Dc36ContactForm({ onSaved, onClose, initial }) {
   );
 }
 
+const CACHE_KEY = "admin:dc36-contacts";
+
 export function Dc36ContactsPanel() {
-  const [rows, setRows] = useState(null);
+  const [rows, setRows] = useState(() => getCached(CACHE_KEY));
   const [formOpen, setFormOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
   const [removing, setRemoving] = useState(null); // contact row, or null
@@ -76,6 +79,7 @@ export function Dc36ContactsPanel() {
     const supabase = createClient();
     const { data } = await supabase.from("dc36_contacts").select("*").order("name");
     setRows(data || []);
+    setCached(CACHE_KEY, data || []);
   };
   useEffect(() => { load(); }, []);
 

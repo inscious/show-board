@@ -9,6 +9,7 @@ import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM } from "@/lib/core";
 import { Modal, ConfirmModal, Avatar, req } from "@/components/admin/shared";
+import { getCached, setCached } from "@/lib/clientCache";
 
 function JatcContactForm({ onSaved, onClose, initial }) {
   const [form, setForm] = useState(() => initial
@@ -64,8 +65,10 @@ function JatcContactForm({ onSaved, onClose, initial }) {
   );
 }
 
+const CACHE_KEY = "admin:jatc-contacts";
+
 export function JatcContactsPanel() {
-  const [rows, setRows] = useState(null);
+  const [rows, setRows] = useState(() => getCached(CACHE_KEY));
   const [formOpen, setFormOpen] = useState(false);
   const [editingRow, setEditingRow] = useState(null);
   const [removing, setRemoving] = useState(null); // contact row, or null
@@ -74,6 +77,7 @@ export function JatcContactsPanel() {
     const supabase = createClient();
     const { data } = await supabase.from("jatc_contacts").select("*").order("name");
     setRows(data || []);
+    setCached(CACHE_KEY, data || []);
   };
   useEffect(() => { load(); }, []);
 

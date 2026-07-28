@@ -11,10 +11,14 @@ import { Check, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM, mMed } from "@/lib/core";
 import { Avatar, ConfirmModal, req } from "@/components/admin/shared";
+import { getCached, setCached } from "@/lib/clientCache";
+
+const CACHE_KEY = "admin:pending-signups";
 
 export function PendingSignupsPanel({ onCountChange }) {
-  const [rows, setRows] = useState(null); // null = loading
-  const [monthsByUser, setMonthsByUser] = useState({});
+  const cached = getCached(CACHE_KEY);
+  const [rows, setRows] = useState(cached?.rows ?? null); // null = loading
+  const [monthsByUser, setMonthsByUser] = useState(cached?.monthsByUser ?? {});
   const [rejecting, setRejecting] = useState(null); // profile row, or null
   const [busyId, setBusyId] = useState(null);
 
@@ -27,16 +31,19 @@ export function PendingSignupsPanel({ onCountChange }) {
       .order("email");
     setRows(profiles || []);
     onCountChange?.(profiles?.length || 0);
+    let grouped = {};
     if (profiles?.length) {
       const { data: months } = await supabase.from("ojt_months")
         .select("user_id, month, cat_a, cat_b, cat_c, cat_d")
         .in("user_id", profiles.map((p) => p.id));
-      const grouped = {};
       (months || []).forEach((m) => { (grouped[m.user_id] = grouped[m.user_id] || []).push(m); });
       setMonthsByUser(grouped);
     }
+    setCached(CACHE_KEY, { rows: profiles || [], monthsByUser: grouped });
   };
-  useEffect(() => { load(); }, []);
+  // report the cached count immediately on mount (before the real fetch
+  // resolves) so a badge reading onCountChange doesn't flash 0 on a revisit.
+  useEffect(() => { if (cached) onCountChange?.(cached.rows.length); load(); }, []);
 
   const approve = async (id) => {
     setBusyId(id);

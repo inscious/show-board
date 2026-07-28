@@ -8,9 +8,12 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM } from "@/lib/core";
 import { Avatar, ConfirmModal, req } from "@/components/admin/shared";
+import { getCached, setCached } from "@/lib/clientCache";
+
+const CACHE_KEY = "admin:admins";
 
 export function AdminAccountsPanel({ currentEmail, isCentralAdmin }) {
-  const [rows, setRows] = useState(null);
+  const [rows, setRows] = useState(() => getCached(CACHE_KEY));
   const [confirmFor, setConfirmFor] = useState(null); // admin row, or null
   const [state, setState] = useState("idle");
   const [msg, setMsg] = useState("");
@@ -19,6 +22,7 @@ export function AdminAccountsPanel({ currentEmail, isCentralAdmin }) {
     const supabase = createClient();
     const { data } = await supabase.from("profiles").select("id,email,name,is_central_admin").eq("is_admin", true).order("email");
     setRows(data || []);
+    setCached(CACHE_KEY, data || []);
   };
   useEffect(() => { load(); }, []);
 
