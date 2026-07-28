@@ -665,6 +665,19 @@ export default function App() {
     .sb .dcap-unit{ display: none; font-size: 10px; font-weight: 600; color: ${C.mid}; margin-left: 3px; }
     .sb .modal-ovl{ display: flex; flex-direction: column; justify-content: flex-end; }
     .sb .modal-panel{ width: 100%; max-width: 576px; margin: 0 auto; border-top-left-radius: 18px; border-top-right-radius: 18px; border-top: 1px solid ${C.edge}; max-height: 92vh; }
+    @keyframes modal-fade-in{ from{ opacity: 0; } to{ opacity: 1; } }
+    @keyframes modal-fade-out{ from{ opacity: 1; } to{ opacity: 0; } }
+    @keyframes modal-slide-in{ from{ transform: translateY(100%); } to{ transform: translateY(0); } }
+    @keyframes modal-slide-out{ from{ transform: translateY(0); } to{ transform: translateY(100%); } }
+    @keyframes modal-scale-in{ from{ transform: scale(0.96); opacity: 0; } to{ transform: scale(1); opacity: 1; } }
+    @keyframes modal-scale-out{ from{ transform: scale(1); opacity: 1; } to{ transform: scale(0.96); opacity: 0; } }
+    .sb .modal-ovl{ animation: modal-fade-in 0.2s ease-out; }
+    .sb .modal-ovl.closing{ animation: modal-fade-out 0.18s ease-in forwards; }
+    .sb .modal-panel{ animation: modal-slide-in 0.2s ease-out; }
+    .sb .modal-panel.closing{ animation: modal-slide-out 0.18s ease-in forwards; }
+    @media (prefers-reduced-motion: reduce){
+      .sb .modal-ovl, .sb .modal-panel, .sb .modal-ovl.closing, .sb .modal-panel.closing{ animation: none; }
+    }
     @media (min-width: 900px){
       .sb .wrap{ max-width: 1280px; }
       .sb .page{ padding: 0 20px 108px; }
@@ -684,7 +697,8 @@ export default function App() {
       .sb .dcap{ font-size: 10px; }
       .sb .dcap-unit{ display: inline; }
       .sb .modal-ovl{ justify-content: center; align-items: center; padding: 24px; }
-      .sb .modal-panel{ max-width: 520px; max-height: 88vh; border-radius: 16px; border: 1px solid ${C.edge}; }
+      .sb .modal-panel{ max-width: 520px; max-height: 88vh; border-radius: 16px; border: 1px solid ${C.edge}; animation: modal-scale-in 0.18s ease-out; }
+      .sb .modal-panel.closing{ animation: modal-scale-out 0.15s ease-in forwards; }
     }
     .sb button{ cursor: pointer; }
     .sb input, .sb textarea, .sb select{ outline: none; }

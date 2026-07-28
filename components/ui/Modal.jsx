@@ -4,25 +4,44 @@
    and ShowBoard's own top-level modal dispatch). Split into its own module
    (same reasoning as DirectoryContext/Stat) so the per-tab files under
    components/tabs/ can share it without a circular import back through
-   ShowBoard.jsx. */
+   ShowBoard.jsx.
+
+   Opens with a CSS animation automatically (a plain animation on
+   .modal-ovl/.modal-panel plays once whenever a fresh instance mounts —
+   no class juggling needed for that direction). Closing is the harder
+   direction with pure CSS, since the element normally vanishes from the
+   DOM the instant the caller flips its state to null — so this holds the
+   close for one animation's length via a local "closing" flag, plays the
+   reverse keyframe, then calls the real onClose. Every close path
+   (backdrop click, the X button) routes through requestClose so none of
+   them skip the animation. */
+import { useState } from "react";
 import { X } from "lucide-react";
 import { C } from "@/lib/core";
 
+const CLOSE_MS = 200;
+
 export function Modal({ title, sub, onClose, children }) {
+    const [closing, setClosing] = useState(false);
+    const requestClose = () => {
+        if (closing) return;
+        setClosing(true);
+        setTimeout(onClose, CLOSE_MS);
+    };
     return (
         <div
-            className="modal-ovl"
+            className={"modal-ovl" + (closing ? " closing" : "")}
             style={{
                 position: "fixed",
                 inset: 0,
                 zIndex: 50,
                 background: "rgba(0,0,0,0.62)",
             }}
-            onClick={onClose}
+            onClick={requestClose}
         >
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="modal-panel"
+                className={"modal-panel" + (closing ? " closing" : "")}
                 style={{
                     background: C.panel,
                     display: "flex",
@@ -64,7 +83,7 @@ export function Modal({ title, sub, onClose, children }) {
                     </div>
                     <button
                         className="foc"
-                        onClick={onClose}
+                        onClick={requestClose}
                         style={{
                             flexShrink: 0,
                             background: C.raise,
