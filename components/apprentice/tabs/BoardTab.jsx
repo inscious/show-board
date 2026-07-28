@@ -18,7 +18,7 @@
    piece (owns its own DirectoryContext read for the GC-match lookup) — same
    "extract the biggest self-contained block" pass already applied to
    OjtTab.jsx this session. */
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
     Building2,
     CalendarDays,
@@ -49,6 +49,11 @@ import { ShowCard } from "@/components/apprentice/tabs/ShowCard";
 
 /* ---------- segmented control ---------- */
 function Seg({ value, onChange, options }) {
+    // same fix as the nav bar's own hover: .foc's default lift/brighten
+    // effect reads as a rendering glitch on a segmented control (a stray
+    // box floating above its neighbors), so this opts out via .navfoc and
+    // does a text-color-only hover instead, exactly like NavBar.
+    const [hovered, setHovered] = useState(null);
     return (
         <div
             style={{
@@ -61,11 +66,14 @@ function Seg({ value, onChange, options }) {
         >
             {options.map((o) => {
                 const active = value === o.k;
+                const hi = !active && hovered === o.k;
                 return (
                     <button
                         key={o.k}
-                        className="foc"
+                        className="foc navfoc"
                         onClick={() => onChange(o.k)}
+                        onMouseEnter={() => setHovered(o.k)}
+                        onMouseLeave={() => setHovered(null)}
                         style={{
                             flex: 1,
                             padding: "8px 4px",
@@ -74,7 +82,7 @@ function Seg({ value, onChange, options }) {
                             fontSize: 12.5,
                             fontWeight: 700,
                             background: active ? C.raise : "transparent",
-                            color: active ? C.hi : C.lo,
+                            color: active ? C.hi : hi ? C.mid : C.lo,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -121,6 +129,13 @@ export function BoardTab({
     onOpenDir,
     onOpenBooking,
 }) {
+    // month groups (especially Past, which can run into the hundreds) only
+    // mount their card grid the first time they are opened, then stay
+    // mounted so the collapse animation has something to animate — avoids
+    // paying render/DOM cost for every never-opened past month up front,
+    // which just wrapping the whole grid in fold-body unconditionally
+    // would have done.
+    const everOpened = useRef(new Set());
     const mine = useMemo(() => myCompanyTokens(entries), [entries]);
     const counts = useMemo(
         () => ({
@@ -562,6 +577,8 @@ export function BoardTab({
                             >
                                 {sections.map((g) => {
                                     const open = isOpen(g);
+                                    if (open) everOpened.current.add(g.label);
+                                    const mounted = open || everOpened.current.has(g.label);
                                     return (
                                         <div
                                             key={g.label}
@@ -651,7 +668,9 @@ export function BoardTab({
                                                     {g.shows.length}
                                                 </span>
                                             </button>
-                                            {open && (
+                                            <div className={"fold-body" + (open ? " open" : "")}>
+                                            <div className="fold-body-inner">
+                                                {mounted && (
                                                 <div className="bgrid">
                                                 {g.shows.map((s) => (
                                                     <ShowCard
@@ -742,7 +761,9 @@ export function BoardTab({
                                                     />
                                                 ))}
                                                 </div>
-                                            )}
+                                                )}
+                                            </div>
+                                            </div>
                                         </div>
                                     );
                                 })}

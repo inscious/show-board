@@ -648,7 +648,7 @@ export function HomeTab({
                             }}
                         >
                             {m.days} day{m.days === 1 ? "" : "s"} worked ·{" "}
-                            {hrsFmt(weekHrs)} this week
+                            {hrsFmt(weekHrs)} hrs this week
                         </div>
                     </div>
                     <button
