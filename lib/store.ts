@@ -149,6 +149,7 @@ type ProfileSelectRow = {
     approved_at: string | null;
     welcomed_at: string | null;
     avatar_url: string | null;
+    graduated_at: string | null;
 };
 
 export type Blob = {
@@ -216,6 +217,7 @@ export type Blob = {
         rsiCredits: number;
         joined: string;
         avatarUrl: string | null;
+        graduatedAt: string | null;
     };
     doNotHire?: { on: boolean; reason: string; since: string | null };
 };
@@ -679,7 +681,7 @@ export const store = {
                 supabase
                     .from("profiles")
                     .select(
-                        "is_admin, has_password, custom_companies, name, member_id, ssn_last4, local, rsi_credits, joined_on, do_not_hire_at, do_not_hire_reason, approved_at, welcomed_at, avatar_url",
+                        "is_admin, has_password, custom_companies, name, member_id, ssn_last4, local, rsi_credits, joined_on, do_not_hire_at, do_not_hire_reason, approved_at, welcomed_at, avatar_url, graduated_at",
                     )
                     .eq("id", user.id)
                     .single(),
@@ -845,6 +847,7 @@ export const store = {
                     rsiCredits: Number(profile?.rsi_credits || 0),
                     joined: profile?.joined_on || "",
                     avatarUrl: profile?.avatar_url || null,
+                    graduatedAt: profile?.graduated_at || null,
                 },
                 doNotHire: {
                     on: !!profile?.do_not_hire_at,

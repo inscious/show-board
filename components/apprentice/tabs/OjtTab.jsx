@@ -1254,7 +1254,7 @@ export function OjtTab({
                 >
                     {[
                         ["Signed in as", email || "—"],
-                        ["Role", isAdmin ? "Admin" : "Member"],
+                        ["Role", isAdmin ? "Admin" : profile.graduatedAt ? "Certified Journeyman" : "Apprentice"],
                     ].map(([k, v]) => (
                         <div
                             key={k}
