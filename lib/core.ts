@@ -878,8 +878,8 @@ export function mergeSeed(saved: Show[]): Show[] {
    to update; now it's just display helpers over live data. */
 export const NOTICE_COLOR: Record<string, string> = {
     holiday: C.passed,
-    meeting: C.brand,
-    dues: C.working,
+    meeting: "#5AD1D6" /* cyan — distinct from every other dot on the calendar (gc's sky blue, working's green, brand's amber) */,
+    dues: "#C97B4A" /* rust — paired with meeting's cyan so the two most common notice kinds read apart at a glance */,
     notice: C.mid,
 };
 export function unionNoticesLabel(

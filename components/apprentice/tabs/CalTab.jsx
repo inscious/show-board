@@ -1043,10 +1043,21 @@ export function CalTab({
                             width: 6,
                             height: 6,
                             borderRadius: 9,
-                            background: C.brand,
+                            background: NOTICE_COLOR.meeting,
                         }}
                     />
-                    Union meeting / dues
+                    Union meeting
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span
+                        style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: 9,
+                            background: NOTICE_COLOR.dues,
+                        }}
+                    />
+                    Dues
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <span
