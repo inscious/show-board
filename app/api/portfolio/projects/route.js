@@ -8,7 +8,7 @@ export async function GET(request) {
   return guardedRoute(request, "portfolio:projects:get", {}, async ({ supabase, user }) => {
     const { data, error } = await supabase
       .from("portfolio_projects")
-      .select("id, title, notes, section, sort_order, include_in_portfolio, share_token, created_at")
+      .select("id, title, notes, section, show_id, location, sort_order, include_in_portfolio, share_token, created_at")
       .eq("user_id", user.id)
       .order("sort_order", { ascending: true });
     if (error) return Response.json({ error: "Could not load" }, { status: 400 });
@@ -29,6 +29,8 @@ export async function POST(request) {
       title: data.title,
       ...(data.notes !== undefined ? { notes: data.notes || null } : {}),
       ...(data.section !== undefined ? { section: data.section || null } : {}),
+      ...(data.showId !== undefined ? { show_id: data.showId || null } : {}),
+      ...(data.location !== undefined ? { location: data.location || null } : {}),
       ...(data.sortOrder !== undefined ? { sort_order: data.sortOrder } : {}),
       ...(data.includeInPortfolio !== undefined ? { include_in_portfolio: data.includeInPortfolio } : {}),
     });

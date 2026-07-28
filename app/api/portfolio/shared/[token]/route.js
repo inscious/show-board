@@ -68,6 +68,7 @@ async function projectPayload(admin, project) {
     title: project.title,
     notes: project.notes,
     section: project.section || null,
+    location: project.location || null,
     days: (days || []).map((d) => ({
       workType: d.work_type,
       date: d.work_entries?.worked_on || null,
@@ -102,7 +103,7 @@ export async function GET(request, { params }) {
     const context = await credentialContext(admin, settings.user_id);
     const { data: projects } = await admin
       .from("portfolio_projects")
-      .select("id, title, notes, section")
+      .select("id, title, notes, section, location")
       .eq("user_id", settings.user_id)
       .eq("include_in_portfolio", true)
       .order("sort_order", { ascending: true });
@@ -122,7 +123,7 @@ export async function GET(request, { params }) {
     });
   }
 
-  const { data: project } = await admin.from("portfolio_projects").select("id, title, notes, section, user_id").eq("share_token", token).maybeSingle();
+  const { data: project } = await admin.from("portfolio_projects").select("id, title, notes, section, location, user_id").eq("share_token", token).maybeSingle();
   if (!project) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }

@@ -325,6 +325,7 @@ export function DaySheet({
             <PortfolioProjectPicker
                 dayKey={dayKey}
                 entry={addingProjectFor}
+                shows={shows}
                 onDone={() => setAddingProjectFor(null)}
                 onClose={() => setAddingProjectFor(null)}
             />

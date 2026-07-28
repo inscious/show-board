@@ -449,7 +449,7 @@ function PhotoLightbox({ photos, index, onIndexChange, onClose }) {
     );
 }
 
-function ProjectRow({ project, index, count, detail, expanded, onToggle, onMove, onDelete, onIncludeToggle, onShareToggle, onSectionChange, onDetailChange }) {
+function ProjectRow({ project, index, count, detail, thumbUrl, expanded, onToggle, onMove, onDelete, onIncludeToggle, onShareToggle, onSectionChange, onDetailChange }) {
     const [busy, setBusy] = useState(false);
     const [section, setSection] = useState(project.section || "");
     return (
@@ -486,18 +486,49 @@ function ProjectRow({ project, index, count, detail, expanded, onToggle, onMove,
                     style={{
                         flex: 1,
                         minWidth: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
                         textAlign: "left",
                         background: "transparent",
                         border: "none",
                         padding: 0,
                     }}
                 >
-                    <div className="truncate" style={{ fontWeight: 700, fontSize: 13.5, color: C.hi }}>
-                        {project.title}
+                    <div
+                        style={{
+                            flexShrink: 0,
+                            width: 40,
+                            height: 40,
+                            borderRadius: 8,
+                            overflow: "hidden",
+                            background: C.raise,
+                            border: "1px solid " + C.line,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                        }}
+                    >
+                        {thumbUrl ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img src={thumbUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                            <ImageIcon size={15} color={C.lo} />
+                        )}
                     </div>
-                    <div style={{ fontSize: 10.5, color: C.lo, marginTop: 1 }}>
-                        {project.include_in_portfolio ? "shown in your portfolio" : "hidden from your portfolio"}
-                        {project.share_token ? " · project link on" : ""}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                        <div className="truncate" style={{ fontWeight: 700, fontSize: 13.5, color: C.hi }}>
+                            {project.title}
+                        </div>
+                        {project.location && (
+                            <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>
+                                {project.location}
+                            </div>
+                        )}
+                        <div style={{ fontSize: 10.5, color: C.lo, marginTop: 1 }}>
+                            {project.include_in_portfolio ? "shown in your portfolio" : "hidden from your portfolio"}
+                            {project.share_token ? " · project link on" : ""}
+                        </div>
                     </div>
                 </button>
                 <button className="foc" onClick={onToggle} style={{ background: "none", border: "none", color: C.lo, padding: 4 }}>
@@ -619,6 +650,7 @@ export function PortfolioSection() {
     const [projects, setProjects] = useState(null); // null = loading
     const [settings, setSettings] = useState(null);
     const [detail, setDetail] = useState({});
+    const [coverPhotos, setCoverPhotos] = useState({}); // projectId -> signed url, for the collapsed-row thumbnail
     const [expandedId, setExpandedId] = useState(null);
     const [confirmDelete, setConfirmDelete] = useState(null);
     const [name, setName] = useState("");
@@ -639,6 +671,31 @@ export function PortfolioSection() {
         setBio(sett?.bio || "");
         setContactEmail(sett?.contact_email || "");
         setContactPhone(sett?.contact_phone || "");
+        if (proj?.length) loadCoverPhotos(supabase, proj.map((p) => p.id));
+    }
+
+    // one thumbnail per project for the collapsed list — so the row-list
+    // reads like a photo strip instead of a blind list of titles, without
+    // paying for every project's full photo set up front the way expanding
+    // a row does. Lowest sort_order photo per project, deduped client-side
+    // since Supabase has no native "first row per group" for this shape.
+    async function loadCoverPhotos(supabase, projectIds) {
+        const { data: photos } = await supabase
+            .from("portfolio_project_photos")
+            .select("id, project_id, storage_path, sort_order")
+            .in("project_id", projectIds)
+            .order("sort_order", { ascending: true });
+        const firstPerProject = {};
+        for (const p of photos || []) {
+            if (!(p.project_id in firstPerProject)) firstPerProject[p.project_id] = p;
+        }
+        const entries = await Promise.all(
+            Object.values(firstPerProject).map(async (p) => {
+                const { data: signed } = await supabase.storage.from("portfolio").createSignedUrl(p.storage_path, 3600);
+                return [p.project_id, signed?.signedUrl || null];
+            }),
+        );
+        setCoverPhotos(Object.fromEntries(entries));
     }
 
     useEffect(() => {
@@ -881,6 +938,7 @@ export function PortfolioSection() {
                                 index={i}
                                 count={projects.length}
                                 detail={detail[p.id]}
+                                thumbUrl={coverPhotos[p.id]}
                                 expanded={expandedId === p.id}
                                 onToggle={() => toggleExpand(p)}
                                 onMove={moveProject}
@@ -888,7 +946,10 @@ export function PortfolioSection() {
                                 onIncludeToggle={toggleInclude}
                                 onShareToggle={toggleShare}
                                 onSectionChange={updateSection}
-                                onDetailChange={(id, d) => setDetail((cur) => ({ ...cur, [id]: d }))}
+                                onDetailChange={(id, d) => {
+                                    setDetail((cur) => ({ ...cur, [id]: d }));
+                                    setCoverPhotos((cur) => ({ ...cur, [id]: d.photos?.[0]?.url || null }));
+                                }}
                             />
                         ))}
                         {projects.length === 0 && (

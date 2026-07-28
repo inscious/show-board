@@ -339,6 +339,12 @@ function ProjectCard({ project }) {
             )}
             <div style={{ padding: "18px 20px 20px" }}>
                 <h2 className="pf-serif" style={{ fontSize: 19, fontWeight: 500, margin: "0 0 6px" }}>{project.title}</h2>
+                {project.location && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: PC.mid, marginBottom: 6 }}>
+                        <MapPin size={12} color={PC.gold} />
+                        {project.location}
+                    </div>
+                )}
                 {companies.length > 0 && (
                     <div style={{ fontSize: 12, color: PC.gold, marginBottom: 8, fontWeight: 600 }}>
                         {companies.join(" · ")}

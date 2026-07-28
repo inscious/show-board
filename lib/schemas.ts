@@ -363,6 +363,8 @@ export const portfolioProjectSchema = z.object({
     title: z.string().trim().min(1).max(200),
     notes: note,
     section: shortText,
+    showId: z.string().trim().max(64).optional().nullable(),
+    location: shortText,
     sortOrder: z.number().int().optional(),
     includeInPortfolio: z.boolean().optional(),
 });
