@@ -3,12 +3,18 @@
 /* Split out of ShowBoard.jsx for the same file-size reasons as the other
    tabs — but unlike OJT/Calendar, this one is imported normally (not via
    next/dynamic). Home is the default view every apprentice sees first;
-   lazy-loading it would just add a loading flicker with no payload benefit,
-   since everyone needs this code immediately anyway. The monthly hours
-   chart (HoursTooltip/MonthlyHoursChart/CAT_KEYS, and the recharts imports
-   they needed) moved out to HoursChart.jsx — exclusive to that one chart,
-   confirmed via grep before moving. */
+   lazy-loading the whole tab would just add a loading flicker with no
+   payload benefit, since everyone needs this code immediately anyway.
+
+   The monthly hours chart is the one exception, imported via next/dynamic
+   below instead of a plain import — recharts is a genuinely heavy
+   dependency (its own two chunks in the production build) and the chart
+   is the one piece of Home that is not needed for first paint, so it is
+   worth the small loading-state cost to keep it out of Home's initial
+   bundle. HoursTooltip/MonthlyHoursChart/CAT_KEYS live in HoursChart.jsx,
+   exclusive to that one chart, confirmed via grep before moving. */
 import { useContext, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { Ban, Bell, Building2, CalendarDays, ChevronRight, GraduationCap, Hammer, Info, Lock, Phone, ShieldAlert, X } from "lucide-react";
 import {
     BOOKED,
@@ -58,9 +64,30 @@ import { Stat } from "@/components/ui/Stat";
 import { SplitChips } from "@/components/ui/SplitChips";
 import { hexRgb } from "@/components/utils/hexRgb";
 import { r1 } from "@/components/utils/r1";
-import { MonthlyHoursChart } from "@/components/apprentice/tabs/HoursChart";
 import { MiniShowCard } from "@/components/apprentice/tabs/MiniShowCard";
 import { Chip } from "@/components/apprentice/tabs/ShowCard";
+
+const MonthlyHoursChart = dynamic(
+    () => import("@/components/apprentice/tabs/HoursChart").then((m) => m.MonthlyHoursChart),
+    {
+        ssr: false,
+        loading: () => (
+            <div
+                className="hero-chart-card"
+                style={{
+                    background: C.panel,
+                    border: "1px solid " + C.edge,
+                    borderRadius: 12,
+                    padding: "11px 12px 4px",
+                    boxShadow: SHADOW,
+                }}
+            >
+                <div className="skeleton" style={{ height: 12, width: 140, marginBottom: 12, borderRadius: 4 }} />
+                <div className="skeleton hero-chart-plot" style={{ borderRadius: 8 }} />
+            </div>
+        ),
+    },
+);
 
 // not a lib/core export — a tiny local also defined (separately) in
 // ShowBoard.jsx; duplicating 3 lines here beats adding an export just for
