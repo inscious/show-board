@@ -675,8 +675,13 @@ export default function App() {
     .sb .modal-ovl.closing{ animation: modal-fade-out 0.18s ease-in forwards; }
     .sb .modal-panel{ animation: modal-slide-in 0.2s ease-out; }
     .sb .modal-panel.closing{ animation: modal-slide-out 0.18s ease-in forwards; }
+    .sb .fold-body{ display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.2s ease; }
+    .sb .fold-body.open{ grid-template-rows: 1fr; }
+    .sb .fold-body-inner{ overflow: hidden; opacity: 0; transition: opacity 0.15s ease; }
+    .sb .fold-body.open .fold-body-inner{ opacity: 1; transition-delay: 0.05s; }
     @media (prefers-reduced-motion: reduce){
       .sb .modal-ovl, .sb .modal-panel, .sb .modal-ovl.closing, .sb .modal-panel.closing{ animation: none; }
+      .sb .fold-body, .sb .fold-body-inner{ transition: none; }
     }
     @media (min-width: 900px){
       .sb .wrap{ max-width: 1280px; }

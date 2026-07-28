@@ -365,7 +365,8 @@ export function ShowCard({
         >
             <ShowCardHeader show={show} onClick={onToggle} logged={logged} books={books} />
 
-            {expanded && (
+            <div className={"fold-body" + (expanded ? " open" : "")}>
+                <div className="fold-body-inner">
                 <div
                     style={{
                         padding: "0 12px 12px 12px",
@@ -778,7 +779,8 @@ export function ShowCard({
                         )}
                     </div>
                 </div>
-            )}
+                </div>
+            </div>
         </div>
     );
 }

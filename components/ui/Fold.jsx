@@ -39,19 +39,21 @@ export function Fold({ icon: Ico, title, color, children }) {
                     }}
                 />
             </button>
-            {open && (
-                <div
-                    style={{
-                        marginTop: 6,
-                        background: C.panel,
-                        border: "1px solid " + C.line,
-                        borderRadius: 10,
-                        padding: "16px 17px",
-                    }}
-                >
-                    {children}
+            <div className={"fold-body" + (open ? " open" : "")}>
+                <div className="fold-body-inner">
+                    <div
+                        style={{
+                            marginTop: 6,
+                            background: C.panel,
+                            border: "1px solid " + C.line,
+                            borderRadius: 10,
+                            padding: "16px 17px",
+                        }}
+                    >
+                        {children}
+                    </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }

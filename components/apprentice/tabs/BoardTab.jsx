@@ -420,49 +420,51 @@ export function BoardTab({
                                     }}
                                 />
                             </button>
-                            {showDates && (
-                                <div
-                                    style={{
-                                        marginTop: 6,
-                                        background: C.panel,
-                                        border: "1px solid " + C.line,
-                                        borderRadius: 10,
-                                        padding: "10px 12px",
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: 9,
-                                    }}
-                                >
-                                    {unionNotices.map((n) => (
-                                        <div
-                                            key={n.id}
-                                            style={{ display: "flex", gap: 10 }}
-                                        >
+                            <div className={"fold-body" + (showDates ? " open" : "")}>
+                                <div className="fold-body-inner">
+                                    <div
+                                        style={{
+                                            marginTop: 6,
+                                            background: C.panel,
+                                            border: "1px solid " + C.line,
+                                            borderRadius: 10,
+                                            padding: "10px 12px",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            gap: 9,
+                                        }}
+                                    >
+                                        {unionNotices.map((n) => (
                                             <div
-                                                style={{
-                                                    fontFamily: FM,
-                                                    fontSize: 11,
-                                                    fontWeight: 800,
-                                                    color: NOTICE_COLOR[n.kind] || C.mid,
-                                                    flexShrink: 0,
-                                                    width: 80,
-                                                }}
+                                                key={n.id}
+                                                style={{ display: "flex", gap: 10 }}
                                             >
-                                                {n.dateLabel}
+                                                <div
+                                                    style={{
+                                                        fontFamily: FM,
+                                                        fontSize: 11,
+                                                        fontWeight: 800,
+                                                        color: NOTICE_COLOR[n.kind] || C.mid,
+                                                        flexShrink: 0,
+                                                        width: 80,
+                                                    }}
+                                                >
+                                                    {n.dateLabel}
+                                                </div>
+                                                <div
+                                                    style={{
+                                                        fontSize: 12,
+                                                        color: C.mid,
+                                                        lineHeight: 1.4,
+                                                    }}
+                                                >
+                                                    {n.body}
+                                                </div>
                                             </div>
-                                            <div
-                                                style={{
-                                                    fontSize: 12,
-                                                    color: C.mid,
-                                                    lineHeight: 1.4,
-                                                }}
-                                            >
-                                                {n.body}
-                                            </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                         )}
 
