@@ -160,6 +160,11 @@ export const profileOnboardingSchema = z.object({
     local: z.string().trim().max(120).optional().nullable(),
     joined: dateStr.optional().nullable(),
     city: z.string().trim().max(120).optional().nullable(),
+    // opt-in, so a foreman can text/call to close a labor-call loop —
+    // see stage3_labor_call_ui.sql. Loose format check only (digits, +,
+    // spaces, dashes, parens) — this isn't a billing/SMS field, just a
+    // number a human dials.
+    phone: z.string().trim().max(30).regex(/^[\d\s()+\-]*$/, "Numbers only").optional().nullable(),
 });
 
 /* userId (single) or userIds (batch, up to 100) — accepting both means the
@@ -250,6 +255,18 @@ export const laborCallSchema = z.object({
 export const laborCallResponseSchema = z.object({
     laborCallId: z.number().int().positive(),
     status: z.enum(["available", "withdrawn"]),
+});
+
+// foreman closing out their own call — filled or cancelled, never back to open
+export const laborCallStatusSchema = z.object({
+    status: z.enum(["filled", "cancelled"]),
+});
+
+// foreman marking one specific responder as confirmed (reached them by
+// phone/text and they're actually on for it) — see the RLS policy that
+// restricts this to posted_by = caller, stage3_labor_call_ui.sql
+export const laborCallConfirmSchema = z.object({
+    userId: z.string().uuid(),
 });
 
 export const adminProfileSchema = z.object({

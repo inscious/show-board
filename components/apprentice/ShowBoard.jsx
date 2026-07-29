@@ -67,6 +67,14 @@ const PortfolioSection = dynamic(() => import("@/components/ojt/PortfolioSection
     loading: TabLoading,
 });
 
+// only ever rendered for the rare apprentice/CJ with profile.foremanOfCompanyId
+// set — same on-demand, own-rows-RLS treatment as Portfolio, nothing shared
+// with the blob-synced tabs either.
+const ForemanTab = dynamic(() => import("@/components/apprentice/tabs/ForemanTab").then((m) => m.ForemanTab), {
+    ssr: false,
+    loading: TabLoading,
+});
+
 // Board is the last tab to get this treatment — unlike the other three it
 // wasn't a standalone component to begin with, so this took real
 // restructuring (see components/apprentice/tabs/BoardTab.jsx's own header
@@ -118,8 +126,10 @@ import {
     LayoutDashboard,
     CloudOff,
     Sparkles,
+    Megaphone,
 } from "lucide-react";
 import { store, subscribeSyncStatus } from "@/lib/store";
+import { createClient } from "@/lib/supabase/client";
 import {
     BOOKED,
     C,
@@ -170,20 +180,24 @@ const OJT_IMPORT_ENABLED = process.env.NEXT_PUBLIC_OJT_IMPORT_ENABLED === "true"
 
 
 /* ---------- main nav: bottom bar on a phone, top pills on a desktop ---------- */
-const TABS = [
+const BASE_TABS = [
     ["home", "Home", LayoutDashboard],
     ["board", "Board", LayoutList],
     ["cal", "Calendar", CalendarDays],
     ["portfolio", "Portfolio", Sparkles],
     ["ojt", "OJT", GraduationCap],
 ];
+// only the rare real foreman ever sees a 6th tab — an ordinary apprentice's
+// nav is completely unchanged, per platform_architecture_scoping's "one
+// person, two hats" model (Foreman is a capability grant, not a role switch).
+const FOREMAN_TAB = ["foreman", "Hiring", Megaphone];
 
-function NavBar({ tab, setTab, variant }) {
+function NavBar({ tab, setTab, variant, tabs }) {
     const [hovered, setHovered] = useState(null);
     if (variant === "bottom") {
         return (
             <div style={{ display: "flex" }}>
-                {TABS.map(([k, lab, Ico]) => {
+                {tabs.map(([k, lab, Ico]) => {
                     const on = tab === k;
                     const hi = !on && hovered === k;
                     return (
@@ -248,7 +262,7 @@ function NavBar({ tab, setTab, variant }) {
                 boxShadow: SHADOW,
             }}
         >
-            {TABS.map(([k, lab, Ico]) => {
+            {tabs.map(([k, lab, Ico]) => {
                 const on = tab === k;
                 const hi = !on && hovered === k;
                 return (
@@ -462,6 +476,45 @@ export default function App() {
        looking identical to a working save. */
     useEffect(() => subscribeSyncStatus(setSyncStatus), []);
 
+    /* Open labor calls (Home's "Open Labor Calls" section) — fetched here,
+       not inside HomeTab itself, on purpose: HomeTab unmounts/remounts on
+       every tab switch same as every other tab, and labor_calls isn't part
+       of the offline-first store.ts blob (real-time marketplace data, same
+       reasoning as Portfolio/Foreman), so a HomeTab-local fetch would
+       refire — and re-flash its loading state — every single time you left
+       Home and came back, the exact bug already fixed once this session for
+       Console/Portfolio/admin Settings. Living up here (ShowBoard never
+       remounts) is the fix applied up front instead of after the fact. */
+    const [laborCalls, setLaborCalls] = useState([]);
+    const [myLaborCallStatus, setMyLaborCallStatus] = useState({});
+    const loadLaborCalls = async () => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const cutoff = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+        const [callsRes, respRes] = await Promise.all([
+            supabase
+                .from("labor_calls")
+                .select("id, title, needed_count, category, starts_at, companies(name), shows(name)")
+                .eq("status", "open")
+                .gt("starts_at", cutoff)
+                .order("starts_at", { ascending: true }),
+            // explicit user_id filter, not just RLS's implicit scoping —
+            // labor_call_responses also has a *second* select policy
+            // ("foreman reads responses to own calls") that grants a
+            // foreman visibility into OTHER people's responses to calls
+            // they posted; without this filter, an unscoped select() here
+            // would pick up those rows too and mislabel someone else's
+            // response as the current user's own.
+            supabase.from("labor_call_responses").select("labor_call_id, status").eq("user_id", user.id),
+        ]);
+        setLaborCalls(callsRes.data || []);
+        const byCall = {};
+        (respRes.data || []).forEach((r) => { byCall[r.labor_call_id] = r.status; });
+        setMyLaborCallStatus(byCall);
+    };
+    useEffect(() => { loadLaborCalls(); }, []);
+
     /* The data for every tab is already sitting in memory after the one
        store.load() above — every tab's felt lag on first visit is the JS
        chunk itself downloading (Board/Calendar/OJT/Portfolio are all
@@ -501,6 +554,18 @@ export default function App() {
             id === "all" ? [] : prev.filter((n) => n.id !== id),
         );
         store.clearNotification(id);
+    };
+
+    /* marking available/withdrawn on a labor call — optimistic, same shape
+       as clearNotification: not a commitment either way, so no reason to
+       wait on the round-trip before the button reflects the tap. */
+    const respondToLaborCall = (laborCallId, status) => {
+        setMyLaborCallStatus((prev) => ({ ...prev, [laborCallId]: status }));
+        fetch("/api/labor-calls/responses", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ laborCallId, status }),
+        }).catch(() => {});
     };
 
     /* same optimistic-then-sync shape as clearNotification — self-reported,
@@ -745,6 +810,7 @@ export default function App() {
         targets:
             "No targets flagged. Tap a show and hit Target to line up the ones you want.",
     }[view];
+    const navTabs = profile.foremanOfCompanyId ? [...BASE_TABS, FOREMAN_TAB] : BASE_TABS;
 
     return (
         <DirectoryContext.Provider value={{ companies, jatcContacts, dc36Contacts, orgProfile }}>
@@ -799,7 +865,9 @@ export default function App() {
                                         ? "Work Calendar"
                                         : tab === "portfolio"
                                           ? "Portfolio"
-                                          : "Apprenticeship"}
+                                          : tab === "foreman"
+                                            ? "Hiring"
+                                            : "Apprenticeship"}
                             </div>
                             <div
                                 style={{
@@ -823,7 +891,9 @@ export default function App() {
                                         ? "Tap a day to log the company and your hours"
                                         : tab === "portfolio"
                                           ? "Turn the booths you've built into a shareable career record"
-                                          : LEVELS[
+                                          : tab === "foreman"
+                                            ? "Post a call, see who's available"
+                                            : LEVELS[
                                                 levelIndex(
                                                     ojtTotals(ojt.months).total,
                                                 )
@@ -890,7 +960,7 @@ export default function App() {
                     }}
                 >
                     <div className="navtop">
-                        <NavBar tab={tab} setTab={setTab} variant="top" />
+                        <NavBar tab={tab} setTab={setTab} variant="top" tabs={navTabs} />
                     </div>
 
                 </div>
@@ -926,6 +996,9 @@ export default function App() {
                         onOpenDay={(k) => setModal({ type: "day", key: k })}
                         onGoto={goto}
                         onOpenDir={() => setModal({ type: "dir" })}
+                        laborCalls={laborCalls}
+                        myLaborCallStatus={myLaborCallStatus}
+                        onRespondLaborCall={respondToLaborCall}
                     />
                 ) : tab === "cal" ? (
                     <CalTab
@@ -987,6 +1060,8 @@ export default function App() {
                     />
                 ) : tab === "portfolio" ? (
                     <PortfolioSection standalone />
+                ) : tab === "foreman" ? (
+                    <ForemanTab profile={profile} shows={shows} />
                 ) : (
                     <BoardTab
                         shows={shows}
@@ -1087,7 +1162,7 @@ export default function App() {
                                     <Clock size={17} /> Log today
                                 </button>
                             </>
-                        ) : tab === "board" ? null : tab === "ojt" ? (
+                        ) : tab === "board" ? null : tab === "foreman" ? null : tab === "ojt" ? (
                             <>
                                 <button
                                     className="foc"
@@ -1199,7 +1274,7 @@ export default function App() {
                     }}
                 >
                     <div className="wrap mx-auto" style={{ padding: "0 8px" }}>
-                        <NavBar tab={tab} setTab={setTab} variant="bottom" />
+                        <NavBar tab={tab} setTab={setTab} variant="bottom" tabs={navTabs} />
                     </div>
                 </div>
             </div>

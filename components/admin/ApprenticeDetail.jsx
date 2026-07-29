@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Ban, Check, X, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Ban, Check, X, Trash2, Megaphone } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -12,6 +12,7 @@ import {
 import { hexRgb } from "@/components/utils/hexRgb";
 import { ClassCurriculum } from "@/components/ojt/ClassCurriculum";
 import { Avatar, Modal, ConfirmModal, req, Stat, PwField, shortDate, RosterCatTooltip, monthHours } from "@/components/admin/shared";
+import { getCached, setCached } from "@/lib/clientCache";
 
 const CAL_CATS = ["A", "B", "C", "D"];
 
@@ -443,6 +444,35 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
     } catch (e) {
       setArchiveState("error");
       setArchiveMsg(e.message);
+    }
+  };
+
+  // Foreman capability — a grant on this apprentice/CJ's own existing login,
+  // not a new account (see platform_architecture_scoping memory). Company
+  // list is shared/rarely-changing, cached the same way CompanyDirectoryPanel
+  // caches it (same key — this page and that panel read the same table).
+  const [companies, setCompanies] = useState(() => getCached("admin:companies") || []);
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.from("companies").select("*").order("name").then(({ data }) => {
+      setCompanies(data || []);
+      setCached("admin:companies", data || []);
+    });
+  }, []);
+  const [foremanCompanyId, setForemanCompanyId] = useState(apprentice.foreman_of_company_id || "");
+  const [foremanState, setForemanState] = useState("idle");
+  const [foremanMsg, setForemanMsg] = useState("");
+  const runForeman = async (companyId) => {
+    setForemanState("saving");
+    setForemanMsg("");
+    try {
+      await req("POST", "/api/admin/foreman", { userId: apprentice.id, companyId: companyId ? Number(companyId) : null });
+      setForemanCompanyId(companyId);
+      setForemanState("idle");
+      onChanged();
+    } catch (e) {
+      setForemanState("error");
+      setForemanMsg(e.message);
     }
   };
 
@@ -1073,6 +1103,23 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
           The 4-tab rundown and OJT-history nudge they saw on first login. Use this if they missed it, or need
           pointing back to the OJT-backfill upload after a support call.
         </div>
+      </div>
+
+      <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginTop: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 9 }}>
+          <Megaphone size={13} color={C.lo} />
+          <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>FOREMAN CAPABILITY</div>
+        </div>
+        <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.5, marginBottom: 10 }}>
+          A grant on their own login, not a new account — pick the company they have hiring authority for and
+          they'll get a "Hiring" tab to post labor calls and see who's available. Clear it to revoke.
+        </div>
+        <select value={foremanCompanyId} onChange={(e) => runForeman(e.target.value)} disabled={foremanState === "saving"}
+          style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 10px", color: C.hi, fontSize: 12.5, fontFamily: FS }}>
+          <option value="">Not a foreman for any company</option>
+          {companies.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+        </select>
+        {foremanMsg && <div style={{ marginTop: 8, fontSize: 11.5, color: C.danger }}>{foremanMsg}</div>}
       </div>
 
       <div style={{ background: C.panel, border: "1px solid " + C.danger + "44", borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginTop: 12 }}>

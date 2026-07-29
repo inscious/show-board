@@ -15,7 +15,7 @@
    exclusive to that one chart, confirmed via grep before moving. */
 import { useContext, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Ban, Bell, Building2, CalendarDays, ChevronRight, GraduationCap, Hammer, Info, Lock, Phone, ShieldAlert, X } from "lucide-react";
+import { Ban, Bell, Building2, CalendarDays, ChevronRight, GraduationCap, Hammer, Info, Lock, Megaphone, Phone, ShieldAlert, X } from "lucide-react";
 import {
     BOOKED,
     C,
@@ -39,6 +39,7 @@ import {
     isPast,
     keyOf,
     levelIndex,
+    longDate,
     mAdd,
     mKey,
     mMed,
@@ -113,9 +114,13 @@ export function HomeTab({
     notifications,
     onClearNotification,
     doNotHire,
+    laborCalls,
+    myLaborCallStatus,
+    onRespondLaborCall,
 }) {
     const { orgProfile } = useContext(DirectoryContext);
     const [showNotices, setShowNotices] = useState(false);
+    const [showLaborCalls, setShowLaborCalls] = useState(false);
     const today = todayMid();
     const roll = useMemo(() => rollupEntries(entries), [entries]);
     const mk = mKey(today.getFullYear(), today.getMonth());
@@ -401,15 +406,18 @@ export function HomeTab({
                     cert: { icon: ShieldAlert, color: C.brand },
                     schedule: { icon: CalendarDays, color: C.gc },
                     ojt: { icon: GraduationCap, color: C.brand },
+                    labor_call: { icon: Megaphone, color: C.working },
                 };
                 // where tapping a notification lands you — everything paperwork/
-                // class/status-related lives on OJT, schedule updates on Board.
+                // class/status-related lives on OJT, schedule updates on Board,
+                // labor calls live in the Open Labor Calls section right here on Home.
                 const NOTE_TAB = {
                     class: "ojt",
                     dnh: "ojt",
                     cert: "ojt",
                     schedule: "board",
                     ojt: "ojt",
+                    labor_call: "home",
                 };
                 const metaFor = (t) => NOTE_META[t] || { icon: Bell, color: C.gc };
                 return (
@@ -1295,6 +1303,106 @@ export function HomeTab({
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* open labor calls — a foreman posting "need N people" broadcasts
+                here to any approved member of any union (the marketplace side
+                is deliberately not union-scoped); tapping "I'm available" is
+                a hand-raise, not a commitment — the foreman still confirms
+                directly, same as texting today. */}
+            {laborCalls?.length > 0 && (
+                <div className="dspan">
+                    <button
+                        className="foc"
+                        onClick={() => setShowLaborCalls((v) => !v)}
+                        style={{
+                            width: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            background: C.panel,
+                            border: "1px solid " + C.edge,
+                            borderRadius: 10,
+                            padding: "10px 12px",
+                            color: C.hi,
+                            boxShadow: SHADOW,
+                        }}
+                    >
+                        <Megaphone size={15} color={C.working} />
+                        <span style={{ fontWeight: 700, fontSize: 13 }}>
+                            {laborCalls.length} open labor call{laborCalls.length === 1 ? "" : "s"}
+                        </span>
+                        <ChevronRight
+                            size={16}
+                            color={C.lo}
+                            style={{
+                                marginLeft: "auto",
+                                transform: showLaborCalls ? "rotate(90deg)" : "none",
+                                transition: "transform .15s",
+                            }}
+                        />
+                    </button>
+                    <div className={"fold-body" + (showLaborCalls ? " open" : "")}>
+                        <div className="fold-body-inner">
+                            <div
+                                style={{
+                                    marginTop: 6,
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 8,
+                                }}
+                            >
+                                {laborCalls.map((c) => {
+                                    const mine = myLaborCallStatus?.[c.id];
+                                    const available = mine === "available" || mine === "confirmed";
+                                    return (
+                                        <div
+                                            key={c.id}
+                                            style={{
+                                                background: C.panel,
+                                                border: "1px solid " + C.line,
+                                                borderRadius: 10,
+                                                padding: "11px 12px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 10,
+                                            }}
+                                        >
+                                            <div style={{ minWidth: 0, flex: 1 }}>
+                                                <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.hi }}>
+                                                    {c.companies?.name || "Company"}
+                                                    {c.title ? " — " + c.title : ""}
+                                                </div>
+                                                <div style={{ fontSize: 11, color: C.lo, fontFamily: FM, marginTop: 2 }}>
+                                                    {c.shows?.name ? c.shows.name + " · " : ""}
+                                                    {longDate(new Date(c.starts_at))} · {c.needed_count} needed
+                                                </div>
+                                            </div>
+                                            <button
+                                                className="foc"
+                                                disabled={mine === "confirmed"}
+                                                onClick={() => onRespondLaborCall(c.id, available ? "withdrawn" : "available")}
+                                                style={{
+                                                    flexShrink: 0,
+                                                    fontSize: 11.5,
+                                                    fontWeight: 800,
+                                                    color: mine === "confirmed" ? C.gc : available ? C.lo : C.inkGood,
+                                                    background: mine === "confirmed" ? "rgba(127,178,255,0.1)" : available ? C.raise : C.working,
+                                                    border: mine === "confirmed" ? "1px solid " + C.gc + "55" : available ? "1px solid " + C.line : "none",
+                                                    borderRadius: 8,
+                                                    padding: "8px 12px",
+                                                    whiteSpace: "nowrap",
+                                                }}
+                                            >
+                                                {mine === "confirmed" ? "Confirmed" : available ? "Withdraw" : "I'm available"}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
