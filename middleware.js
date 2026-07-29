@@ -153,6 +153,6 @@ export async function middleware(request) {
 export const config = {
   matcher: [
     /* run on everything except static assets and the PWA manifest/icons */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icon-192.png|icon-512.png|apple-touch-icon.png).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icon-192.png|icon-512.png|apple-touch-icon.png|iupat-logo.png).*)",
   ],
 };

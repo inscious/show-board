@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail, HardHat, Lock, Eye, EyeOff, ArrowLeft, UserPlus } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, UserPlus } from "lucide-react";
 import { C, SHADOW, FM, FS } from "@/lib/core";
 
 export default function LoginPage() {
@@ -121,10 +121,8 @@ export default function LoginPage() {
       ` }} />
       <div style={{ width: "100%", maxWidth: 360, background: C.panel, border: "1px solid " + C.edge, borderRadius: 18, padding: "26px 24px", boxShadow: SHADOW + ", 0 0 60px rgba(255,176,32,0.06)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, transparent, ${C.brand}, transparent)` }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
-          <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 9, background: "rgba(255,176,32,0.14)", border: "1px solid rgba(255,176,32,0.35)", flexShrink: 0 }}>
-            <HardHat size={18} color={C.brand} />
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <img src="/iupat-logo.png" alt="" width={40} height={65} style={{ flexShrink: 0, objectFit: "contain" }} />
           <div style={{ fontWeight: 800, fontSize: 19, color: C.hi }}>L831 Tracker</div>
         </div>
         <div style={{ fontSize: 11.5, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 20, textTransform: "uppercase" }}>{unionName}</div>
@@ -187,7 +185,7 @@ export default function LoginPage() {
               <>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0 14px" }}>
                   <span style={{ flex: 1, height: 1, background: C.line }} />
-                  <span style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>NEW APPRENTICE</span>
+                  <span style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM }}>NEW ACCOUNT</span>
                   <span style={{ flex: 1, height: 1, background: C.line }} />
                 </div>
                 <a href="/signup" className="login-signup-btn foc"

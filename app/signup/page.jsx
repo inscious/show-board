@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, HardHat, Lock, User, Eye, EyeOff, GraduationCap, Award } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, GraduationCap, Award } from "lucide-react";
 import { C, SHADOW, FM, FS } from "@/lib/core";
 
 // live admin toggle (Settings → Apprentice Sign-Up), not a build-time flag —
@@ -10,7 +10,8 @@ import { C, SHADOW, FM, FS } from "@/lib/core";
 // here client-side anymore.
 
 export default function SignupPage() {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [role, setRole] = useState("apprentice"); // "apprentice" | "cj"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,7 +22,7 @@ export default function SignupPage() {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (name.trim().split(/\s+/).filter(Boolean).length < 2) {
+    if (!firstName.trim() || !lastName.trim()) {
       setState("error");
       setMsg("Enter your first and last name.");
       return;
@@ -37,7 +38,7 @@ export default function SignupPage() {
       const res = await fetch("/api/auth/sign-up", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password, name: name.trim(), role }),
+        body: JSON.stringify({ email: email.trim(), password, name: `${firstName.trim()} ${lastName.trim()}`, role }),
       });
       const body = await res.json().catch(() => ({}));
       if (res.status === 429) {
@@ -82,32 +83,46 @@ export default function SignupPage() {
       ` }} />
       <div style={{ width: "100%", maxWidth: 360, background: C.panel, border: "1px solid " + C.edge, borderRadius: 18, padding: "26px 24px", boxShadow: SHADOW + ", 0 0 60px rgba(255,176,32,0.06)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, transparent, ${C.brand}, transparent)` }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 4 }}>
-          <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 34, height: 34, borderRadius: 9, background: "rgba(255,176,32,0.14)", border: "1px solid rgba(255,176,32,0.35)", flexShrink: 0 }}>
-            <HardHat size={18} color={C.brand} />
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <img src="/iupat-logo.png" alt="" width={40} height={65} style={{ flexShrink: 0, objectFit: "contain" }} />
           <div style={{ fontWeight: 800, fontSize: 19, color: C.hi }}>L831 Tracker</div>
         </div>
         <div style={{ fontSize: 11.5, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 20 }}>CREATE AN ACCOUNT</div>
 
         <form onSubmit={submit}>
-            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NAME</div>
-            <div className="login-field" style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12, transition: "border-color .15s, box-shadow .15s" }}>
-              <User size={15} color={C.lo} />
-              <input
-                required
-                autoFocus
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Jane Apprentice"
-                style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
-              />
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>FIRST NAME</div>
+                <div className="login-field" style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12, transition: "border-color .15s, box-shadow .15s" }}>
+                  <User size={15} color={C.lo} />
+                  <input
+                    required
+                    autoFocus
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Jane"
+                    style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
+                  />
+                </div>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>LAST NAME</div>
+                <div className="login-field" style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12, transition: "border-color .15s, box-shadow .15s" }}>
+                  <input
+                    required
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Apprentice"
+                    style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
+                  />
+                </div>
+              </div>
             </div>
             <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>I AM A</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
               {[
                 ["apprentice", "Apprentice", GraduationCap],
-                ["cj", "Certified Journeyman", Award],
+                ["cj", "Journeyman", Award],
               ].map(([k, label, Ico]) => (
                 <button
                   key={k}
@@ -174,7 +189,7 @@ export default function SignupPage() {
             <button
               className="login-submit"
               type="submit"
-              disabled={state === "sending" || !name.trim() || !email.trim() || !password || !confirm}
+              disabled={state === "sending" || !firstName.trim() || !lastName.trim() || !email.trim() || !password || !confirm}
               style={{ width: "100%", padding: "12px", borderRadius: 9, background: C.brand, color: C.ink, border: "none", fontWeight: 800, fontSize: 14, opacity: state === "sending" ? 0.6 : 1, boxShadow: "0 4px 14px rgba(255,176,32,0.22)" }}
             >
               {state === "sending" ? "Creating account…" : "Create account"}
