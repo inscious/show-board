@@ -224,6 +224,9 @@ export default function LoginPage() {
           </form>
         )}
       </div>
+      <div style={{ marginTop: 18, maxWidth: 360, fontSize: 10.5, color: C.lo, textAlign: "center", lineHeight: 1.5 }}>
+        Independent, unofficial tool built for L831 apprentices — not affiliated with, endorsed by, or operated by IUPAT Local 831 or the International Union of Painters and Allied Trades.
+      </div>
     </div>
   );
 }
