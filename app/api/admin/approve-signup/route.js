@@ -12,7 +12,14 @@ import { sendEmail } from "@/lib/email";
 export async function POST(request) {
   return guardedRoute(request, "admin:approve-signup", { schema: adminApproveSignupSchema, requireAdmin: true }, async ({ supabase, user, data }) => {
     const { data: target } = await supabase.from("profiles").select("email").eq("id", data.userId).single();
-    const { error } = await supabase.from("profiles").update({ approved_at: new Date().toISOString() }).eq("id", data.userId);
+    // graduated_at only ever moves for real here because the caller is a
+    // confirmed admin (guardedRoute's requireAdmin above) — the same write
+    // from a non-admin session would get silently reverted by
+    // protect_profile_privilege_columns(). markCj is the admin's own call,
+    // not an automatic grant of whatever the signup form's role picker said.
+    const update = { approved_at: new Date().toISOString() };
+    if (data.markCj) update.graduated_at = new Date().toISOString();
+    const { error } = await supabase.from("profiles").update(update).eq("id", data.userId);
     if (error) return Response.json({ error: "Could not approve" }, { status: 400 });
 
     // best-effort, same as every other transactional email here — a missing
@@ -27,7 +34,8 @@ export async function POST(request) {
 
     await logAudit(supabase, {
       actorEmail: user.email, targetEmail: target?.email,
-      action: "approve_signup", message: "Approved " + (target?.email || data.userId),
+      action: "approve_signup",
+      message: "Approved " + (target?.email || data.userId) + (data.markCj ? " as Certified Journeyman" : ""),
     });
 
     return Response.json({ ok: true });

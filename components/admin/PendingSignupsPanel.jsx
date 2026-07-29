@@ -7,7 +7,7 @@
    load() — .not("approved_at", "is", null)) so a pending signup doesn't
    clutter Falling Behind / Do Not Hire / the normal roster before it's real. */
 import { useState, useEffect } from "react";
-import { Check, Trash2 } from "lucide-react";
+import { Check, Trash2, Award } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, SHADOW, FM, mMed } from "@/lib/core";
 import { Avatar, ConfirmModal, req } from "@/components/admin/shared";
@@ -21,16 +21,22 @@ export function PendingSignupsPanel({ onCountChange }) {
   const [monthsByUser, setMonthsByUser] = useState(cached?.monthsByUser ?? {});
   const [rejecting, setRejecting] = useState(null); // profile row, or null
   const [busyId, setBusyId] = useState(null);
+  const [markCjById, setMarkCjById] = useState({}); // userId -> bool, pre-seeded from claimed_cj once rows load
 
   const load = async () => {
     const supabase = createClient();
     const { data: profiles } = await supabase.from("profiles")
-      .select("id, email, name")
+      .select("id, email, name, claimed_cj")
       .eq("is_admin", false)
       .is("approved_at", null)
       .order("email");
     setRows(profiles || []);
     onCountChange?.(profiles?.length || 0);
+    setMarkCjById((prev) => {
+      const next = { ...prev };
+      (profiles || []).forEach((p) => { if (!(p.id in next)) next[p.id] = !!p.claimed_cj; });
+      return next;
+    });
     let grouped = {};
     if (profiles?.length) {
       const { data: months } = await supabase.from("ojt_months")
@@ -47,7 +53,7 @@ export function PendingSignupsPanel({ onCountChange }) {
 
   const approve = async (id) => {
     setBusyId(id);
-    try { await req("POST", "/api/admin/approve-signup", { userId: id }); await load(); }
+    try { await req("POST", "/api/admin/approve-signup", { userId: id, markCj: !!markCjById[id] }); await load(); }
     finally { setBusyId(null); }
   };
   const reject = async () => {
@@ -74,7 +80,14 @@ export function PendingSignupsPanel({ onCountChange }) {
                 <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
                   <Avatar name={p.name} email={p.email} size={34} />
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.hi }}>{p.name || "(no name given)"}</div>
+                    <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.hi, display: "flex", alignItems: "center", gap: 6 }}>
+                      {p.name || "(no name given)"}
+                      {p.claimed_cj && (
+                        <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: C.working, border: "1px solid " + C.working + "55", borderRadius: 5, padding: "1px 5px" }}>
+                          CLAIMS CJ
+                        </span>
+                      )}
+                    </div>
                     <div className="truncate" style={{ fontSize: 11, color: C.lo, fontFamily: FM }}>{p.email}</div>
                   </div>
                   <button className="foc" onClick={() => approve(p.id)} disabled={busyId === p.id}
@@ -86,6 +99,17 @@ export function PendingSignupsPanel({ onCountChange }) {
                     <Trash2 size={13} />
                   </button>
                 </div>
+                {p.claimed_cj && (
+                  <label style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 9, paddingTop: 9, borderTop: "1px solid " + C.line, fontSize: 12, color: C.mid, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={!!markCjById[p.id]}
+                      onChange={(e) => setMarkCjById((prev) => ({ ...prev, [p.id]: e.target.checked }))}
+                    />
+                    <Award size={13} color={C.working} />
+                    Approve as Certified Journeyman
+                  </label>
+                )}
                 {months.length > 0 && (
                   <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid " + C.line, fontSize: 11, color: C.mid, fontFamily: FM }}>
                     submitted: {months.map((m) => mMed(m.month) + " (" + (Number(m.cat_a) + Number(m.cat_b) + Number(m.cat_c) + Number(m.cat_d)) + "h)").join(" · ")}

@@ -10,10 +10,14 @@ import { checkRateLimit, clientIp } from "@/lib/rateLimit";
    session yet), same category as request-link/sign-in — own rate limit and
    validation here, no guardedRoute.
 
-   Doesn't touch profiles directly: handle_new_user() (supabase/schema.sql)
-   reads name out of the signUp() metadata at row-creation time instead.
-   approved_at is left null by that same trigger; that's the whole point of
-   this account existing in a not-yet-real state until an admin approves it.
+   Doesn't touch profiles directly: handle_new_user() (supabase/stage4_signup_role.sql)
+   reads name/claimed_cj out of the signUp() metadata at row-creation time
+   instead. approved_at is left null by that same trigger; that's the whole
+   point of this account existing in a not-yet-real state until an admin
+   approves it. claimed_cj is a self-reported hint only — it's a plain,
+   non-privileged column, never graduated_at itself, which stays guarded
+   against self-escalation same as always; an admin decides for real while
+   approving (see app/api/admin/approve-signup).
 
    Confirmed live (2026-07): this project's Supabase Auth has "Confirm
    email" OFF, so signUp() returns an active session immediately — the
@@ -32,6 +36,10 @@ const bodySchema = z.object({
     (v) => v.split(/\s+/).filter(Boolean).length >= 2,
     { message: "Enter your first and last name" },
   ),
+  // self-reported, not privilege-granting — see handle_new_user()
+  // (supabase/stage4_signup_role.sql). An admin still has to actually set
+  // graduated_at while approving for this to mean anything.
+  role: z.enum(["apprentice", "cj"]).default("apprentice"),
 });
 
 export async function POST(request) {
@@ -52,7 +60,7 @@ export async function POST(request) {
     const nameIssue = parsed.error.issues.find((i) => i.path[0] === "name");
     return Response.json({ error: nameIssue?.message || "Enter a valid email and an 8+ character password" }, { status: 400 });
   }
-  const { email, password, name } = parsed.data;
+  const { email, password, name, role } = parsed.data;
 
   const supabase = createClient();
 
@@ -81,7 +89,7 @@ export async function POST(request) {
     password,
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
-      data: { name },
+      data: { name, claimed_cj: role === "cj" ? "true" : "false" },
     },
   });
 

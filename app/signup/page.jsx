@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, HardHat, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Mail, HardHat, Lock, User, Eye, EyeOff, GraduationCap, Award } from "lucide-react";
 import { C, SHADOW, FM, FS } from "@/lib/core";
 
 // live admin toggle (Settings → Apprentice Sign-Up), not a build-time flag —
@@ -11,6 +11,7 @@ import { C, SHADOW, FM, FS } from "@/lib/core";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
+  const [role, setRole] = useState("apprentice"); // "apprentice" | "cj"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -36,7 +37,7 @@ export default function SignupPage() {
       const res = await fetch("/api/auth/sign-up", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password, name: name.trim() }),
+        body: JSON.stringify({ email: email.trim(), password, name: name.trim(), role }),
       });
       const body = await res.json().catch(() => ({}));
       if (res.status === 429) {
@@ -101,6 +102,33 @@ export default function SignupPage() {
                 placeholder="Jane Apprentice"
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
               />
+            </div>
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>I AM A</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+              {[
+                ["apprentice", "Apprentice", GraduationCap],
+                ["cj", "Certified Journeyman", Award],
+              ].map(([k, label, Ico]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setRole(k)}
+                  style={{
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                    padding: "10px 8px", borderRadius: 9, fontSize: 12.5, fontWeight: 800,
+                    background: role === k ? C.brand : C.sunk,
+                    color: role === k ? C.ink : C.mid,
+                    border: "1px solid " + (role === k ? C.brand : C.line),
+                  }}
+                >
+                  <Ico size={14} /> {label}
+                </button>
+              ))}
+            </div>
+            <div style={{ fontSize: 10.5, color: C.lo, lineHeight: 1.5, marginBottom: 12 }}>
+              {role === "cj"
+                ? "An admin confirms this before it takes effect — you'll start as a regular pending account either way."
+                : "You'll track OJT hours and work toward Level 2 and beyond."}
             </div>
             <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EMAIL</div>
             <div className="login-field" style={{ display: "flex", alignItems: "center", gap: 8, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", marginBottom: 12, transition: "border-color .15s, box-shadow .15s" }}>

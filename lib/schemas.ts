@@ -186,7 +186,13 @@ export const adminDeleteApprenticeSchema = z
         userIds: z.array(userId).min(1).max(100).optional(),
     })
     .refine((d) => d.userId || d.userIds, { message: "userId or userIds required" });
-export const adminApproveSignupSchema = z.object({ userId });
+export const adminApproveSignupSchema = z.object({
+    userId,
+    // admin's own call, independent of what the person claimed at signup —
+    // the panel pre-checks this from claimed_cj but the admin can flip it
+    // either way before approving.
+    markCj: z.boolean().optional(),
+});
 export const adminDoNotHireSchema = z
     .object({
         userId: userId.optional(),
