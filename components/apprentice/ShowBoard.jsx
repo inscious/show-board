@@ -1464,7 +1464,7 @@ export default function App() {
                     />
                 </Modal>
             )}
-            {((needsWelcome && !modal) || modal?.type === "welcome") && (
+            {((needsWelcome && !modal && !profile.graduatedAt) || modal?.type === "welcome") && (
                 <WelcomeModal
                     onOpenOjtImport={() => {
                         setNeedsWelcome(false);
