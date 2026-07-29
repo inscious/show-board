@@ -233,9 +233,13 @@ function AdminApprenticeCalendar({ entries, bookings, classes }) {
 
 /* ---------- level + category progress — same numbers the apprentice sees
    on their own OJT tab, condensed for the admin's one-glance view ---------- */
-function LevelAndCategoryProgress({ approved }) {
+function LevelAndCategoryProgress({ approved, graduatedAt }) {
   const t = useMemo(() => ojtTotals(approved), [approved]);
-  const idx = levelIndex(t.total);
+  // a CJ (admin-confirmed, never hours-derived — same rule as ShowBoard.jsx's
+  // signed-in CJ view) is always the CJ row, not whatever their hours happen
+  // to total — the LEVELS.length-1 index also has no `nxt`, which is what
+  // naturally drops the "X hrs to next level" bar below for them.
+  const idx = graduatedAt ? LEVELS.length - 1 : levelIndex(t.total);
   const lv = LEVELS[idx];
   const nxt = LEVELS[idx + 1];
   const avg = approved.length ? t.total / approved.length : 0;
@@ -502,7 +506,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
   const historyRows = useMemo(() => ojtRows(approved).slice().reverse(), [approved]);
   const pending = useMemo(() => months.filter((m) => m.status === "pending").sort((a, b) => (a.m < b.m ? -1 : 1)), [months]);
   const total = useMemo(() => ojtTotals(approved).total, [approved]);
-  const idx = levelIndex(total);
+  const idx = apprentice.graduated_at ? LEVELS.length - 1 : levelIndex(total);
   const lv = LEVELS[idx];
 
   const showById = useMemo(() => { const m = {}; (shows || []).forEach((s) => { m[s.id] = s; }); return m; }, [shows]);
@@ -756,7 +760,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
         <Stat label="PENDING REVIEW" value={String(pending.length)} sub={pending.length ? "needs a decision" : "all caught up"} color={pending.length ? C.brand : C.lo} />
       </div>
 
-      <LevelAndCategoryProgress approved={approved} />
+      <LevelAndCategoryProgress approved={approved} graduatedAt={!!apprentice.graduated_at} />
       <ApprenticeMonthlyChart months={months} />
 
       {pending.length > 0 && (

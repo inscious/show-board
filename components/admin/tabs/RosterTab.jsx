@@ -257,12 +257,18 @@ function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssign
     const pendingCount = months.filter((m) => m.status === "pending").length;
     const total = ojtTotals(approved).total;
     const lastMonth = months.slice().sort((x, y) => (x.m < y.m ? 1 : -1))[0];
-    return { ...a, total, level: LEVELS[levelIndex(total)], pendingCount, lastMonth };
+    // graduated_at is the admin-set CJ flag (never self-declared, never
+    // hours-derived) — a CJ always shows the CJ row regardless of what's on
+    // file for them, same rule ShowBoard.jsx uses for a signed-in CJ's own
+    // level index.
+    const level = a.graduated_at ? LEVELS[LEVELS.length - 1] : LEVELS[levelIndex(total)];
+    return { ...a, total, level, isCj: !!a.graduated_at, pendingCount, lastMonth };
   }).sort((x, y) => (x.name || x.email).localeCompare(y.name || y.email)), [apprentices, monthsByUser]);
 
   const [q, setQ] = useState("");
   const [cityFilter, setCityFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState(""); // "" | "apprentice" | "cj"
   const [pendingOnly, setPendingOnly] = useState(false);
   const [dnhOnly, setDnhOnly] = useState(false);
 
@@ -272,6 +278,8 @@ function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssign
   const filtered = useMemo(() => roster.filter((a) => {
     if (cityFilter && a.city !== cityFilter) return false;
     if (levelFilter && a.level.k !== levelFilter) return false;
+    if (typeFilter === "apprentice" && a.isCj) return false;
+    if (typeFilter === "cj" && !a.isCj) return false;
     if (pendingOnly && a.pendingCount === 0) return false;
     if (dnhOnly && !a.do_not_hire_at) return false;
     if (q.trim()) {
@@ -279,9 +287,9 @@ function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssign
       if (!hay.includes(q.trim().toLowerCase())) return false;
     }
     return true;
-  }), [roster, cityFilter, levelFilter, pendingOnly, dnhOnly, q]);
+  }), [roster, cityFilter, levelFilter, typeFilter, pendingOnly, dnhOnly, q]);
 
-  const anyFilterActive = cityFilter || levelFilter || pendingOnly || dnhOnly || q.trim();
+  const anyFilterActive = cityFilter || levelFilter || typeFilter || pendingOnly || dnhOnly || q.trim();
   const inputStyle = { background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "8px 10px", color: C.hi, fontSize: 12.5, fontFamily: FS };
 
   if (roster.length === 0) {
@@ -313,6 +321,11 @@ function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssign
             <option value="">All levels</option>
             {levelsPresent.map((lv) => <option key={lv.k} value={lv.k}>{lv.k} — {lv.label}</option>)}
           </select>
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} style={{ ...inputStyle, flex: "1 1 130px" }}>
+            <option value="">Apprentices & CJs</option>
+            <option value="apprentice">Apprentices only</option>
+            <option value="cj">CJs only</option>
+          </select>
           <button className="foc" onClick={() => setPendingOnly((v) => !v)}
             style={{ flexShrink: 0, fontFamily: FM, fontSize: 11.5, fontWeight: 800, padding: "8px 12px", borderRadius: 9, background: pendingOnly ? C.brand : "transparent", color: pendingOnly ? C.ink : C.mid, border: "1px solid " + (pendingOnly ? C.brand : C.line) }}>
             Pending only
@@ -322,7 +335,7 @@ function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssign
             Do not hire
           </button>
           {anyFilterActive && (
-            <button className="foc" onClick={() => { setQ(""); setCityFilter(""); setLevelFilter(""); setPendingOnly(false); setDnhOnly(false); }}
+            <button className="foc" onClick={() => { setQ(""); setCityFilter(""); setLevelFilter(""); setTypeFilter(""); setPendingOnly(false); setDnhOnly(false); }}
               style={{ flexShrink: 0, fontSize: 11.5, fontWeight: 700, padding: "8px 12px", borderRadius: 9, background: "transparent", color: C.lo, border: "1px solid " + C.line }}>
               Clear
             </button>

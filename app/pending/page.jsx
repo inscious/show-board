@@ -31,6 +31,14 @@ function monthOptions() {
 
 export default function PendingPage() {
   const [email, setEmail] = useState(null);
+  // self-reported at signup (app/signup/page.jsx's role picker) — not
+  // privilege-bearing, just decides whether this page's OJT-capture
+  // sections make sense to show. A CJ with real history still gets that
+  // exact same capability once approved, via the in-app "Apprenticeship
+  // History" section (components/ojt/PreviousProgressionCard.jsx) — this
+  // page just isn't the place to front-load it for someone who signed up
+  // as a journeyman.
+  const [claimedCj, setClaimedCj] = useState(false);
   const [months, setMonths] = useState(null); // null = loading
   const [form, setForm] = useState({ m: monthOptions()[1] || "", a: "", b: "", c: "", d: "" }); // default to last month, not the still-in-progress current one
   const [state, setState] = useState("idle");
@@ -68,10 +76,11 @@ export default function PendingPage() {
     // is a real race (whichever resolves second silently clobbers the
     // other's value); auto-fill only kicks in when nothing's saved yet.
     const [{ data: profile }, org] = await Promise.all([
-      supabase.from("profiles").select("local, city, joined_on").eq("id", user.id).single(),
+      supabase.from("profiles").select("local, city, joined_on, claimed_cj").eq("id", user.id).single(),
       fetch("/api/settings/org-profile").then((r) => r.json()).catch(() => ({ unionName: "" })),
     ]);
     setUnionName(org.unionName || "");
+    setClaimedCj(!!profile?.claimed_cj);
     // profiles.local's DB column default is the stale "IUPAT 831" (schema.sql),
     // which predates the org-profile branding ("IUPAT Local 831") and doesn't
     // match it — treat that placeholder as unset so the dropdown auto-fills
@@ -205,13 +214,17 @@ export default function PendingPage() {
           <div style={{ fontSize: 14, color: C.hi, lineHeight: 1.6 }}>
             {email ? <>Your account (<strong>{email}</strong>) is created</> : "Your account is created"} — an admin still needs to approve you before you get full access. That's normal, not an error.
           </div>
-          <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6, marginTop: 8 }}>
-            While you wait, you can add any OJT hours you've already turned in to the union below. They'll be reviewed the same way any logged month is once you're approved.
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 7, marginTop: 12, paddingTop: 12, borderTop: "1px solid " + C.line, fontSize: 12, color: C.brand, lineHeight: 1.5 }}>
-            <TriangleAlert size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-            <span>This part is optional — you can skip it and come back anytime. But your progress and pay-scale level won't be tracked until you add your OJT history.</span>
-          </div>
+          {!claimedCj && (
+            <>
+              <div style={{ fontSize: 13, color: C.mid, lineHeight: 1.6, marginTop: 8 }}>
+                While you wait, you can add any OJT hours you've already turned in to the union below. They'll be reviewed the same way any logged month is once you're approved.
+              </div>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 7, marginTop: 12, paddingTop: 12, borderTop: "1px solid " + C.line, fontSize: 12, color: C.brand, lineHeight: 1.5 }}>
+                <TriangleAlert size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>This part is optional — you can skip it and come back anytime. But your progress and pay-scale level won't be tracked until you add your OJT history.</span>
+              </div>
+            </>
+          )}
         </div>
 
         <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 14, padding: "18px 20px", boxShadow: SHADOW, marginBottom: 16 }}>
@@ -230,13 +243,13 @@ export default function PendingPage() {
                 {unionName && <option value={unionName}>{unionName}</option>}
               </select>
             )}
-            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>HOME CITY (optional)</div>
-            <input value={profileForm.city} onChange={(e) => setProfileForm((f) => ({ ...f, city: e.target.value }))} placeholder="Chula Vista, CA"
+            <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>HOME CITY</div>
+            <input required value={profileForm.city} onChange={(e) => setProfileForm((f) => ({ ...f, city: e.target.value }))} placeholder="Chula Vista, CA"
               style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
             <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>JOINED (optional)</div>
             <input type="date" value={profileForm.joined} onChange={(e) => setProfileForm((f) => ({ ...f, joined: e.target.value }))}
               style={{ ...fieldStyle, width: "100%", marginBottom: 14 }} />
-            <button type="submit" disabled={profileState === "saving"}
+            <button type="submit" disabled={profileState === "saving" || !profileForm.city.trim()}
               style={{ width: "100%", padding: "11px", borderRadius: 9, background: profileState === "done" ? C.working : C.brand, color: profileState === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 13.5, opacity: profileState === "saving" ? 0.6 : 1 }}>
               {profileState === "saving" ? "Saving…" : profileState === "done" ? "Saved" : "Save profile"}
             </button>
@@ -244,7 +257,7 @@ export default function PendingPage() {
           </form>
         </div>
 
-        {IMPORT_ENABLED && (
+        {IMPORT_ENABLED && !claimedCj && (
           <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 14, padding: "18px 20px", boxShadow: SHADOW, marginBottom: 16 }}>
             <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 12 }}>UPLOAD OJT SLIPS</div>
             {showImport ? (
@@ -258,6 +271,8 @@ export default function PendingPage() {
           </div>
         )}
 
+        {!claimedCj && (
+        <>
         <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 14, padding: "18px 20px", boxShadow: SHADOW, marginBottom: 16 }}>
           {IMPORT_ENABLED ? (
             <button type="button" onClick={() => setShowManual((v) => !v)}
@@ -343,6 +358,8 @@ export default function PendingPage() {
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   );
