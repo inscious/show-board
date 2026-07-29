@@ -1204,7 +1204,12 @@ export function rateFor(
         (k) => k.toLowerCase() === String(co || "").toLowerCase(),
     );
     const lv = hit ? LEVELS.find((l) => l.k === map[hit]) : null;
-    const over = !!(lv && lv.pay > scale.pay);
+    // the "must be higher" gate exists to protect an apprentice from an
+    // override that would pay them less than their guaranteed scale — but
+    // once scale is already the top of the ladder (CJ), nothing can ever
+    // be "over" it, so a picked override would silently do nothing. At
+    // the ceiling, any selected override applies directly instead.
+    const over = !!(lv && (scale.k === "CJ" ? true : lv.pay > scale.pay));
     return {
         rate: over ? lv!.pay : scale.pay,
         level: over ? lv!.k : scale.k,

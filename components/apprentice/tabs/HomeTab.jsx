@@ -99,6 +99,7 @@ function money(n) {
 
 /* ---------- dashboard ---------- */
 export function HomeTab({
+    profile,
     shows,
     entries,
     ojt,
@@ -337,7 +338,7 @@ export function HomeTab({
 
     return (
         <div className="dgrid">
-            {(lateSt.k === "late" || (openSt.k === "open" && openSt.days <= 3)) && (
+            {!profile?.graduatedAt && (lateSt.k === "late" || (openSt.k === "open" && openSt.days <= 3)) && (
                 <button
                     className="foc dspan"
                     onClick={() => onGoto("ojt")}
@@ -1074,8 +1075,9 @@ export function HomeTab({
 
             {/* OJT status — urgent styling covers both "never turned in" (late)
                 and "turned in, bounced back" (rejected), since both need the
-                apprentice to act, not just an FYI badge. */}
-            {(() => {
+                apprentice to act, not just an FYI badge. A CJ has no monthly
+                OJT obligation left, so this whole card is apprentice-only. */}
+            {!profile?.graduatedAt && (() => {
                 // once the apprentice has cleared the "declined" bell
                 // notification (see notifications.jsx / lib/store.ts
                 // clearNotification), treat it as acknowledged — the card
@@ -1547,7 +1549,9 @@ export function HomeTab({
                     </div>
                 )}
 
-                {/* apprenticeship at a glance */}
+                {/* apprenticeship at a glance — a CJ has no level to work
+                    toward, so this whole card is apprentice-only */}
+                {!profile?.graduatedAt && (
                 <button
                     className="foc"
                     onClick={() => onGoto("ojt")}
@@ -1662,6 +1666,7 @@ export function HomeTab({
                         </div>
                     )}
                 </button>
+                )}
             </div>
 
             {/* right column: what's live and what's next */}

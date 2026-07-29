@@ -49,6 +49,14 @@ const OjtTab = dynamic(() => import("@/components/apprentice/tabs/OjtTab").then(
     loading: TabLoading,
 });
 
+// swapped in for the same "ojt" tab key when profile.graduatedAt is set —
+// no OJT left to track for a CJ, this is the pay/certs/contacts/account
+// hub instead. Only one of the two ever mounts for a given user.
+const CjAccountTab = dynamic(() => import("@/components/apprentice/tabs/CjAccountTab").then((m) => m.CjAccountTab), {
+    ssr: false,
+    loading: TabLoading,
+});
+
 // same treatment for Calendar — Summary is its own dynamic() pointed at the
 // same module (rather than a plain import) so opening "month summary" from
 // the shell's modal dispatch doesn't pull CalTab's code back into the main
@@ -127,6 +135,7 @@ import {
     CloudOff,
     Sparkles,
     Megaphone,
+    User,
 } from "lucide-react";
 import { store, subscribeSyncStatus } from "@/lib/store";
 import { createClient } from "@/lib/supabase/client";
@@ -703,7 +712,11 @@ export default function App() {
         });
     const delBooking = (id) =>
         setBookings((prev) => prev.filter((x) => x.id !== id));
-    const lvIdx = levelIndex(ojtTotals(ojt.months).total);
+    // a CJ's pay is pinned to the top of the ladder, not hours-derived —
+    // everything downstream (Calendar, DaySheet, Home's gross-pay card,
+    // PayRatesCard) reads off this one value, so fixing it here is the
+    // whole fix, no prop-threading needed anywhere else.
+    const lvIdx = profile.graduatedAt ? LEVELS.length - 1 : levelIndex(ojtTotals(ojt.months).total);
     const delEntry = (k, id) =>
         setEntries((prev) => {
             const list = (prev[k] || []).filter((x) => x.id !== id);
@@ -810,7 +823,13 @@ export default function App() {
         targets:
             "No targets flagged. Tap a show and hit Target to line up the ones you want.",
     }[view];
-    const navTabs = profile.foremanOfCompanyId ? [...BASE_TABS, FOREMAN_TAB] : BASE_TABS;
+    // CJs get the same "ojt" tab key/route (no deep-link change) but a
+    // relabeled entry — there's no OJT left to track, it's a pay/certs/
+    // contacts hub now.
+    const baseTabs = profile.graduatedAt
+        ? BASE_TABS.map((t) => (t[0] === "ojt" ? ["ojt", "Account", User] : t))
+        : BASE_TABS;
+    const navTabs = profile.foremanOfCompanyId ? [...baseTabs, FOREMAN_TAB] : baseTabs;
 
     return (
         <DirectoryContext.Provider value={{ companies, jatcContacts, dc36Contacts, orgProfile }}>
@@ -867,7 +886,9 @@ export default function App() {
                                           ? "Portfolio"
                                           : tab === "foreman"
                                             ? "Hiring"
-                                            : "Apprenticeship"}
+                                            : tab === "ojt" && profile.graduatedAt
+                                              ? "Account"
+                                              : "Apprenticeship"}
                             </div>
                             <div
                                 style={{
@@ -879,11 +900,13 @@ export default function App() {
                                 {tab === "home"
                                     ? longDate(todayMid()) +
                                       " · " +
-                                      LEVELS[
-                                          levelIndex(
-                                              ojtTotals(ojt.months).total,
-                                          )
-                                      ].label
+                                      (profile.graduatedAt
+                                          ? "Certified Journeyman"
+                                          : LEVELS[
+                                                levelIndex(
+                                                    ojtTotals(ojt.months).total,
+                                                )
+                                            ].label)
                                     : tab === "board"
                                       ? "Out-of-work list · LA & SD · " +
                                         orgProfile.outOfWorkLinePretty
@@ -893,14 +916,16 @@ export default function App() {
                                           ? "Turn the booths you've built into a shareable career record"
                                           : tab === "foreman"
                                             ? "Post a call, see who's available"
-                                            : LEVELS[
-                                                levelIndex(
-                                                    ojtTotals(ojt.months).total,
-                                                )
-                                            ].label +
-                                            " · " +
-                                            hrsFmt(ojtTotals(ojt.months).total) +
-                                            " hrs on file with the JATC"}
+                                            : profile.graduatedAt
+                                              ? "Pay, certifications & contacts"
+                                              : LEVELS[
+                                                  levelIndex(
+                                                      ojtTotals(ojt.months).total,
+                                                  )
+                                              ].label +
+                                              " · " +
+                                              hrsFmt(ojtTotals(ojt.months).total) +
+                                              " hrs on file with the JATC"}
                             </div>
                         </div>
                         <a
@@ -982,6 +1007,7 @@ export default function App() {
                     </div>
                 ) : tab === "home" ? (
                     <HomeTab
+                        profile={profile}
                         shows={shows}
                         entries={entries}
                         ojt={ojt}
@@ -1016,6 +1042,30 @@ export default function App() {
                         onOpenDay={(k) => setModal({ type: "day", key: k })}
                     />
                 ) : tab === "ojt" ? (
+                    profile.graduatedAt ? (
+                        <CjAccountTab
+                            ojt={ojt}
+                            entries={entries}
+                            rates={rates}
+                            onSetRate={setRate}
+                            onRemoveRate={removeRate}
+                            onAddRateCo={() => setModal({ type: "ratecos" })}
+                            email={email}
+                            isAdmin={isAdmin}
+                            profile={profile}
+                            onPasswordSet={() => setHasPassword(true)}
+                            onOpenWelcome={() => setModal({ type: "welcome" })}
+                            pwIntent={pwIntent}
+                            onPwIntentConsumed={() => setPwIntent(false)}
+                            onSignOut={() =>
+                                store.signOut().then(() => {
+                                    window.location.href = "/login";
+                                })
+                            }
+                            certs={certs}
+                            onSaveCert={saveCert}
+                        />
+                    ) : (
                     <OjtTab
                         ojt={ojt}
                         entries={entries}
@@ -1058,6 +1108,7 @@ export default function App() {
                             })
                         }
                     />
+                    )
                 ) : tab === "portfolio" ? (
                     <PortfolioSection standalone />
                 ) : tab === "foreman" ? (
@@ -1162,7 +1213,7 @@ export default function App() {
                                     <Clock size={17} /> Log today
                                 </button>
                             </>
-                        ) : tab === "board" ? null : tab === "foreman" ? null : tab === "ojt" ? (
+                        ) : tab === "board" ? null : tab === "foreman" ? null : tab === "ojt" && profile.graduatedAt ? null : tab === "ojt" ? (
                             <>
                                 <button
                                     className="foc"
