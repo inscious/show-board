@@ -1808,47 +1808,54 @@ export function DaySheet({
                     >
                         PARKING PAY — OPTIONAL
                     </div>
-                    <button
-                        type="button"
-                        className="foc"
-                        onClick={() => setParking(num(parking) ? "" : "40")}
+                    <div
                         style={{
-                            width: "100%",
                             display: "flex",
                             alignItems: "center",
-                            gap: 9,
+                            gap: 8,
                             background: num(parking) ? "rgba(47,176,122,0.14)" : C.sunk,
-                            color: num(parking) ? C.working : C.mid,
                             border:
                                 "1px solid " +
                                 (num(parking) ? C.working + "66" : C.line),
                             borderRadius: 9,
-                            padding: "11px",
-                            fontSize: 13.5,
-                            fontWeight: 700,
+                            padding: "9px 12px",
                         }}
                     >
                         <span
                             style={{
-                                width: 18,
-                                height: 18,
-                                borderRadius: 5,
-                                border:
-                                    "1px solid " +
-                                    (num(parking) ? C.working : C.line),
-                                background: num(parking) ? C.working : "transparent",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
+                                fontFamily: FM,
+                                fontSize: 13.5,
+                                fontWeight: 700,
+                                color: num(parking) ? C.working : C.mid,
                                 flexShrink: 0,
                             }}
                         >
-                            {num(parking) > 0 && <Check size={12} color={C.inkGood} />}
+                            $
                         </span>
-                        {num(parking) > 0
-                            ? "$" + num(parking).toFixed(2) + " parking pay"
-                            : "Add $40 parking pay"}
-                    </button>
+                        <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            inputMode="decimal"
+                            value={parking}
+                            onChange={(e) => setParking(e.target.value)}
+                            placeholder="20"
+                            style={{
+                                flex: 1,
+                                minWidth: 0,
+                                background: "transparent",
+                                border: "none",
+                                outline: "none",
+                                color: C.hi,
+                                fontSize: 13.5,
+                                fontWeight: 700,
+                                fontFamily: FM,
+                            }}
+                        />
+                        <span style={{ fontSize: 12, color: C.lo, flexShrink: 0 }}>
+                            parking that day
+                        </span>
+                    </div>
                     <div
                         style={{
                             fontSize: 10.5,
@@ -1857,9 +1864,10 @@ export function DaySheet({
                             lineHeight: 1.45,
                         }}
                     >
-                        Same idea as travel, its own line on your check — separate
-                        from it since the two don't always match. You don't have
-                        to log it every single day to keep gross accurate.
+                        Whatever you actually paid to park that day — it varies by
+                        lot and show, commonly around $20. Separate from travel
+                        since the two don't always match, and you don't have to
+                        log it every single day to keep gross accurate.
                     </div>
 
                     {touched && !ok && (
