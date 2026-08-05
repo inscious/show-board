@@ -19,6 +19,7 @@ import { PayRatesCard } from "@/components/ojt/PayRatesCard";
 import { CertificationsCard } from "@/components/ojt/CertificationsCard";
 import { ContactsCard } from "@/components/ojt/ContactsCard";
 import { AccountCard } from "@/components/ojt/AccountCard";
+import { NotificationsCard } from "@/components/ojt/NotificationsCard";
 import { PreviousProgressionCard } from "@/components/ojt/PreviousProgressionCard";
 
 export function CjAccountTab({
@@ -66,6 +67,7 @@ export function CjAccountTab({
                 pwIntent={pwIntent}
                 onPwIntentConsumed={onPwIntentConsumed}
             />
+            <NotificationsCard profile={profile} />
             <ContactsCard />
         </div>
     );
