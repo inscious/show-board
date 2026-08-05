@@ -1,5 +1,6 @@
 import { guardedRoute } from "@/lib/apiGuard";
 import { adminClassAssignSchema, adminClassDeleteSchema, adminClassAttendanceSchema, adminClassEditSchema } from "@/lib/schemas";
+import { notifyUsers } from "@/lib/notify";
 
 /* one class, assigned to one or many apprentices at once — each gets its
    own row (classes has no shared "template" id, just per-user rows), same
@@ -20,10 +21,17 @@ export async function POST(request) {
     if (error) return Response.json({ error: "Could not assign" }, { status: 400 });
 
     // best-effort — a notification that doesn't land shouldn't fail the assignment itself
-    await supabase.from("notifications").insert(data.userIds.map((userId, i) => ({
-      id: "nc" + Date.now().toString(36) + i, user_id: userId, type: "class",
-      message: `New class assigned: ${data.name}`,
-    })));
+    await notifyUsers(supabase, {
+      type: "class", idPrefix: "nc",
+      rows: data.userIds.map((userId) => ({
+        userId,
+        message: `New class assigned: ${data.name}`,
+        emailSubject: "New class assigned — " + data.name,
+        emailHtml: `<p>You've been assigned to a class: <strong>${data.name}</strong>.</p>`
+          + (data.loc ? `<p>Location: ${data.loc}</p>` : "")
+          + (data.note ? `<p>${data.note}</p>` : ""),
+      })),
+    });
 
     return Response.json({ ok: true, count: rows.length });
   });
@@ -43,10 +51,17 @@ export async function PUT(request) {
       }).eq("id", id).eq("user_id", userId)));
     if (results.some((r) => r.error)) return Response.json({ error: "Could not update the class" }, { status: 400 });
 
-    await supabase.from("notifications").insert(data.items.map(({ userId }, i) => ({
-      id: "nce" + Date.now().toString(36) + i, user_id: userId, type: "class",
-      message: `Class updated: ${data.name}`,
-    })));
+    await notifyUsers(supabase, {
+      type: "class", idPrefix: "nce",
+      rows: data.items.map(({ userId }) => ({
+        userId,
+        message: `Class updated: ${data.name}`,
+        emailSubject: "Class updated — " + data.name,
+        emailHtml: `<p><strong>${data.name}</strong> was updated.</p>`
+          + (data.loc ? `<p>Location: ${data.loc}</p>` : "")
+          + (data.note ? `<p>${data.note}</p>` : ""),
+      })),
+    });
 
     return Response.json({ ok: true, count: data.items.length });
   });
@@ -76,10 +91,15 @@ export async function PATCH(request) {
     const before = new Set(existing.missed_dates || []);
     const newlyMissed = data.missedDates.filter((d) => !before.has(d));
     if (newlyMissed.length) {
-      await supabase.from("notifications").insert(newlyMissed.map((d, i) => ({
-        id: "nma" + Date.now().toString(36) + i, user_id: data.userId, type: "class",
-        message: `Marked absent — ${existing.name}, ${d}`,
-      })));
+      await notifyUsers(supabase, {
+        type: "class", idPrefix: "nma",
+        rows: newlyMissed.map((d) => ({
+          userId: data.userId,
+          message: `Marked absent — ${existing.name}, ${d}`,
+          emailSubject: "Marked absent — " + existing.name,
+          emailHtml: `<p>You were marked absent for <strong>${existing.name}</strong> on ${d}.</p>`,
+        })),
+      });
     }
     return Response.json({ ok: true });
   });

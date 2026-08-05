@@ -1,6 +1,7 @@
 import { guardedRoute } from "@/lib/apiGuard";
 import { laborCallSchema } from "@/lib/schemas";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyUsers } from "@/lib/notify";
 
 /* Posting a labor call — not an admin action, any apprentice/CJ with
    foreman_of_company_id set for this company can do it. Not gated by
@@ -44,12 +45,16 @@ export async function POST(request) {
         .not("approved_at", "is", null)
         .neq("id", user.id);
       if (recipients?.length) {
-        await admin.from("notifications").insert(recipients.map((r, i) => ({
-          id: "lc" + Date.now().toString(36) + i,
-          user_id: r.id,
-          type: "labor_call",
-          message: `New labor call posted — ${data.neededCount} needed`,
-        })));
+        const title = data.title || "Labor call";
+        await notifyUsers(admin, {
+          type: "labor_call", idPrefix: "lc",
+          rows: recipients.map((r) => ({
+            userId: r.id,
+            message: `New labor call posted — ${data.neededCount} needed`,
+            emailSubject: "New labor call — " + data.neededCount + " needed",
+            emailHtml: `<p><strong>${title}</strong> — ${data.neededCount} needed.</p><p>Open the app to respond.</p>`,
+          })),
+        });
       }
     }
 

@@ -2,6 +2,7 @@ import { guardedRoute } from "@/lib/apiGuard";
 import { adminOjtMonthSchema, adminOjtMonthDeleteSchema, adminOjtStatusSchema } from "@/lib/schemas";
 import { mMed } from "@/lib/core";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyUsers } from "@/lib/notify";
 
 /* admin correcting or backfilling an apprentice's on-file OJT month —
    lands pre-approved since the admin is the authority here, not the
@@ -46,13 +47,22 @@ export async function PATCH(request) {
     // than opening up a broader "admin can update any notification" policy
     // just for this.
     if (data.status === "approved" || data.status === "rejected") {
-      const message = data.status === "approved"
+      const approved = data.status === "approved";
+      const message = approved
         ? mMed(data.m) + " OJT approved — it now counts toward your total."
         : mMed(data.m) + " OJT was declined by your admin — check the hours and resubmit.";
       const admin = createAdminClient();
-      const { error: notifError } = await admin.from("notifications").upsert({
-        id: "noj-" + data.userId + "-" + data.m + "-" + data.status,
-        user_id: data.userId, type: "ojt", message, created_at: new Date().toISOString(),
+      const { error: notifError } = await notifyUsers(admin, {
+        type: "ojt", upsert: true,
+        rows: [{
+          id: "noj-" + data.userId + "-" + data.m + "-" + data.status,
+          userId: data.userId,
+          message,
+          emailSubject: approved ? mMed(data.m) + " OJT approved" : mMed(data.m) + " OJT declined",
+          emailHtml: approved
+            ? `<p><strong>${mMed(data.m)}</strong> OJT was approved — it now counts toward your total.</p>`
+            : `<p><strong>${mMed(data.m)}</strong> OJT was declined by your admin.</p><p>Check the hours and resubmit.</p>`,
+        }],
       });
       if (notifError) console.error("ojt-months notification upsert failed:", notifError.message);
     }

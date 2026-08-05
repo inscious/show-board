@@ -1,5 +1,6 @@
 import { guardedRoute } from "@/lib/apiGuard";
 import { showSchema, showDeleteSchema } from "@/lib/schemas";
+import { notifyUsers } from "@/lib/notify";
 
 /* Admin-only: the shared show schedule. RLS on `shows` also restricts
    insert/update/delete to is_admin — this check is belt-and-suspenders. */
@@ -24,13 +25,22 @@ export async function POST(request) {
     });
     if (error) return Response.json({ error: "Could not save" }, { status: 400 });
 
-    // best-effort broadcast — the shared schedule changed, every apprentice gets a heads-up
-    const { data: apprentices } = await supabase.from("profiles").select("id").eq("is_admin", false);
+    // best-effort broadcast — the shared schedule changed, every apprentice gets a heads-up.
+    // Scoped to the admin's own org — was missing before (pre-existing bug,
+    // fixed here since it's this exact query): without it, every union on
+    // the platform notified every other union's apprentices on any edit.
+    const { data: apprentices } = await supabase.from("profiles").select("id")
+      .eq("is_admin", false).eq("organization_id", profile.organization_id);
     if (apprentices?.length) {
-      await supabase.from("notifications").insert(apprentices.map((a, i) => ({
-        id: "ns" + Date.now().toString(36) + i, user_id: a.id, type: "schedule",
-        message: `Schedule updated: ${data.name}`,
-      })));
+      await notifyUsers(supabase, {
+        type: "schedule", idPrefix: "ns",
+        rows: apprentices.map((a) => ({
+          userId: a.id,
+          message: `Schedule updated: ${data.name}`,
+          emailSubject: "Schedule updated — " + data.name,
+          emailHtml: `<p>The show schedule was updated: <strong>${data.name}</strong>.</p><p>Check the Board tab for details.</p>`,
+        })),
+      });
     }
 
     return Response.json({ ok: true });

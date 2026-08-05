@@ -11,7 +11,7 @@ import { sendEmail } from "@/lib/email";
    allows one-step deletion for a never-approved account. */
 export async function POST(request) {
   return guardedRoute(request, "admin:approve-signup", { schema: adminApproveSignupSchema, requireAdmin: true }, async ({ supabase, user, data }) => {
-    const { data: target } = await supabase.from("profiles").select("email").eq("id", data.userId).single();
+    const { data: target } = await supabase.from("profiles").select("email, notify_email").eq("id", data.userId).single();
     // graduated_at only ever moves for real here because the caller is a
     // confirmed admin (guardedRoute's requireAdmin above) — the same write
     // from a non-admin session would get silently reverted by
@@ -23,8 +23,11 @@ export async function POST(request) {
     if (error) return Response.json({ error: "Could not approve" }, { status: 400 });
 
     // best-effort, same as every other transactional email here — a missing
-    // key or a failed send shouldn't undo the approval itself
-    if (target?.email) {
+    // key or a failed send shouldn't undo the approval itself. Gated by
+    // notify_email same as every other notification now (this one has no
+    // in-app bell row to go with it — /pending has nothing to show it on —
+    // so it's a plain preference check, not routed through notifyUsers).
+    if (target?.email && target.notify_email) {
       await sendEmail({
         to: target.email,
         subject: "You're in — L831 Tracker",

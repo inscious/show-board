@@ -166,6 +166,8 @@ export const profileOnboardingSchema = z.object({
     // spaces, dashes, parens) — this isn't a billing/SMS field, just a
     // number a human dials.
     phone: z.string().trim().max(30).regex(/^[\d\s()+\-]*$/, "Numbers only").optional().nullable(),
+    notifyEmail: z.boolean().optional(),
+    notifySms: z.boolean().optional(),
 });
 
 /* userId (single) or userIds (batch, up to 100) — accepting both means the

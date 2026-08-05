@@ -153,6 +153,8 @@ type ProfileSelectRow = {
     graduated_at: string | null;
     phone: string | null;
     foreman_of_company_id: number | null;
+    notify_email: boolean;
+    notify_sms: boolean;
 };
 
 export type Blob = {
@@ -223,6 +225,8 @@ export type Blob = {
         graduatedAt: string | null;
         phone: string | null;
         foremanOfCompanyId: number | null;
+        notifyEmail: boolean;
+        notifySms: boolean;
     };
     doNotHire?: { on: boolean; reason: string; since: string | null };
 };
@@ -688,7 +692,7 @@ export const store = {
                 supabase
                     .from("profiles")
                     .select(
-                        "is_admin, has_password, custom_companies, name, member_id, ssn_last4, local, rsi_credits, joined_on, do_not_hire_at, do_not_hire_reason, approved_at, welcomed_at, avatar_url, graduated_at, phone, foreman_of_company_id",
+                        "is_admin, has_password, custom_companies, name, member_id, ssn_last4, local, rsi_credits, joined_on, do_not_hire_at, do_not_hire_reason, approved_at, welcomed_at, avatar_url, graduated_at, phone, foreman_of_company_id, notify_email, notify_sms",
                     )
                     .eq("id", user.id)
                     .single(),
@@ -857,6 +861,8 @@ export const store = {
                     graduatedAt: profile?.graduated_at || null,
                     phone: profile?.phone || null,
                     foremanOfCompanyId: profile?.foreman_of_company_id || null,
+                    notifyEmail: profile?.notify_email ?? true,
+                    notifySms: profile?.notify_sms ?? false,
                 },
                 doNotHire: {
                     on: !!profile?.do_not_hire_at,

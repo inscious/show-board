@@ -104,7 +104,14 @@ create table profiles (
   approved_at       timestamptz,
   -- set once the first-login welcome modal has been shown/dismissed;
   -- null means show it next time this apprentice loads Home.
-  welcomed_at       timestamptz
+  welcomed_at       timestamptz,
+  -- self-editable notification channel preferences — not privilege columns,
+  -- same tier as city/local/phone. Email defaults on (matches every
+  -- transactional email this app already sent unconditionally before this
+  -- column existed); SMS defaults off (new capability, real per-message
+  -- cost, opt-in is also the correct default for text messages generally).
+  notify_email      boolean not null default true,
+  notify_sms        boolean not null default false
 );
 
 -- one row per (user, show): "my status/note on this show" — never touches the
