@@ -66,7 +66,6 @@ import { CertificationsCard } from "@/components/ojt/CertificationsCard";
 import { PayRatesCard } from "@/components/ojt/PayRatesCard";
 import { ContactsCard } from "@/components/ojt/ContactsCard";
 import { AccountCard } from "@/components/ojt/AccountCard";
-import { NotificationsCard } from "@/components/ojt/NotificationsCard";
 import { Fold } from "@/components/ui/Fold";
 
 const OJT_IMPORT_ENABLED = process.env.NEXT_PUBLIC_OJT_IMPORT_ENABLED === "true";
@@ -1246,8 +1245,6 @@ export function OjtTab({
                 pwIntent={pwIntent}
                 onPwIntentConsumed={onPwIntentConsumed}
             />
-
-            <NotificationsCard profile={profile} />
 
             {classInfo && (
                 <Modal
