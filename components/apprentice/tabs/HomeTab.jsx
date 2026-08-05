@@ -723,9 +723,13 @@ export function HomeTab({
                             style={{ fontSize: 10, color: C.lo, marginTop: 2 }}
                         >
                             {hrsFmt(r1(mp.paid))} weighted hrs
-                            {mp.travel > 0
-                                ? " + $" + mp.travel.toFixed(2) + " travel"
-                                : ""}
+                            {[
+                                mp.travel > 0 ? "$" + mp.travel.toFixed(2) + " travel" : null,
+                                mp.parking > 0 ? "$" + mp.parking.toFixed(2) + " parking" : null,
+                            ]
+                                .filter(Boolean)
+                                .map((s) => " + " + s)
+                                .join("")}
                         </div>
                         <div style={{ marginTop: 7 }}>
                             <SplitChips sp={monthSplit} />
@@ -1067,7 +1071,11 @@ export function HomeTab({
                 <Stat
                     label={today.getFullYear() + " GROSS"}
                     value={"$" + Math.round(ytd.gross).toLocaleString()}
-                    sub={ytd.travel > 0 ? "incl. $" + Math.round(ytd.travel) + " travel" : "base pay"}
+                    sub={
+                        ytd.travel > 0 || ytd.parking > 0
+                            ? "incl. $" + Math.round((ytd.travel || 0) + (ytd.parking || 0)) + " travel/parking"
+                            : "base pay"
+                    }
                     color={C.working}
                 />
             </div>

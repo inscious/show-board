@@ -137,6 +137,7 @@ export function DaySheet({
     const [cat, setCat] = useState("");
     const [note, setNote] = useState("");
     const [travel, setTravel] = useState("");
+    const [parking, setParking] = useState("");
     const [editId, setEditId] = useState(null);
     const [mode, setMode] = useState("hrs");
     const [tin, setTin] = useState(PAY.stStart);
@@ -236,6 +237,7 @@ export function DaySheet({
         setCat("");
         setNote("");
         setTravel("");
+        setParking("");
         setEditId(null);
         setMode("hrs");
         setTin(PAY.stStart);
@@ -270,6 +272,7 @@ export function DaySheet({
             cat,
             note: note.trim(),
             travel: travel ? num(travel) : undefined,
+            parking: parking ? num(parking) : undefined,
         };
         const row =
             mode === "time"
@@ -290,6 +293,7 @@ export function DaySheet({
         setCat(e.cat || "");
         setNote(e.note || "");
         setTravel(e.travel ? String(e.travel) : "");
+        setParking(e.parking ? String(e.parking) : "");
         setTouched(false);
         if (e.in != null && e.out != null) {
             setMode("time");
@@ -1791,6 +1795,71 @@ export function DaySheet({
                         shows up as its own line on your check. Adds straight to
                         gross below. Most companies pay $10/day; tap off if
                         this one doesn't.
+                    </div>
+
+                    <div
+                        style={{
+                            fontSize: 10,
+                            letterSpacing: 0.6,
+                            color: C.lo,
+                            fontFamily: FM,
+                            margin: "14px 0 6px",
+                        }}
+                    >
+                        PARKING PAY — OPTIONAL
+                    </div>
+                    <button
+                        type="button"
+                        className="foc"
+                        onClick={() => setParking(num(parking) ? "" : "40")}
+                        style={{
+                            width: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 9,
+                            background: num(parking) ? "rgba(47,176,122,0.14)" : C.sunk,
+                            color: num(parking) ? C.working : C.mid,
+                            border:
+                                "1px solid " +
+                                (num(parking) ? C.working + "66" : C.line),
+                            borderRadius: 9,
+                            padding: "11px",
+                            fontSize: 13.5,
+                            fontWeight: 700,
+                        }}
+                    >
+                        <span
+                            style={{
+                                width: 18,
+                                height: 18,
+                                borderRadius: 5,
+                                border:
+                                    "1px solid " +
+                                    (num(parking) ? C.working : C.line),
+                                background: num(parking) ? C.working : "transparent",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                            }}
+                        >
+                            {num(parking) > 0 && <Check size={12} color={C.inkGood} />}
+                        </span>
+                        {num(parking) > 0
+                            ? "$" + num(parking).toFixed(2) + " parking pay"
+                            : "Add $40 parking pay"}
+                    </button>
+                    <div
+                        style={{
+                            fontSize: 10.5,
+                            color: C.lo,
+                            marginTop: 6,
+                            lineHeight: 1.45,
+                        }}
+                    >
+                        Same idea as travel, its own line on your check — separate
+                        from it since the two don't always match. You don't have
+                        to log it every single day to keep gross accurate.
                     </div>
 
                     {touched && !ok && (

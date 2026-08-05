@@ -67,6 +67,7 @@ type WorkEntryRow = {
     category: string | null;
     note: string | null;
     travel_pay: number | null;
+    parking_pay: number | null;
 };
 type OjtMonthRow = {
     month: string;
@@ -321,6 +322,7 @@ function entryFromRow(row: WorkEntryRow): Entry {
         e.brk = row.break_min || 0;
     }
     if (row.travel_pay) e.travel = Number(row.travel_pay);
+    if (row.parking_pay) e.parking = Number(row.parking_pay);
     return e;
 }
 function bookingFromRow(row: BookingRow): Booking {
@@ -443,6 +445,7 @@ async function runSync(blob: SyncBlob, isAdmin: boolean): Promise<void> {
                     dt: sp.dt,
                     payRate: rt.rate ?? null,
                     travel: e.travel ?? null,
+                    parking: e.parking ?? null,
                 };
                 const h = hashOf(body);
                 entryHash[e.id!] = h;
