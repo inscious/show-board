@@ -31,6 +31,7 @@ import {
     SHADOW,
     STATUS,
     bookingOn,
+    certState,
     classOn,
     daysUntil,
     fmtClock,
@@ -109,6 +110,7 @@ export function HomeTab({
     rates,
     bookings,
     classes,
+    certs,
     unionNotices,
     onCallWork,
     hasPassword,
@@ -144,6 +146,13 @@ export function HomeTab({
         () => months.filter((mo) => mo.status === "approved"),
         [months],
     );
+
+    // same "RENEW SOON" (<=90 days) / "EXPIRED" thresholds certState already
+    // uses on the Certifications card itself — no separate urgency window
+    // invented here. Applies to a CJ too (certs aren't apprenticeship-only),
+    // unlike the OJT-due banner below.
+    const expiredCerts = useMemo(() => (certs || []).filter((c) => certState(c.exp).t === "EXPIRED"), [certs]);
+    const expiringCerts = useMemo(() => (certs || []).filter((c) => certState(c.exp).t === "RENEW SOON"), [certs]);
 
     // past months come off what's actually on file with the union (ojt.months) —
     // the calendar only has this year's logged entries, and never for months
@@ -395,6 +404,35 @@ export function HomeTab({
                         )}
                     </div>
                 </div>
+            )}
+            {(expiredCerts.length > 0 || expiringCerts.length > 0) && (
+                <button
+                    className="foc dspan"
+                    onClick={() => onGoto("ojt")}
+                    style={{
+                        width: "100%",
+                        textAlign: "left",
+                        background: expiredCerts.length > 0 ? "rgba(232,146,124,0.1)" : "rgba(255,176,32,0.08)",
+                        border: "1px solid " + (expiredCerts.length > 0 ? C.danger : C.brand) + "77",
+                        borderRadius: 12,
+                        padding: "13px 15px",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 10,
+                    }}
+                >
+                    <ShieldAlert size={17} color={expiredCerts.length > 0 ? C.danger : C.brand} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: expiredCerts.length > 0 ? C.danger : C.brand }}>
+                            {expiredCerts.length > 0
+                                ? expiredCerts.length + " certification" + (expiredCerts.length === 1 ? "" : "s") + " expired"
+                                : expiringCerts.length + " certification" + (expiringCerts.length === 1 ? "" : "s") + " expiring soon"}
+                        </div>
+                        <div className="truncate" style={{ fontSize: 12, color: C.mid, marginTop: 3, lineHeight: 1.5 }}>
+                            {(expiredCerts.length > 0 ? expiredCerts : expiringCerts).map((c) => c.n).join(" · ")}
+                        </div>
+                    </div>
+                </button>
             )}
             {/* notifications: new class assignments, cert reminders, do-not-hire
                 status, schedule updates — color-coded by type, cleared one at

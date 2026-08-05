@@ -1014,6 +1014,7 @@ export default function App() {
                         rates={rates}
                         bookings={bookings}
                         classes={classes}
+                        certs={certs}
                         unionNotices={unionNotices}
                         hasPassword={hasPassword}
                         notifications={notifications}
