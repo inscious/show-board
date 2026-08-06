@@ -81,9 +81,11 @@ export function OrgProfilePanel() {
         </div>
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>OUT-OF-WORK LINE</div>
         <input value={form.outOfWorkLine} onChange={(e) => set("outOfWorkLine", e.target.value)} placeholder="(626) 296-8075"
+          aria-label="Out-of-work line"
           style={fieldStyle} />
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>JATC OFFICE ADDRESS</div>
         <input value={form.jatcOfficeAddress} onChange={(e) => set("jatcOfficeAddress", e.target.value)} placeholder="14930 Marquardt Ave, Santa Fe Springs, CA 90670"
+          aria-label="JATC office address"
           style={{ ...fieldStyle, marginBottom: 14 }} />
         <button type="submit" disabled={state === "saving" || !form.unionName.trim() || !form.outOfWorkLine.trim() || !form.jatcOfficeAddress.trim()}
           style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>

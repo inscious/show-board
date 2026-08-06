@@ -132,6 +132,7 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
       <div>
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>MONTH</div>
         <select value={manual.m} onChange={(e) => setManual((f) => ({ ...f, m: e.target.value }))}
+          aria-label="Month"
           style={{ ...fieldStyle, width: "100%", marginBottom: 12 }}>
           {monthOptions().map((k) => <option key={k} value={k}>{mMed(k)}</option>)}
         </select>
@@ -142,7 +143,7 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
                 {k.toUpperCase()} · {CATS_META[k.toUpperCase()].name}
               </div>
               <input type="number" min="0" step="0.5" value={manual[k]} onChange={(e) => setManual((f) => ({ ...f, [k]: e.target.value }))}
-                placeholder="0" style={{ ...fieldStyle, width: "100%" }} />
+                placeholder="0" aria-label={k.toUpperCase() + " category hours"} style={{ ...fieldStyle, width: "100%" }} />
             </div>
           ))}
         </div>
@@ -208,7 +209,7 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
                       {k.toUpperCase()} · {CATS_META[k.toUpperCase()].name}
                     </div>
                     <input type="number" min="0" step="0.5" value={r[k]} onChange={(e) => editRow(r.id, k, e.target.value)}
-                      style={{ ...fieldStyle, width: "100%" }} />
+                      aria-label={k.toUpperCase() + " category hours"} style={{ ...fieldStyle, width: "100%" }} />
                   </div>
                 ))}
               </div>
@@ -232,8 +233,10 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
                 <div key={r.id} style={{ background: C.raise, border: "1px solid " + (r.confidence === "low" ? "rgba(255,176,32,0.4)" : C.line), borderRadius: 10, padding: "10px 11px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                     <input type="date" value={r.date} onChange={(e) => editDaily(r.id, "date", e.target.value)}
+                      aria-label="Date"
                       style={{ ...fieldStyle, flex: 1, fontSize: 12.5 }} />
                     <select value={r.cat} onChange={(e) => editDaily(r.id, "cat", e.target.value)}
+                      aria-label="Category"
                       style={{ ...fieldStyle, width: 56, flexShrink: 0 }}>
                       {(["A", "B", "C", "D"]).map((k) => <option key={k} value={k}>{k}</option>)}
                     </select>
@@ -248,8 +251,10 @@ export function OjtImportFlow({ onSubmit, onCancel }) {
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <input value={r.co} onChange={(e) => editDaily(r.id, "co", e.target.value)} placeholder="Company"
+                      aria-label="Company"
                       style={{ ...fieldStyle, flex: 2 }} />
                     <input type="number" min="0" step="0.5" value={r.hrs} onChange={(e) => editDaily(r.id, "hrs", e.target.value)} placeholder="Hours"
+                      aria-label="Hours"
                       style={{ ...fieldStyle, flex: 1 }} />
                   </div>
                 </div>

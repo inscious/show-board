@@ -41,23 +41,26 @@ function CompanyForm({ onSaved, onClose, initial }) {
     <form onSubmit={submit}>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>COMPANY NAME</div>
       <input required autoFocus={!initial} disabled={!!initial} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+        aria-label="Company name"
         style={{ ...fieldStyle, width: "100%", marginBottom: initial ? 4 : 12, opacity: initial ? 0.6 : 1 }} />
       {initial && <div style={{ fontSize: 10.5, color: C.lo, marginBottom: 12 }}>Name can't be changed here — delete and re-add to rename.</div>}
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CITY</div>
-          <input autoFocus={!!initial} value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} style={{ ...fieldStyle, width: "100%" }} />
+          <input autoFocus={!!initial} value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} aria-label="City" style={{ ...fieldStyle, width: "100%" }} />
         </div>
         <div style={{ flex: "0 1 80px" }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>STATE</div>
-          <input value={form.state} onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))} style={{ ...fieldStyle, width: "100%" }} />
+          <input value={form.state} onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))} aria-label="State" style={{ ...fieldStyle, width: "100%" }} />
         </div>
       </div>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>LABOR LINE</div>
       <input value={form.laborLine} onChange={(e) => setForm((f) => ({ ...f, laborLine: e.target.value }))}
+        aria-label="Labor line"
         style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>FOREMAN</div>
       <input value={form.foreman} onChange={(e) => setForm((f) => ({ ...f, foreman: e.target.value }))}
+        aria-label="Foreman"
         style={{ ...fieldStyle, width: "100%", marginBottom: 14 }} />
       <button type="submit" disabled={state === "saving"}
         style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>

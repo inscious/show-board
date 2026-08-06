@@ -100,7 +100,10 @@ export default function PlatformLayout({ children }) {
         .console-signout:hover:not(:disabled){ background: ${C.raise}; color: ${C.hi}; border-color: ${C.danger}66; }
         .console-signout{ transition: background-color .12s, border-color .12s, filter .12s, opacity .12s; cursor: pointer; }
         .console-tab:hover:not([data-active="true"]){ background: rgba(255,255,255,0.04); color: ${C.hi}; }
+        .skip-link{ position: absolute; top: -100px; left: 12px; z-index: 100; background: ${C.brand}; color: ${C.ink}; font-weight: 800; font-size: 13px; padding: 10px 16px; border-radius: 8px; text-decoration: none; transition: top 0.15s ease; }
+        .skip-link:focus{ top: 12px; }
       `}</style>
+      <a href="#main-content" className="skip-link">Skip to content</a>
       <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px 60px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <Boxes size={20} color={C.brand} />
@@ -112,7 +115,7 @@ export default function PlatformLayout({ children }) {
         </div>
         <div className="truncate" style={{ fontSize: 11.5, color: C.lo, fontFamily: FM, marginBottom: 14 }}>{email}</div>
 
-        <div style={{ display: "flex", gap: 6, background: C.panel, borderRadius: 12, padding: 4, border: "1px solid " + C.edge, boxShadow: SHADOW, marginBottom: 16 }}>
+        <nav aria-label="Primary" style={{ display: "flex", gap: 6, background: C.panel, borderRadius: 12, padding: 4, border: "1px solid " + C.edge, boxShadow: SHADOW, marginBottom: 16 }}>
           {CONSOLE_TABS.map(([href, label, Icon]) => {
             const on = href === "/console" ? pathname === "/console" : pathname.startsWith(href);
             return (
@@ -122,9 +125,11 @@ export default function PlatformLayout({ children }) {
               </Link>
             );
           })}
-        </div>
+        </nav>
 
-        <PlatformContext.Provider value={ctx}>{children}</PlatformContext.Provider>
+        <main id="main-content">
+          <PlatformContext.Provider value={ctx}>{children}</PlatformContext.Provider>
+        </main>
       </div>
     </div>
   );

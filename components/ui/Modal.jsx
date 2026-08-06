@@ -15,19 +15,60 @@
    reverse keyframe, then calls the real onClose. Every close path
    (backdrop click, the X button) routes through requestClose so none of
    them skip the animation. */
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { C } from "@/lib/core";
 
 const CLOSE_MS = 200;
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export function Modal({ title, sub, onClose, children }) {
     const [closing, setClosing] = useState(false);
+    const titleId = useId();
+    const panelRef = useRef(null);
     const requestClose = () => {
         if (closing) return;
         setClosing(true);
         setTimeout(onClose, CLOSE_MS);
     };
+
+    // focus enters the dialog on open and returns to whatever triggered it
+    // once this instance actually leaves the DOM (the real unmount, after
+    // the close animation above has already run onClose).
+    useEffect(() => {
+        const opener = document.activeElement;
+        panelRef.current?.focus();
+        return () => {
+            if (opener instanceof HTMLElement) opener.focus();
+        };
+    }, []);
+
+    // Escape closes; Tab is trapped inside the panel so focus can't leak to
+    // whatever's behind the overlay.
+    useEffect(() => {
+        function onKeyDown(e) {
+            if (e.key === "Escape") {
+                requestClose();
+                return;
+            }
+            if (e.key !== "Tab") return;
+            const focusables = panelRef.current?.querySelectorAll(FOCUSABLE);
+            if (!focusables?.length) return;
+            const first = focusables[0];
+            const last = focusables[focusables.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        }
+        document.addEventListener("keydown", onKeyDown);
+        return () => document.removeEventListener("keydown", onKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [closing]);
+
     return (
         <div
             className={"modal-ovl" + (closing ? " closing" : "")}
@@ -40,12 +81,18 @@ export function Modal({ title, sub, onClose, children }) {
             onClick={requestClose}
         >
             <div
+                ref={panelRef}
+                tabIndex={-1}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
                 onClick={(e) => e.stopPropagation()}
                 className={"modal-panel" + (closing ? " closing" : "")}
                 style={{
                     background: C.panel,
                     display: "flex",
                     flexDirection: "column",
+                    outline: "none",
                 }}
             >
                 <div
@@ -59,6 +106,7 @@ export function Modal({ title, sub, onClose, children }) {
                 >
                     <div style={{ minWidth: 0 }}>
                         <div
+                            id={titleId}
                             className="truncate"
                             style={{
                                 fontWeight: 800,

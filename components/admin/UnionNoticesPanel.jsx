@@ -81,22 +81,23 @@ export function NoticeForm({ onSaved, onClose, initial, resetAfterSave, defaultS
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>DATE, AS PRINTED</div>
           <input required autoFocus value={form.dateLabel} onChange={(e) => setForm((f) => ({ ...f, dateLabel: e.target.value }))}
-            placeholder="WED AUG 19" style={{ ...fieldStyle, width: "100%" }} />
+            placeholder="WED AUG 19" aria-label="Date, as printed" style={{ ...fieldStyle, width: "100%" }} />
         </div>
         <div style={{ flex: "0 1 150px" }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CALENDAR DATE</div>
-          <input required type="date" value={form.noticeDate} onChange={(e) => setForm((f) => ({ ...f, noticeDate: e.target.value }))}
+          <input required type="date" value={form.noticeDate} onChange={(e) => setForm((f) => ({ ...f, noticeDate: e.target.value }))} aria-label="Calendar date"
             style={{ ...fieldStyle, width: "100%", fontFamily: FM }} />
         </div>
       </div>
       <div style={{ flex: "0 1 140px", marginBottom: 12 }}>
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>SHEET MONTH</div>
         <input value={form.sheetMonth} onChange={(e) => setForm((f) => ({ ...f, sheetMonth: e.target.value }))}
-          placeholder="2026-08" style={{ ...fieldStyle, width: "100%", fontFamily: FM, maxWidth: 150 }} />
+          placeholder="2026-08" aria-label="Sheet month" style={{ ...fieldStyle, width: "100%", fontFamily: FM, maxWidth: 150 }} />
       </div>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>DESCRIPTION</div>
       <input required value={form.body} onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
         placeholder="Monthly meeting · 6:00 PM · 14930 Marquardt Ave, Santa Fe Springs"
+        aria-label="Description"
         style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>KIND</div>
       <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>

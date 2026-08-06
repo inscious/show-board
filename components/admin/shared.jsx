@@ -4,9 +4,11 @@
    Modal/ConfirmModal/Avatar/req are used well beyond the panels that have
    been pulled out of AdminBoard.jsx so far (roster, schedule, class
    assignment, ...), so they live here rather than inside any one panel. */
-import { useState, useMemo } from "react";
+import { useEffect, useId, useRef, useState, useMemo } from "react";
 import { X, Eye, EyeOff, Search, Check } from "lucide-react";
 import { C, SHADOW, FM, FS, MONTHS, CATS_META, hrsFmt } from "@/lib/core";
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /* ---------- avatar placeholder — initials on a deterministic color, standing
    in for the ID-badge photo until real upload/storage exists ---------- */
@@ -46,11 +48,49 @@ export function Avatar({ name, email, size = 38, avatarUrl }) {
 }
 
 export function Modal({ title, onClose, children }) {
+  const titleId = useId();
+  const panelRef = useRef(null);
+
+  // Same pattern as components/ui/Modal.jsx: focus enters on open and
+  // returns to whatever triggered it on unmount; Escape closes; Tab is
+  // trapped inside the panel.
+  useEffect(() => {
+    const opener = document.activeElement;
+    panelRef.current?.focus();
+    return () => {
+      if (opener instanceof HTMLElement) opener.focus();
+    };
+  }, []);
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const focusables = panelRef.current?.querySelectorAll(FOCUSABLE);
+      if (!focusables?.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, maxHeight: "88vh", background: C.panel, border: "1px solid " + C.edge, borderRadius: 16, boxShadow: SHADOW, display: "flex", flexDirection: "column" }}>
+      <div ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 480, maxHeight: "88vh", background: C.panel, border: "1px solid " + C.edge, borderRadius: 16, boxShadow: SHADOW, display: "flex", flexDirection: "column", outline: "none" }}>
         <div style={{ display: "flex", alignItems: "center", padding: "14px 16px", borderBottom: "1px solid " + C.line }}>
-          <span style={{ fontWeight: 800, fontSize: 15, color: C.hi }}>{title}</span>
+          <span id={titleId} style={{ fontWeight: 800, fontSize: 15, color: C.hi }}>{title}</span>
           <button className="foc" onClick={onClose} aria-label="Close" style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.lo, padding: 4 }}><X size={18} /></button>
         </div>
         <div style={{ padding: 19, overflowY: "auto" }}>{children}</div>
@@ -104,7 +144,7 @@ export function PwField({ value, onChange, placeholder }) {
   const [show, setShow] = useState(false);
   return (
     <div style={{ flex: 1, minWidth: 0, position: "relative", display: "flex", alignItems: "center" }}>
-      <input type={show ? "text" : "password"} value={value} onChange={onChange} placeholder={placeholder}
+      <input type={show ? "text" : "password"} value={value} onChange={onChange} placeholder={placeholder} aria-label="Password"
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 34px 9px 10px", color: C.hi, fontSize: 12.5 }} />
       <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? "Hide" : "Show"}
         style={{ position: "absolute", right: 8, background: "transparent", border: "none", color: C.lo, padding: 2, display: "flex" }}>
@@ -172,7 +212,7 @@ export function ApprenticePicker({ apprentices, selected, onToggle, maxHeight = 
       {apprentices.length > 6 && (
         <div style={{ position: "relative", marginBottom: 8 }}>
           <Search size={13} color={C.lo} style={{ position: "absolute", left: 9, top: "50%", transform: "translateY(-50%)" }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email…"
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email…" aria-label="Search name or email"
             style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 8, padding: "8px 10px 8px 28px", color: C.hi, fontSize: 12.5, fontFamily: FS }} />
         </div>
       )}

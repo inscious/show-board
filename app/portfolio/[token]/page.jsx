@@ -26,7 +26,7 @@ const PC = {
     line: "#2A3140",
     hi: "#F5F3EE",
     mid: "#B7BCC6",
-    lo: "#7B8290",
+    lo: "#7F8795" /* was #7B8290 — 4.23:1 against panel, under WCAG AA's 4.5:1 floor. Same hue, lightened to 4.51:1. */,
     gold: "#D4A857",
     goldSoft: "rgba(212,168,87,0.14)",
 };

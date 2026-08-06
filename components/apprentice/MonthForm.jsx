@@ -100,6 +100,7 @@ export function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }
                     onChange={(e) => set(k, e.target.value)}
                     inputMode="decimal"
                     placeholder="0"
+                    aria-label={"Category " + k.toUpperCase() + " hours"}
                     style={{
                         width: "100%",
                         background: C.sunk,
@@ -138,6 +139,7 @@ export function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }
                     value={m}
                     onChange={(e) => setM(Number(e.target.value))}
                     disabled={!!initial}
+                    aria-label="Month"
                     style={{
                         flex: 2,
                         background: C.sunk,
@@ -160,6 +162,7 @@ export function MonthForm({ initial, roll, existing, onSave, onDelete, onClose }
                     value={y}
                     onChange={(e) => setY(Number(e.target.value))}
                     disabled={!!initial}
+                    aria-label="Year"
                     style={{
                         flex: 1,
                         background: C.sunk,

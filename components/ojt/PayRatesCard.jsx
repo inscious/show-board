@@ -143,6 +143,7 @@ export function PayRatesCard({
                                     onChange={(e) =>
                                         onSetRate(n, e.target.value)
                                     }
+                                    aria-label={"Pay rate for " + n}
                                     style={{
                                         flexShrink: 0,
                                         width: 92,

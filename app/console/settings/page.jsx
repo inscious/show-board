@@ -11,6 +11,7 @@ function PwInput({ value, onChange, placeholder }) {
   return (
     <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
       <input type={show ? "text" : "password"} value={value} onChange={onChange} placeholder={placeholder}
+        aria-label={placeholder}
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 34px 10px 12px", color: C.hi, fontSize: 14 }} />
       <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? "Hide password" : "Show password"}
         style={{ position: "absolute", right: 8, background: "transparent", border: "none", color: C.lo, padding: 2, display: "flex" }}>
@@ -105,6 +106,7 @@ function RolesPanel() {
       <form onSubmit={submit}>
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>ACCOUNT EMAIL</div>
         <input type="email" value={targetEmail} onChange={(e) => setTargetEmail(e.target.value)} placeholder="apprentice@example.com"
+          aria-label="Account email"
           style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
@@ -118,10 +120,12 @@ function RolesPanel() {
 
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>ORGANIZATION ID (blank clears it)</div>
         <input type="number" value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} placeholder="e.g. 2"
+          aria-label="Organization ID (blank clears it)"
           style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
 
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>FOREMAN OF COMPANY ID (blank clears it)</div>
         <input type="number" value={foremanOfCompanyId} onChange={(e) => setForemanOfCompanyId(e.target.value)} placeholder="e.g. 1"
+          aria-label="Foreman of company ID (blank clears it)"
           style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 14 }} />
 
         <button type="submit" disabled={state === "saving" || !targetEmail.trim()}

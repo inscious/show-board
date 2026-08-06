@@ -89,6 +89,7 @@ function DayNoteField({ value, onSave }) {
                 if (v !== (value || "")) onSave(v);
             }}
             placeholder="note for today — start time, gate, booth…"
+            aria-label="Note for today"
             style={{
                 width: "100%",
                 background: C.sunk,
@@ -1443,6 +1444,11 @@ export function DaySheet({
                                             onChange={(e) =>
                                                 set(Number(e.target.value))
                                             }
+                                            aria-label={
+                                                lab === "IN"
+                                                    ? "In time"
+                                                    : "Out time"
+                                            }
                                             style={{
                                                 width: "100%",
                                                 background: C.sunk,
@@ -1481,6 +1487,7 @@ export function DaySheet({
                                         onChange={(e) =>
                                             setBrk(Number(e.target.value))
                                         }
+                                        aria-label="Break"
                                         style={{
                                             width: "100%",
                                             background: C.sunk,
@@ -1706,6 +1713,7 @@ export function DaySheet({
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
                         placeholder="e.g. COMIC CON"
+                        aria-label="Note, show name"
                         style={{
                             width: "100%",
                             background: C.sunk,
@@ -1840,6 +1848,7 @@ export function DaySheet({
                             value={parking}
                             onChange={(e) => setParking(e.target.value)}
                             placeholder="20"
+                            aria-label="Parking pay"
                             style={{
                                 flex: 1,
                                 minWidth: 0,

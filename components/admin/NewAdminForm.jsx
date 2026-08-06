@@ -43,9 +43,11 @@ export function NewAdminForm({ onCreated, isCentralAdmin }) {
       <form onSubmit={submit}>
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EMAIL</div>
         <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@example.com"
+          aria-label="Email"
           style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NAME (optional)</div>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Admin"
+          aria-label="Name (optional)"
           style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>TEMP PASSWORD</div>
         <div style={{ marginBottom: 14 }}>

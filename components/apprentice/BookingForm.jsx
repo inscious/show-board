@@ -182,6 +182,7 @@ export function BookingForm({
                 className="foc"
                 value={show}
                 onChange={(e) => setShow(e.target.value)}
+                aria-label="Which show"
                 style={{
                     width: "100%",
                     background: C.sunk,
@@ -414,6 +415,7 @@ export function BookingForm({
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="call time, gate, foreman…"
+                aria-label="Note"
                 style={{
                     width: "100%",
                     background: C.sunk,

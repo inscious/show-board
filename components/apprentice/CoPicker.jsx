@@ -87,6 +87,7 @@ export function CoPicker({ value, pins, customCos, onPick, onAddCo, onClose }) {
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search or type a new company"
+                    aria-label="Search or type a new company"
                     style={{
                         flex: 1,
                         background: "transparent",

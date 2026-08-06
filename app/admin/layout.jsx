@@ -29,7 +29,7 @@ function AdminNavBar({ pathname, variant }) {
   const isActive = (href) => (href === "/admin" ? pathname === "/admin" : pathname.startsWith(href));
   if (variant === "bottom") {
     return (
-      <div style={{ display: "flex" }}>
+      <nav aria-label="Primary" style={{ display: "flex" }}>
         {ADMIN_TABS.map(([href, label, Icon]) => {
           const on = isActive(href);
           return (
@@ -41,11 +41,11 @@ function AdminNavBar({ pathname, variant }) {
             </Link>
           );
         })}
-      </div>
+      </nav>
     );
   }
   return (
-    <div style={{ display: "flex", gap: 6, background: C.panel, borderRadius: 12, padding: 4, border: "1px solid " + C.edge, boxShadow: SHADOW, overflowX: "auto" }}>
+    <nav aria-label="Primary" style={{ display: "flex", gap: 6, background: C.panel, borderRadius: 12, padding: 4, border: "1px solid " + C.edge, boxShadow: SHADOW, overflowX: "auto" }}>
       {ADMIN_TABS.map(([href, label, Icon]) => {
         const on = isActive(href);
         return (
@@ -55,7 +55,7 @@ function AdminNavBar({ pathname, variant }) {
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }
 
@@ -262,7 +262,10 @@ export default function AdminLayout({ children }) {
           .admin-shell .dcap-unit{ display: inline; }
           .admin-shell .floor-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         }
+        .admin-shell .skip-link{ position: absolute; top: -100px; left: 12px; z-index: 100; background: ${C.brand}; color: ${C.ink}; font-weight: 800; font-size: 13px; padding: 10px 16px; border-radius: 8px; text-decoration: none; transition: top 0.15s ease; }
+        .admin-shell .skip-link:focus{ top: 12px; }
       `}</style>
+      <a href="#main-content" className="skip-link">Skip to content</a>
       <ImpersonationBanner />
       <div className="wrap">
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -279,7 +282,9 @@ export default function AdminLayout({ children }) {
           <AdminNavBar pathname={pathname} variant="top" />
         </div>
 
-        <AdminContext.Provider value={ctx}>{children}</AdminContext.Provider>
+        <main id="main-content">
+          <AdminContext.Provider value={ctx}>{children}</AdminContext.Provider>
+        </main>
       </div>
 
       <div className="navbot" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 30, background: C.bg, borderTop: "1px solid " + C.line }}>

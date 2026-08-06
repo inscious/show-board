@@ -200,6 +200,7 @@ export function PortfolioProjectPicker({ dayKey, entry, shows, onClose, onDone }
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search or name a new project — e.g. the booth name"
+                aria-label="Search or name a new project"
                 autoFocus
                 style={{
                     width: "100%",

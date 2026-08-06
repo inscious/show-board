@@ -591,6 +591,7 @@ function ProjectRow({ project, index, count, detail, thumbUrl, expanded, onToggl
                         onChange={(e) => setSection(e.target.value)}
                         onBlur={() => section !== (project.section || "") && onSectionChange(project, section)}
                         placeholder={`Section (optional) — e.g. "2026" or the general's name, to group booths on your shared page`}
+                        aria-label="Section (optional)"
                         style={{
                             width: "100%",
                             background: C.sunk,
@@ -900,6 +901,7 @@ export function PortfolioSection() {
                             onChange={(e) => setName(e.target.value)}
                             onBlur={() => name !== (settings?.display_name || "") && saveSettings({ displayName: name })}
                             placeholder="Display name shown to hiring managers"
+                            aria-label="Display name shown to hiring managers"
                             style={{
                                 width: "100%",
                                 background: C.sunk,
@@ -916,6 +918,7 @@ export function PortfolioSection() {
                             onChange={(e) => setBio(e.target.value)}
                             onBlur={() => bio !== (settings?.bio || "") && saveSettings({ bio })}
                             placeholder="A short intro — trade focus, specialties, what you're looking for"
+                            aria-label="Short intro or bio"
                             rows={2}
                             style={{
                                 width: "100%",
@@ -936,6 +939,7 @@ export function PortfolioSection() {
                                 onChange={(e) => setContactEmail(e.target.value)}
                                 onBlur={() => contactEmail !== (settings?.contact_email || "") && saveSettings({ contactEmail })}
                                 placeholder="Contact email (optional)"
+                                aria-label="Contact email (optional)"
                                 type="email"
                                 style={{
                                     flex: 1,
@@ -953,6 +957,7 @@ export function PortfolioSection() {
                                 onChange={(e) => setContactPhone(e.target.value)}
                                 onBlur={() => contactPhone !== (settings?.contact_phone || "") && saveSettings({ contactPhone })}
                                 placeholder="Phone (optional)"
+                                aria-label="Phone (optional)"
                                 type="tel"
                                 style={{
                                     flex: 1,

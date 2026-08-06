@@ -163,6 +163,7 @@ export function DirList({ pins, onTogglePin, customCos }) {
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Search company, foreman, city"
+                    aria-label="Search company, foreman, city"
                     style={{
                         flex: 1,
                         background: "transparent",

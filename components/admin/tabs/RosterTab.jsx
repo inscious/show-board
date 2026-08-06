@@ -32,10 +32,10 @@ export function NewApprenticeForm({ onCreated, onClose }) {
   return (
     <form onSubmit={submit}>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EMAIL</div>
-      <input type="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="apprentice@example.com"
+      <input type="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="apprentice@example.com" aria-label="Email"
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NAME (optional)</div>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Apprentice"
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Apprentice" aria-label="Name (optional)"
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>TEMP PASSWORD</div>
       <div style={{ marginBottom: 14 }}>
@@ -106,33 +106,33 @@ export function AssignClassForm({ apprentices, preselected, onAssigned, onClose 
       <ApprenticePicker apprentices={apprentices} selected={selected} onToggle={toggle} maxHeight={160} />
 
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CLASS NAME</div>
-      <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. #39–43 Double Decker"
+      <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. #39–43 Double Decker" aria-label="Class name"
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
 
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>FROM</div>
-          <input type="date" required value={from} onChange={(e) => setFrom(e.target.value)}
+          <input type="date" required value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From date"
             style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>TO (optional)</div>
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label="To date (optional)"
             style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>TIME</div>
-          <input type="time" value={start} onChange={(e) => setStart(e.target.value)}
+          <input type="time" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Time"
             style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
         </div>
       </div>
 
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>LOCATION (optional)</div>
-      <input value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="14930 Marquardt Ave"
+      <input value={loc} onChange={(e) => setLoc(e.target.value)} placeholder="14930 Marquardt Ave" aria-label="Location (optional)"
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
 
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NOTE (optional)</div>
-      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="bring tools + book"
+      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="bring tools + book" aria-label="Note (optional)"
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 14 }} />
 
       <button type="submit" disabled={state === "saving"}
@@ -185,7 +185,7 @@ export function BulkDnhForm({ apprentices, onDone, onClose }) {
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>APPRENTICES</div>
           <ApprenticePicker apprentices={apprentices} selected={selected} onToggle={toggle} maxHeight={220} selectedColor={C.danger} checkColor={C.inkBad} />
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>REASON (required, applies to everyone selected)</div>
-          <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. OJT turned in late for June" rows={2}
+          <textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. OJT turned in late for June" rows={2} aria-label="Reason"
             style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, fontFamily: FS, resize: "vertical", marginBottom: 14 }} />
           <button type="submit" disabled={state === "saving"}
             style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.danger, color: C.inkBad, border: "none", fontWeight: 800, fontSize: 14 }}>
@@ -309,19 +309,19 @@ function Roster({ apprentices, monthsByUser, onSelect, onAddApprentice, onAssign
       <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "12px 13px", boxShadow: SHADOW, marginBottom: 10 }}>
         <div style={{ position: "relative", marginBottom: 8 }}>
           <Search size={14} color={C.lo} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email…"
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or email…" aria-label="Search name or email"
             style={{ ...inputStyle, width: "100%", padding: "8px 10px 8px 30px" }} />
         </div>
         <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-          <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} style={{ ...inputStyle, flex: "1 1 120px" }}>
+          <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} aria-label="Filter by city" style={{ ...inputStyle, flex: "1 1 120px" }}>
             <option value="">All cities</option>
             {cities.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <select value={levelFilter} onChange={(e) => setLevelFilter(e.target.value)} style={{ ...inputStyle, flex: "1 1 100px" }}>
+          <select value={levelFilter} onChange={(e) => setLevelFilter(e.target.value)} aria-label="Filter by level" style={{ ...inputStyle, flex: "1 1 100px" }}>
             <option value="">All levels</option>
             {levelsPresent.map((lv) => <option key={lv.k} value={lv.k}>{lv.k} — {lv.label}</option>)}
           </select>
-          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} style={{ ...inputStyle, flex: "1 1 130px" }}>
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} aria-label="Filter by apprentice type" style={{ ...inputStyle, flex: "1 1 130px" }}>
             <option value="">Apprentices & CJs</option>
             <option value="apprentice">Apprentices only</option>
             <option value="cj">CJs only</option>

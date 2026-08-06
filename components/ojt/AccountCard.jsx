@@ -85,6 +85,7 @@ function NotificationPrefs({ profile, onSaved }) {
                 value={phone}
                 onChange={(e) => { setPhone(e.target.value); setState("idle"); }}
                 placeholder="619-555-0100"
+                aria-label="Phone (optional)"
                 style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 10px", color: C.hi, fontSize: 12.5, marginBottom: 4 }}
             />
             <div style={{ fontSize: 10.5, color: C.lo, marginBottom: 10, lineHeight: 1.4 }}>
@@ -118,6 +119,7 @@ function PwInput({ value, onChange, placeholder }) {
                 value={value}
                 onChange={onChange}
                 placeholder={placeholder}
+                aria-label={placeholder}
                 style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 34px 9px 10px", color: C.hi, fontSize: 12.5 }}
             />
             <button

@@ -183,6 +183,7 @@ export default function ConsoleAccountsPage() {
       <div style={{ position: "relative", marginBottom: 12 }}>
         <Search size={14} color={C.lo} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, or member ID — any org" autoFocus
+          aria-label="Search name, email, or member ID"
           style={{ ...inputStyle, width: "100%", padding: "10px 10px 10px 30px", fontSize: 14 }} />
       </div>
 

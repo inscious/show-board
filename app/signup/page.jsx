@@ -99,6 +99,7 @@ export default function SignupPage() {
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="Jane"
+                    aria-label="First name"
                     style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
                   />
                 </div>
@@ -111,6 +112,7 @@ export default function SignupPage() {
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="Apprentice"
+                    aria-label="Last name"
                     style={{ flex: 1, minWidth: 0, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
                   />
                 </div>
@@ -152,6 +154,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                aria-label="Email"
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
               />
             </div>
@@ -165,6 +168,7 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="8+ characters"
+                aria-label="Password"
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
               />
               <button type="button" onClick={() => setShowPw((v) => !v)} aria-label={showPw ? "Hide password" : "Show password"}
@@ -181,6 +185,7 @@ export default function SignupPage() {
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="8+ characters"
+                aria-label="Retype password"
                 style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: C.hi, fontSize: 14 }}
               />
             </div>

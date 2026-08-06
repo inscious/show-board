@@ -238,6 +238,7 @@ export default function PendingPage() {
               <div className="skeleton" style={{ height: 38, borderRadius: 9, marginBottom: 12 }} />
             ) : (
               <select value={profileForm.local} onChange={(e) => setProfileForm((f) => ({ ...f, local: e.target.value }))}
+                aria-label="Local"
                 style={{ ...fieldStyle, width: "100%", marginBottom: 12 }}>
                 <option value="">— not set —</option>
                 {unionName && <option value={unionName}>{unionName}</option>}
@@ -245,9 +246,11 @@ export default function PendingPage() {
             )}
             <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>HOME CITY</div>
             <input required value={profileForm.city} onChange={(e) => setProfileForm((f) => ({ ...f, city: e.target.value }))} placeholder="Chula Vista, CA"
+              aria-label="Home city"
               style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
             <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>JOINED (optional)</div>
             <input type="date" value={profileForm.joined} onChange={(e) => setProfileForm((f) => ({ ...f, joined: e.target.value }))}
+              aria-label="Joined (optional)"
               style={{ ...fieldStyle, width: "100%", marginBottom: 14 }} />
             <button type="submit" disabled={profileState === "saving" || !profileForm.city.trim()}
               style={{ width: "100%", padding: "11px", borderRadius: 9, background: profileState === "done" ? C.working : C.brand, color: profileState === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 13.5, opacity: profileState === "saving" ? 0.6 : 1 }}>
@@ -287,6 +290,7 @@ export default function PendingPage() {
           <form onSubmit={submit}>
             <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>MONTH</div>
             <select value={form.m} onChange={(e) => setForm((f) => ({ ...f, m: e.target.value }))}
+              aria-label="Month"
               style={{ ...fieldStyle, width: "100%", marginBottom: 12 }}>
               {availableMonths.map((k) => <option key={k} value={k}>{mMed(k)}</option>)}
             </select>
@@ -297,7 +301,7 @@ export default function PendingPage() {
                     {k.toUpperCase()} · {CATS_META[k.toUpperCase()].name}
                   </div>
                   <input type="number" min="0" step="0.5" value={form[k]} onChange={(e) => setForm((f) => ({ ...f, [k]: e.target.value }))}
-                    placeholder="0" style={{ ...fieldStyle, width: "100%" }} />
+                    placeholder="0" aria-label={`${k.toUpperCase()} · ${CATS_META[k.toUpperCase()].name} hours`} style={{ ...fieldStyle, width: "100%" }} />
                 </div>
               ))}
             </div>

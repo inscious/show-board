@@ -205,7 +205,7 @@ function NavBar({ tab, setTab, variant, tabs }) {
     const [hovered, setHovered] = useState(null);
     if (variant === "bottom") {
         return (
-            <div style={{ display: "flex" }}>
+            <nav aria-label="Primary" style={{ display: "flex" }}>
                 {tabs.map(([k, lab, Ico]) => {
                     const on = tab === k;
                     const hi = !on && hovered === k;
@@ -256,11 +256,12 @@ function NavBar({ tab, setTab, variant, tabs }) {
                         </button>
                     );
                 })}
-            </div>
+            </nav>
         );
     }
     return (
-        <div
+        <nav
+            aria-label="Primary"
             style={{
                 display: "flex",
                 gap: 6,
@@ -301,7 +302,7 @@ function NavBar({ tab, setTab, variant, tabs }) {
                     </button>
                 );
             })}
-        </div>
+        </nav>
     );
 }
 
@@ -729,6 +730,8 @@ export default function App() {
 
     const css = `
     .sb *{ -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    .sb .skip-link{ position: absolute; top: -100px; left: 12px; z-index: 100; background: ${C.brand}; color: ${C.ink}; font-weight: 800; font-size: 13px; padding: 10px 16px; border-radius: 8px; text-decoration: none; transition: top 0.15s ease; }
+    .sb .skip-link:focus{ top: 12px; }
     .sb .wrap{ max-width: 576px; }
     .sb .page{ padding: 0 12px 172px; }
     .sb .navtop{ display: none; }
@@ -843,6 +846,7 @@ export default function App() {
             }}
         >
             <style>{css}</style>
+            <a href="#main-content" className="skip-link">Skip to content</a>
             <ImpersonationBanner />
             <div className="wrap page mx-auto">
                 {/* header */}
@@ -952,6 +956,8 @@ export default function App() {
 
                 {!syncStatus.ok && (
                     <div
+                        role="status"
+                        aria-live="polite"
                         style={{
                             display: "flex",
                             alignItems: "center",
@@ -990,6 +996,7 @@ export default function App() {
 
                 </div>
 
+                <main id="main-content">
                 {!loaded ? (
                     <div className="dgrid">
                         <div
@@ -1139,6 +1146,7 @@ export default function App() {
                         }
                     />
                 )}
+                </main>
             </div>
 
             {/* bottom bar */}

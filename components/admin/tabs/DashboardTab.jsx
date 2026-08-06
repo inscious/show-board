@@ -185,33 +185,33 @@ function EditClassForm({ session, onSaved, onClose }) {
   return (
     <form onSubmit={submit}>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CLASS NAME</div>
-      <input required value={name} onChange={(e) => setName(e.target.value)}
+      <input required value={name} onChange={(e) => setName(e.target.value)} aria-label="Class name"
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
 
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>FROM</div>
-          <input type="date" required value={from} onChange={(e) => setFrom(e.target.value)}
+          <input type="date" required value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From date"
             style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>TO</div>
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label="To date"
             style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>TIME</div>
-          <input type="time" value={start} onChange={(e) => setStart(e.target.value)}
+          <input type="time" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Time"
             style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px", color: C.hi, fontSize: 13 }} />
         </div>
       </div>
 
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>LOCATION</div>
-      <input value={loc} onChange={(e) => setLoc(e.target.value)}
+      <input value={loc} onChange={(e) => setLoc(e.target.value)} aria-label="Location"
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
 
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NOTE</div>
-      <input value={note} onChange={(e) => setNote(e.target.value)}
+      <input value={note} onChange={(e) => setNote(e.target.value)} aria-label="Note"
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 14 }} />
 
       <div style={{ fontSize: 11, color: C.mid, lineHeight: 1.5, marginBottom: 14 }}>

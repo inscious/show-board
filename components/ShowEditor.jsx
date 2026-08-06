@@ -14,11 +14,16 @@ const curMonthStr = () => {
 
 export const EMPTY = { name: "", mi: "", start: "", end: "", loc: "", booth: "", co: "", region: "AUTO", status: null, sheetMonth: curMonthStr() };
 
+function normalCase(s) {
+  return s && s.length ? s[0] + s.slice(1).toLowerCase() : s;
+}
+
 function Field({ label, value, onChange, ph, w }) {
   return (
     <div style={{ flex: w || 1, minWidth: 0 }}>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>{label}</div>
       <input className="foc" value={value} onChange={(e) => onChange(e.target.value)} placeholder={ph}
+        aria-label={normalCase(label)}
         style={{ width: "100%", background: C.sunk, color: C.hi, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 10px", fontSize: 14, fontFamily: FS }} />
     </div>
   );
@@ -49,6 +54,7 @@ export function ShowForm({ initial, onSave, onClose }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>REGION</div>
           <select className="foc" value={f.region} onChange={(e) => set("region", e.target.value)}
+            aria-label="Region"
             style={{ width: "100%", background: C.sunk, color: C.hi, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 8px", fontSize: 14, fontFamily: FS }}>
             <option value="AUTO">Auto</option>
             {REGION_KEYS.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -95,6 +101,7 @@ export function ImportForm({ onAdd }) {
       <div style={{ marginBottom: 10 }}>
         <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>WHICH SHEET IS THIS (YEAR-MONTH)</div>
         <input className="foc" value={sheetMonth} onChange={(e) => setSheetMonth(e.target.value)} placeholder="2026-07"
+          aria-label="Which sheet is this (year-month)"
           style={{ width: 140, background: C.sunk, color: C.hi, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 10px", fontSize: 14, fontFamily: FM }} />
         <div style={{ fontSize: 10.5, color: C.lo, marginTop: 4, lineHeight: 1.4 }}>
           The printed dates on the sheet have no year — this is the only place it comes from, so a January sheet still lands in January once the calendar rolls to next year.
@@ -102,6 +109,7 @@ export function ImportForm({ onAdd }) {
       </div>
       <textarea className="foc" value={text} onChange={(e) => setText(e.target.value)} rows={5}
         placeholder={"7/8  7/14  7/16  ESRI  SDCC  300  FREEMAN"}
+        aria-label="Paste show schedule rows"
         style={{ width: "100%", resize: "vertical", background: C.sunk, color: C.hi, border: "1px solid " + C.line, borderRadius: 10, padding: "10px 12px", fontSize: 13, fontFamily: FM }} />
       <button className="foc" onClick={parse} disabled={!text.trim()}
         style={{ width: "100%", marginTop: 10, padding: "11px", borderRadius: 10, background: text.trim() ? C.raise : C.panel, color: text.trim() ? C.hi : C.lo, border: "1px solid " + C.line, fontWeight: 700, fontSize: 14 }}>

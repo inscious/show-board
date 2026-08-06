@@ -294,6 +294,7 @@ export function BoardTab({
                                             setQuery(e.target.value)
                                         }
                                         placeholder="Search show, hall, company"
+                                        aria-label="Search show, hall, company"
                                         style={{
                                             flex: 1,
                                             background: "transparent",

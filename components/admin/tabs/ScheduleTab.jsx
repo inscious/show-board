@@ -196,12 +196,12 @@ export function ScheduleTab({ shows, onChanged, focusId, onFocusHandled }) {
       <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "12px 13px", boxShadow: SHADOW, marginBottom: 12 }}>
         <div style={{ position: "relative", marginBottom: regionsPresent.length > 0 ? 8 : 0 }}>
           <Search size={14} color={C.lo} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search show, location, or company…"
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search show, location, or company…" aria-label="Search show, location, or company"
             style={{ ...inputStyle, width: "100%", padding: "8px 10px 8px 30px" }} />
         </div>
         {regionsPresent.length > 0 && (
           <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
-            <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)} style={{ ...inputStyle, flex: "1 1 120px" }}>
+            <select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)} aria-label="Filter by region" style={{ ...inputStyle, flex: "1 1 120px" }}>
               <option value="">All regions</option>
               {regionsPresent.map((r) => <option key={r} value={r}>{(REGION[r] || REGION.OTHER).label}</option>)}
             </select>

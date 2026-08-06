@@ -41,22 +41,25 @@ function Dc36ContactForm({ onSaved, onClose, initial }) {
     <form onSubmit={submit}>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>NAME — a person, or a department line like "Union Dues"</div>
       <input required autoFocus value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+        aria-label="Name"
         style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
       <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>PHONE</div>
-          <input value={form.tel} onChange={(e) => setForm((f) => ({ ...f, tel: e.target.value }))} style={{ ...fieldStyle, width: "100%" }} />
+          <input value={form.tel} onChange={(e) => setForm((f) => ({ ...f, tel: e.target.value }))} aria-label="Phone" style={{ ...fieldStyle, width: "100%" }} />
         </div>
         <div style={{ flex: "0 1 80px" }}>
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EXT</div>
-          <input value={form.ext} onChange={(e) => setForm((f) => ({ ...f, ext: e.target.value }))} style={{ ...fieldStyle, width: "100%" }} />
+          <input value={form.ext} onChange={(e) => setForm((f) => ({ ...f, ext: e.target.value }))} aria-label="Extension" style={{ ...fieldStyle, width: "100%" }} />
         </div>
       </div>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EMAIL</div>
       <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+        aria-label="Email"
         style={{ ...fieldStyle, width: "100%", marginBottom: 12 }} />
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>SMS NUMBER</div>
       <input value={form.sms} onChange={(e) => setForm((f) => ({ ...f, sms: e.target.value }))}
+        aria-label="SMS number"
         style={{ ...fieldStyle, width: "100%", marginBottom: 14 }} />
       <button type="submit" disabled={state === "saving"}
         style={{ width: "100%", padding: "12px", borderRadius: 10, background: state === "done" ? C.working : C.brand, color: state === "done" ? C.inkGood : C.ink, border: "none", fontWeight: 800, fontSize: 14 }}>

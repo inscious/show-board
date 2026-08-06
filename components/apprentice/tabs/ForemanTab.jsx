@@ -130,16 +130,16 @@ function PostCallForm({ companyId, companyName, shows, onPosted }) {
             )}
 
             <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 5 }}>TITLE (OPTIONAL)</div>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. SIGGRAPH move-in" style={{ ...fieldStyle, marginBottom: 12 }} />
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. SIGGRAPH move-in" aria-label="Title (optional)" style={{ ...fieldStyle, marginBottom: 12 }} />
 
             <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 5 }}>DATE</div>
-                    <input type="date" value={dateKey} onChange={(e) => setDateKey(e.target.value)} style={{ ...fieldStyle, fontFamily: FM }} />
+                    <input type="date" value={dateKey} onChange={(e) => setDateKey(e.target.value)} aria-label="Date" style={{ ...fieldStyle, fontFamily: FM }} />
                 </div>
                 <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 5 }}>TIME</div>
-                    <select value={minute} onChange={(e) => setMinute(Number(e.target.value))} style={{ ...fieldStyle, fontFamily: FM, fontWeight: 700 }}>
+                    <select value={minute} onChange={(e) => setMinute(Number(e.target.value))} aria-label="Time" style={{ ...fieldStyle, fontFamily: FM, fontWeight: 700 }}>
                         {TIME_SLOTS.map((m) => (<option key={m} value={m}>{fmtClock(m)}</option>))}
                     </select>
                 </div>
@@ -150,11 +150,12 @@ function PostCallForm({ companyId, companyName, shows, onPosted }) {
                     <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 5 }}>NEEDED</div>
                     <input type="number" min={1} max={200} value={neededCount}
                         onChange={(e) => setNeededCount(Math.max(1, Math.min(200, Number(e.target.value) || 1)))}
+                        aria-label="Needed"
                         style={{ ...fieldStyle, fontFamily: FM, fontWeight: 700 }} />
                 </div>
                 <div style={{ flex: 2 }}>
                     <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 5 }}>TYPE OF WORK</div>
-                    <select value={category} onChange={(e) => setCategory(e.target.value)} style={fieldStyle}>
+                    <select value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Type of work" style={fieldStyle}>
                         {CATS.map((c) => (<option key={c.k || "none"} value={c.k}>{c.label}</option>))}
                     </select>
                 </div>

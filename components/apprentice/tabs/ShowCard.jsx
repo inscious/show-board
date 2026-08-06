@@ -635,6 +635,7 @@ export function ShowCard({
                             onBlur={() => onNote(note)}
                             rows={2}
                             placeholder="add a note…"
+                            aria-label="Notes — foreman / call time / gate"
                             style={{
                                 width: "100%",
                                 resize: "vertical",

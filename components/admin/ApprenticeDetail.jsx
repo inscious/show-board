@@ -389,10 +389,12 @@ function AddCertForm({ userId, onAdded, onClose }) {
     <form onSubmit={submit}>
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>CERTIFICATION NAME</div>
       <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. OSHA 10"
+        aria-label="Certification name"
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 12 }} />
 
       <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 4 }}>EXPIRES</div>
       <input type="date" required value={exp} onChange={(e) => setExp(e.target.value)}
+        aria-label="Expiration date"
         style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "10px 12px", color: C.hi, fontSize: 14, marginBottom: 14 }} />
 
       <button type="submit" disabled={state === "saving"}
@@ -874,9 +876,11 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
           <div style={{ fontSize: 10, letterSpacing: 0.5, color: C.lo, fontFamily: FM, marginBottom: 6 }}>ADD / CORRECT A MONTH (lands approved)</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             <input value={newMonth.m} onChange={(e) => setNewMonth((p) => ({ ...p, m: e.target.value }))} placeholder="YYYY-MM"
+              aria-label="Month (YYYY-MM)"
               style={{ width: 90, background: C.sunk, border: "1px solid " + C.line, borderRadius: 7, padding: "7px 8px", color: C.hi, fontSize: 12, fontFamily: FM }} />
             {["a", "b", "c", "d"].map((k) => (
               <input key={k} type="number" value={newMonth[k]} onChange={(e) => setNewMonth((p) => ({ ...p, [k]: e.target.value }))} placeholder={k.toUpperCase()}
+                aria-label={`${k.toUpperCase()} · ${CATS_META[k.toUpperCase()].name} hours`}
                 style={{ width: 52, background: C.sunk, border: "1px solid " + C.line, borderRadius: 7, padding: "7px 8px", color: C.hi, fontSize: 12, fontFamily: FM }} />
             ))}
             <button className="foc" onClick={addMonth} style={{ background: C.raise, color: C.hi, border: "1px solid " + C.line, borderRadius: 7, padding: "7px 12px", fontSize: 12, fontWeight: 700 }}>Add</button>
@@ -1069,6 +1073,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
             <div key={k} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ width: 110, flexShrink: 0, fontSize: 11.5, color: C.mid }}>{label}</span>
               <input value={profile[k]} onChange={(e) => setProfile((p) => ({ ...p, [k]: e.target.value }))}
+                aria-label={label}
                 style={{ flex: 1, minWidth: 0, background: C.sunk, border: "1px solid " + C.line, borderRadius: 7, padding: "7px 9px", color: C.hi, fontSize: 12.5 }} />
             </div>
           ))}
@@ -1119,6 +1124,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
           they'll get a "Hiring" tab to post labor calls and see who's available. Clear it to revoke.
         </div>
         <select value={foremanCompanyId} onChange={(e) => runForeman(e.target.value)} disabled={foremanState === "saving"}
+          aria-label="Foreman company assignment"
           style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 10px", color: C.hi, fontSize: 12.5, fontFamily: FS }}>
           <option value="">Not a foreman for any company</option>
           {companies.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
@@ -1144,6 +1150,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
               Late OJT paperwork, a missed mandatory class, or a Rules & Regs violation — puts them on the union's do-not-hire list. They'll see it on their own account and get a notification.
             </div>
             <textarea value={dnhReason} onChange={(e) => setDnhReason(e.target.value)} placeholder="Reason (required)" rows={2}
+              aria-label="Do-not-hire reason"
               style={{ width: "100%", background: C.sunk, border: "1px solid " + C.line, borderRadius: 8, padding: "9px 10px", color: C.hi, fontSize: 12.5, fontFamily: FS, resize: "vertical", marginBottom: 8 }} />
             <button className="foc" onClick={() => setDnh(true, dnhReason.trim())} disabled={dnhState === "saving" || !dnhReason.trim()}
               style={{ width: "100%", padding: "9px 14px", borderRadius: 8, background: "transparent", color: C.danger, border: "1px solid " + C.danger + "66", fontSize: 12.5, fontWeight: 700, opacity: dnhReason.trim() ? 1 : 0.6 }}>

@@ -72,7 +72,7 @@ export const C = {
     edge: "#3B4453" /* card border — brighter, reads as an edge */,
     hi: "#F2F5F9",
     mid: "#A7AFBD",
-    lo: "#6B7383",
+    lo: "#7B8597" /* was #6B7383 — that read 3.54:1 against panel, under WCAG AA's 4.5:1 floor for normal text. Same hue, uniformly lightened to 4.54:1. */,
     brand: "#FFB020",
     working: "#2FB07A",
     passed: "#5A6070",

@@ -1258,6 +1258,7 @@ export function Summary({ entries, cur }) {
                 readOnly
                 value={text}
                 rows={12}
+                aria-label="Month summary"
                 onFocus={(e) => e.target.select()}
                 style={{
                     width: "100%",

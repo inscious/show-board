@@ -161,6 +161,7 @@ export function AvatarUpload({ name, avatarUrl, onChange, size = 52 }) {
                 ref={fileRef}
                 type="file"
                 accept={ACCEPT}
+                aria-label="Upload profile photo"
                 style={{ display: "none" }}
                 disabled={busy}
                 onChange={(e) => {

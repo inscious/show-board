@@ -173,6 +173,7 @@ export function CertificationsCard({ certs, onSaveCert }) {
                             type="date"
                             value={certExp}
                             onChange={(e) => setCertExp(e.target.value)}
+                            aria-label="Certification expiration date"
                             style={{
                                 flex: 1,
                                 background: C.sunk,
