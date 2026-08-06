@@ -22,7 +22,7 @@ import {
     ChevronUp,
     Copy,
     ExternalLink,
-    HardHat,
+    Hammer,
     Image as ImageIcon,
     Link2,
     Loader2,
@@ -336,7 +336,7 @@ function ProjectPhotos({ project, detail, onChange }) {
                         }}
                     >
                         {d.workType === "install" ? (
-                            <HardHat size={12} color={C.folio} />
+                            <Hammer size={12} color={C.folio} />
                         ) : (
                             <Wrench size={12} color={C.folio} />
                         )}

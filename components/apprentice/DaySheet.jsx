@@ -8,6 +8,7 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import {
     Ban,
+    Briefcase,
     Building2,
     Calendar,
     Camera,
@@ -16,7 +17,6 @@ import {
     Copy,
     FolderPlus,
     GraduationCap,
-    HardHat,
     MapPin,
     Minus,
     Plus,
@@ -809,7 +809,7 @@ export function DaySheet({
                                             flexShrink: 0,
                                         }}
                                     />
-                                    <HardHat
+                                    <Briefcase
                                         size={13}
                                         color={col}
                                         style={{ flexShrink: 0 }}

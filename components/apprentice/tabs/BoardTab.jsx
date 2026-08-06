@@ -20,10 +20,10 @@
    OjtTab.jsx this session. */
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
+    Briefcase,
     Building2,
     CalendarDays,
     ChevronRight,
-    HardHat,
     Search,
     X,
 } from "lucide-react";
@@ -534,7 +534,7 @@ export function BoardTab({
                                     gap: 5,
                                 }}
                             >
-                                <HardHat size={11} color={C.gc} />
+                                <Briefcase size={11} color={C.gc} />
                                 General
                             </span>
                             <span style={{ marginLeft: "auto" }}>

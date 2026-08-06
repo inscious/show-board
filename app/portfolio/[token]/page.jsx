@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Work_Sans } from "next/font/google";
-import { ChevronLeft, ChevronRight, HardHat, Loader2, Mail, MapPin, Phone, ShieldCheck, Wrench, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Hammer, Loader2, Mail, MapPin, Phone, ShieldCheck, Wrench, X } from "lucide-react";
 
 // Self-hosted at build time (no runtime font-CDN call) — this is the one page
 // built to read as a professional credential document, not the app's own
@@ -377,7 +377,7 @@ function ProjectCard({ project }) {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 14 }}>
                     {install.length > 0 && (
                         <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: PC.mid }}>
-                            <HardHat size={13} color={PC.gold} />
+                            <Hammer size={13} color={PC.gold} />
                             Install · {fmtDateRange(install)}
                         </div>
                     )}

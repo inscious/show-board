@@ -16,7 +16,7 @@
    other "what's on the board today" check in this app already does,
    rather than trusting a field that is not reliably set. */
 import { useEffect, useState } from "react";
-import { Building2, HardHat, ImagePlus, Plus, Wrench } from "lucide-react";
+import { Building2, Hammer, ImagePlus, Plus, Wrench } from "lucide-react";
 import { C, FM, fromKey, longDate, showsOn } from "@/lib/core";
 
 export function PortfolioProjectPicker({ dayKey, entry, shows, onClose, onDone }) {
@@ -137,7 +137,7 @@ export function PortfolioProjectPicker({ dayKey, entry, shows, onClose, onDone }
             </div>
 
             <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                {typeBtn("install", "Install", HardHat)}
+                {typeBtn("install", "Install", Hammer)}
                 {typeBtn("dismantle", "Dismantle", Wrench)}
             </div>
 

@@ -7,11 +7,11 @@
    inside MonthForm.jsx — one real call site). */
 import { useState, useContext, useEffect } from "react";
 import {
+    Briefcase,
     Building2,
     CalendarDays,
     ChevronRight,
     Clock,
-    HardHat,
     MapPin,
     Phone,
     Plus,
@@ -454,7 +454,7 @@ export function ShowCard({
                                                 gap: 6,
                                             }}
                                         >
-                                            <HardHat
+                                            <Briefcase
                                                 size={13}
                                                 color={mine ? C.brand : C.gc}
                                                 style={{ flexShrink: 0 }}
