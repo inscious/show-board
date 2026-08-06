@@ -732,7 +732,10 @@ export const store = {
                     .from("completed_classes")
                     .select("course_id")
                     .eq("user_id", user.id),
-                supabase.from("app_settings").select("org_profile").eq("id", 1).single(),
+                // RLS's "read own org" policy narrows this to the caller's own
+                // org's row — no explicit organization_id filter needed
+                // (supabase/stage7_app_settings_org_scoping.sql).
+                supabase.from("app_settings").select("org_profile").single(),
                 supabase.from("union_notices").select("*").order("sort_order", { ascending: true }),
             ]);
 

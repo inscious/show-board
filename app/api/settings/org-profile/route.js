@@ -1,16 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
-import { UNION_NAME, UNION_LINE, UNION_LINE_PRETTY, JATC } from "@/lib/core";
+import { UNION_NAME, UNION_LINE, UNION_LINE_PRETTY, JATC, INTERIM_PREAUTH_ORGANIZATION_ID } from "@/lib/core";
 
-/* Public read, same reasoning as app/api/settings/self-signup — RLS's
-   "anyone can read" policy on app_settings already allows this. Used by
-   the admin Settings panel to prefill its edit form; the apprentice-facing
-   app gets this same data as part of the main store.ts load() instead
-   (avoids a second round-trip there), so this route's only real consumer
-   is the admin panel. Falls back to lib/core.ts's defaults for any field
-   not yet set. */
+/* Mixed audience, unlike self-signup/ojt-auto-approve: app/login/page.jsx
+   calls this pre-auth (no session at all), while the admin Settings panel
+   and /pending call it authenticated. Authenticated callers get their own
+   org via RLS's "read own org" policy (supabase/stage7_app_settings_org_scoping.sql,
+   same as lib/store.ts's own read) with no explicit filter needed;
+   unauthenticated callers fall back to INTERIM_PREAUTH_ORGANIZATION_ID —
+   see that constant's own comment for why. Falls back to lib/core.ts's
+   hardcoded defaults for any field not yet set, same as before. */
 export async function GET() {
   const supabase = createClient();
-  const { data } = await supabase.from("app_settings").select("org_profile").eq("id", 1).single();
+  const { data: { user } } = await supabase.auth.getUser();
+  const query = supabase.from("app_settings").select("org_profile");
+  const { data } = user ? await query.single() : await query.eq("organization_id", INTERIM_PREAUTH_ORGANIZATION_ID).single();
   const p = data?.org_profile || {};
   return Response.json({
     unionName: p.unionName || UNION_NAME,

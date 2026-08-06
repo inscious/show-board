@@ -38,6 +38,15 @@ export const RSI_REQUIRED = 10;
 export const UNION_NAME = "IUPAT Local 831";
 export const UNION_LINE = "6262968075";
 export const UNION_LINE_PRETTY = "(626) 296-8075";
+/* /login and /signup have no way to know which union a pre-auth visitor
+   belongs to yet (no subdomain, no org-picker) — see
+   supabase/stage7_app_settings_org_scoping.sql. Every pre-auth app_settings
+   read intentionally falls back to this org until organization-aware public
+   entry points are designed as their own piece of work. This is Local 831's
+   organizations.id — verified directly (both staging and production), NOT
+   assumed to be 1: District Council 36 was seeded first and holds id 1,
+   Local 831 is id 2. Matches current (pre-multi-org) behavior exactly. */
+export const INTERIM_PREAUTH_ORGANIZATION_ID = 2;
 /* the only payroll deductions confirmed flat/reliable so far — federal law,
    not company- or level-specific. Verified exact (to the cent) against 4 real
    pay stubs across 3 different companies as of 2026-07-18: Social Security

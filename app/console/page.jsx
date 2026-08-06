@@ -37,8 +37,8 @@ function PlatformSettingsCard({ settings }) {
     <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "14px 16px", boxShadow: SHADOW, marginBottom: 16 }}>
       <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.lo, fontFamily: FM, marginBottom: 4 }}>PLATFORM SETTINGS</div>
       <div style={{ fontSize: 11, color: C.lo, lineHeight: 1.5, marginBottom: 10 }}>
-        A single shared row today — app_settings has no per-org column yet, so this applies to every
-        organization until that changes.
+        Local 831's settings specifically — every union now has its own row, but the console has no
+        "view into a union" picker yet, so this always shows Local 831's.
       </div>
       {settings === null ? (
         <div className="skeleton" style={{ height: 20 }} />

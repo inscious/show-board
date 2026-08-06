@@ -2,13 +2,18 @@ import { guardedRoute } from "@/lib/apiGuard";
 import { adminSelfSignupSchema } from "@/lib/schemas";
 import { logAudit } from "@/lib/auditLog";
 
-/* live on/off switch for self-signup — a single row (id=1) in app_settings,
-   read publicly (see app/api/settings/self-signup, app/login/page.jsx,
-   middleware.js's /signup gate) but only admin-writable. Replaces the old
-   SELF_SIGNUP_ENABLED env var, which needed a Vercel redeploy to change. */
+/* live on/off switch for self-signup — one row per union org in
+   app_settings, org-scoped both by RLS (organization_id = the caller's own,
+   see supabase/stage7_app_settings_org_scoping.sql) and by this explicit
+   filter (belt-and-suspenders, same reasoning as every other org-scoped
+   admin write in this app). Read publicly for the pilot org today (see
+   app/api/settings/self-signup, app/login/page.jsx, middleware.js's
+   /signup gate) — real per-org public routing is a separate, later piece
+   of work. Replaces the old SELF_SIGNUP_ENABLED env var, which needed a
+   Vercel redeploy to change. */
 export async function POST(request) {
-  return guardedRoute(request, "admin:self-signup", { schema: adminSelfSignupSchema, requireAdmin: true }, async ({ supabase, user, data }) => {
-    const { error } = await supabase.from("app_settings").update({ self_signup_enabled: data.enabled }).eq("id", 1);
+  return guardedRoute(request, "admin:self-signup", { schema: adminSelfSignupSchema, requireAdmin: true }, async ({ supabase, user, profile, data }) => {
+    const { error } = await supabase.from("app_settings").update({ self_signup_enabled: data.enabled }).eq("organization_id", profile.organization_id);
     if (error) return Response.json({ error: "Could not update" }, { status: 400 });
 
     await logAudit(supabase, {

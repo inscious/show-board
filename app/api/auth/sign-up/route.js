@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { checkRateLimit, clientIp } from "@/lib/rateLimit";
+import { INTERIM_PREAUTH_ORGANIZATION_ID } from "@/lib/core";
 
 /* Self-signup — gated behind app_settings.self_signup_enabled (a live admin
    toggle, Settings → Apprentice Sign-Up) so this whole surface can be turned
@@ -64,7 +65,10 @@ export async function POST(request) {
 
   const supabase = createClient();
 
-  const { data: settings } = await supabase.from("app_settings").select("self_signup_enabled").eq("id", 1).single();
+  // pre-auth by definition (this call creates the account) — falls back to
+  // the interim pilot org same as every other pre-auth settings read, see
+  // INTERIM_PREAUTH_ORGANIZATION_ID's own comment in lib/core.ts.
+  const { data: settings } = await supabase.from("app_settings").select("self_signup_enabled").eq("organization_id", INTERIM_PREAUTH_ORGANIZATION_ID).single();
   if (!settings?.self_signup_enabled) {
     return Response.json({ error: "Self-signup isn't open right now." }, { status: 403 });
   }

@@ -56,7 +56,14 @@ export default function PlatformLayout({ children }) {
         supabase.from("platform_admins").select("id").eq("id", user.id).maybeSingle(),
         supabase.from("organizations").select("*").order("id"),
         fetch("/api/console/metrics").then((r) => (r.ok ? r.json() : null)).catch(() => null),
-        supabase.from("app_settings").select("*").eq("id", 1).maybeSingle(),
+        // Local 831's settings specifically (organizations.id 2 — District
+        // Council 36 holds id 1, verified directly, not assumed) — the
+        // console has no "view into a union" picker yet (Phase B, still
+        // unbuilt), so this shows one org's settings regardless of how many
+        // exist. Filtering by organization_id now that app_settings has one
+        // row per union (was id=1, the old surrogate-PK singleton row) —
+        // see supabase/stage7_app_settings_org_scoping.sql.
+        supabase.from("app_settings").select("*").eq("organization_id", 2).maybeSingle(),
       ]);
       if (!platformAdmin) { window.location.href = "/login"; return; }
       if (!live) return;

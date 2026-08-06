@@ -24,7 +24,9 @@ export async function POST(request) {
   const { supabase, user, error } = await requireUser();
   if (error) return error;
 
-  const { data: settings } = await supabase.from("app_settings").select("apprentice_avatar_upload_enabled").eq("id", 1).single();
+  // RLS's "read own org" policy narrows this to the caller's own org's row —
+  // no explicit organization_id filter needed (supabase/stage7_app_settings_org_scoping.sql).
+  const { data: settings } = await supabase.from("app_settings").select("apprentice_avatar_upload_enabled").single();
   if (!settings?.apprentice_avatar_upload_enabled) {
     return Response.json({ error: "Profile picture upload is turned off right now" }, { status: 403 });
   }
