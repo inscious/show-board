@@ -457,13 +457,16 @@ async function runSync(blob: SyncBlob, isAdmin: boolean): Promise<void> {
                     await post("/api/entries", body);
             }
         }
+        // Persist right after the posts land, before touching deletes — a
+        // stale/rate-limited delete below must never erase a save that
+        // already reached the server (see comment above this function).
+        next.entries = entryHash;
+        persist();
         for (const id of removedIds(
             Object.keys(prevEntryHash),
             Object.keys(entryHash),
         ))
             await del("/api/entries", { id });
-        next.entries = entryHash;
-        persist();
     } catch (err) {
         failures.push({ cat: "entries", err });
     }
@@ -482,13 +485,13 @@ async function runSync(blob: SyncBlob, isAdmin: boolean): Promise<void> {
             monthHash[m.m] = h;
             if (prevMonthHash[m.m] !== h) await post("/api/ojt-months", body);
         }
+        next.ojtMonths = monthHash;
+        persist();
         for (const m of removedIds(
             Object.keys(prevMonthHash),
             Object.keys(monthHash),
         ))
             await del("/api/ojt-months", { m });
-        next.ojtMonths = monthHash;
-        persist();
     } catch (err) {
         failures.push({ cat: "ojtMonths", err });
     }
@@ -502,13 +505,13 @@ async function runSync(blob: SyncBlob, isAdmin: boolean): Promise<void> {
             bookHash[b.id] = h;
             if (prevBookHash[b.id] !== h) await post("/api/bookings", b);
         }
+        next.bookings = bookHash;
+        persist();
         for (const id of removedIds(
             Object.keys(prevBookHash),
             Object.keys(bookHash),
         ))
             await del("/api/bookings", { id });
-        next.bookings = bookHash;
-        persist();
     } catch (err) {
         failures.push({ cat: "bookings", err });
     }
@@ -528,10 +531,10 @@ async function runSync(blob: SyncBlob, isAdmin: boolean): Promise<void> {
             if (prevRates[co] !== blob.rates[co])
                 await post("/api/rates", { co, level: blob.rates[co] });
         }
-        for (const co of removedIds(Object.keys(prevRates), rateCos))
-            await del("/api/rates", { co });
         next.rates = rateMap;
         persist();
+        for (const co of removedIds(Object.keys(prevRates), rateCos))
+            await del("/api/rates", { co });
     } catch (err) {
         failures.push({ cat: "rates", err });
     }
