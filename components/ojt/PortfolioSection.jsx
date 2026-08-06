@@ -110,27 +110,72 @@ function CopyLink({ token }) {
     );
 }
 
+// Downscales/recompresses in the browser before it ever leaves the device —
+// a modern phone photo is routinely 3-8MB, and that's what was getting
+// stored and later served on the shared portfolio page verbatim, which is
+// the actual reason photos were slow to load there. Capping the long edge
+// at 2000px and re-encoding as JPEG gets a typical photo down to a few
+// hundred KB with no visible quality loss on a screen. Skips anything
+// already small (a screenshot, an already-compressed image) and falls back
+// to the original file on any failure rather than blocking the upload.
+async function compressImage(file) {
+    if (file.size < 400_000) return file;
+    try {
+        const bitmap = await createImageBitmap(file);
+        const maxDim = 2000;
+        const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+        const w = Math.round(bitmap.width * scale);
+        const h = Math.round(bitmap.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(bitmap, 0, 0, w, h);
+        bitmap.close();
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+        if (!blob || blob.size >= file.size) return file;
+        return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+    } catch {
+        return file;
+    }
+}
+
 function ProjectPhotos({ project, detail, onChange }) {
     const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(null); // { done, total } while a multi-file batch is running
     const [error, setError] = useState("");
     const [viewing, setViewing] = useState(null); // index into detail.photos, or null
 
-    async function upload(file) {
+    // Uploads one or many files, one request per file (the API route only
+    // ever accepts a single file). Tracks the growing photo list in a local
+    // variable rather than re-reading `detail.photos` each iteration — that
+    // prop only updates on the next render, so a tight await-loop reading it
+    // fresh would have every file after the first clobber the ones before it.
+    async function upload(files) {
         setUploading(true);
         setError("");
-        try {
-            const form = new FormData();
-            form.append("projectId", project.id);
-            form.append("file", file);
-            const res = await fetch("/api/portfolio/photos", { method: "POST", body: form });
-            const json = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(json.error || "Upload failed");
-            onChange({ ...detail, photos: [...detail.photos, { id: json.id, url: json.url, caption: null }] });
-        } catch (err) {
-            setError(err.message || "Couldn't upload — try again.");
-        } finally {
-            setUploading(false);
+        setProgress(files.length > 1 ? { done: 0, total: files.length } : null);
+        let photos = detail.photos;
+        const failed = [];
+        for (const file of files) {
+            try {
+                const compressed = await compressImage(file);
+                const form = new FormData();
+                form.append("projectId", project.id);
+                form.append("file", compressed);
+                const res = await fetch("/api/portfolio/photos", { method: "POST", body: form });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(json.error || "Upload failed");
+                photos = [...photos, { id: json.id, url: json.url, caption: null }];
+                onChange({ ...detail, photos });
+            } catch (err) {
+                failed.push(file.name);
+            }
+            setProgress((p) => (p ? { ...p, done: p.done + 1 } : null));
         }
+        if (failed.length === files.length) setError("Couldn't upload — try again.");
+        else if (failed.length) setError(failed.length + " of " + files.length + " photos didn't upload: " + failed.join(", "));
+        setUploading(false);
+        setProgress(null);
     }
 
     async function remove(photoId) {
@@ -259,16 +304,19 @@ function ProjectPhotos({ project, detail, onChange }) {
                     }}
                 >
                     {uploading ? <Loader2 size={16} /> : <Camera size={16} />}
-                    <span style={{ fontSize: 9.5, fontWeight: 700 }}>{uploading ? "…" : "Add"}</span>
+                    <span style={{ fontSize: 9.5, fontWeight: 700 }}>
+                        {progress ? progress.done + "/" + progress.total : uploading ? "…" : "Add"}
+                    </span>
                     <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
+                        multiple
                         style={{ display: "none" }}
                         disabled={uploading}
                         onChange={(e) => {
-                            const f = e.target.files?.[0];
+                            const files = Array.from(e.target.files || []);
                             e.target.value = "";
-                            if (f) upload(f);
+                            if (files.length) upload(files);
                         }}
                     />
                 </label>

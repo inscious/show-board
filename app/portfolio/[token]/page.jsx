@@ -10,7 +10,14 @@
    is already scoped server-side to be safe to show a stranger. */
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, HardHat, Mail, MapPin, Phone, ShieldCheck, Wrench, X } from "lucide-react";
+import { Work_Sans } from "next/font/google";
+import { ChevronLeft, ChevronRight, HardHat, Loader2, Mail, MapPin, Phone, ShieldCheck, Wrench, X } from "lucide-react";
+
+// Self-hosted at build time (no runtime font-CDN call) — this is the one page
+// built to read as a professional credential document, not the app's own
+// dark utility tool, so it earns a real chosen typeface instead of the
+// system font stack everywhere else.
+const sansFont = Work_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--pf-sans-font" });
 
 const PC = {
     bg: "#12151B",
@@ -81,7 +88,7 @@ export default function SharedPortfolioPage() {
     }, [token]);
 
     return (
-        <div className="pf" style={{ minHeight: "100vh", background: PC.bg }}>
+        <div className={`pf ${sansFont.variable}`} style={{ minHeight: "100vh", background: PC.bg }}>
             {/* dangerouslySetInnerHTML, not a JSX text child — a literal quote
                 character inside a <style> text child gets escaped on the
                 server and unescaped by the browser's HTML parser, which
@@ -89,13 +96,18 @@ export default function SharedPortfolioPage() {
             <style
                 dangerouslySetInnerHTML={{
                     __html: `
-                .pf { color: ${PC.hi}; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-                .pf-serif { font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif; }
+                .pf { color: ${PC.hi}; font-family: var(--pf-sans-font), -apple-system, sans-serif; }
                 .pf-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
                 .pf-wrap { max-width: 720px; margin: 0 auto; padding: 40px 20px 70px; }
                 .pf-photo { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: ${PC.panelSoft}; }
                 @keyframes pf-pulse{ 0%, 100%{ opacity: 0.5; } 50%{ opacity: 0.9; } }
                 .pf-skeleton { background: ${PC.panelSoft}; border-radius: 8px; animation: pf-pulse 1.5s ease-in-out infinite; }
+                @keyframes pf-spin{ from{ transform: rotate(0deg); } to{ transform: rotate(360deg); } }
+                .pf-spin { animation: pf-spin 0.8s linear infinite; }
+                @media (prefers-reduced-motion: reduce) {
+                    .pf-skeleton { animation: none; }
+                    .pf-spin { animation: none; }
+                }
                 @media (max-width: 480px) { .pf-wrap { padding: 28px 16px 50px; } }
             `,
                 }}
@@ -120,7 +132,7 @@ export default function SharedPortfolioPage() {
 
             {state.status === "error" && (
                 <div style={{ padding: "80px 20px", textAlign: "center" }}>
-                    <div className="pf-serif" style={{ fontSize: 20, marginBottom: 8 }}>Link not available</div>
+                    <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>Link not available</div>
                     <div style={{ color: PC.mid, fontSize: 13.5 }}>{state.message}</div>
                 </div>
             )}
@@ -155,12 +167,11 @@ function PortfolioContent({ data }) {
                         fontWeight: 700,
                         fontSize: 20,
                     }}
-                    className="pf-serif"
                 >
                     {initials(displayName)}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                    <h1 className="pf-serif" style={{ fontSize: 26, fontWeight: 500, margin: 0, lineHeight: 1.15 }}>
+                    <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, lineHeight: 1.15 }}>
                         {displayName}
                     </h1>
                     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 6, fontSize: 12.5, color: PC.mid }}>
@@ -276,6 +287,7 @@ function ProjectCard({ project }) {
     const dismantle = project.days.filter((d) => d.workType === "dismantle");
     const companies = [...new Set(project.days.map((d) => d.company).filter(Boolean))];
     const [lightbox, setLightbox] = useState(null); // index into project.photos, or null
+    const [loaded, setLoaded] = useState({}); // photo id -> true once its <img> has actually loaded
     const shown = project.photos.slice(0, 4);
     const extra = project.photos.length - shown.length;
 
@@ -303,8 +315,17 @@ function ProjectCard({ project }) {
                                     display: "block",
                                 }}
                             >
+                                {!loaded[photo.id] && <div className="pf-skeleton" style={{ position: "absolute", inset: 0, borderRadius: 0 }} />}
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img className="pf-photo" src={photo.url} alt={photo.caption || project.title} />
+                                <img
+                                    className="pf-photo"
+                                    src={photo.url}
+                                    alt={photo.caption || project.title}
+                                    loading="lazy"
+                                    decoding="async"
+                                    onLoad={() => setLoaded((l) => ({ ...l, [photo.id]: true }))}
+                                    style={{ opacity: loaded[photo.id] ? 1 : 0, transition: "opacity 0.25s ease" }}
+                                />
                                 {isLast && extra > 0 && (
                                     <div
                                         style={{
@@ -338,7 +359,7 @@ function ProjectCard({ project }) {
                 />
             )}
             <div style={{ padding: "18px 20px 20px" }}>
-                <h2 className="pf-serif" style={{ fontSize: 19, fontWeight: 500, margin: "0 0 6px" }}>{project.title}</h2>
+                <h2 style={{ fontSize: 19, fontWeight: 700, margin: "0 0 6px" }}>{project.title}</h2>
                 {project.location && (
                     <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: PC.mid, marginBottom: 6 }}>
                         <MapPin size={12} color={PC.gold} />
@@ -376,6 +397,12 @@ function Lightbox({ photos, index, title, onIndexChange, onClose }) {
     const photo = photos[index];
     const hasPrev = index > 0;
     const hasNext = index < photos.length - 1;
+    const [loaded, setLoaded] = useState(false);
+
+    // full-res image, not the grid thumbnail — reset the spinner every time
+    // the viewer moves to a different photo rather than carrying over the
+    // previous one's loaded state.
+    useEffect(() => setLoaded(false), [photo?.id]);
 
     useEffect(() => {
         function onKey(e) {
@@ -481,16 +508,20 @@ function Lightbox({ photos, index, title, onIndexChange, onClose }) {
                 </button>
             )}
 
+            {!loaded && <Loader2 className="pf-spin" size={28} color="rgba(255,255,255,0.6)" />}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
                 src={photo.url}
                 alt={photo.caption || title}
                 onClick={(e) => e.stopPropagation()}
+                onLoad={() => setLoaded(true)}
+                decoding="async"
                 style={{
                     maxWidth: "100%",
                     maxHeight: "88vh",
                     objectFit: "contain",
                     borderRadius: 6,
+                    display: loaded ? "block" : "none",
                 }}
             />
         </div>
