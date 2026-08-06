@@ -170,7 +170,7 @@ export function UnionNoticesPanel() {
               {!n.notice_date && (
                 <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: C.danger }}>no calendar date</span>
               )}
-              <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); setRemoving(n); }} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+              <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); setRemoving(n); }} aria-label="Remove notice" style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
             </div>
           ))}
           {rows.length === 0 && <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file — add this month's meeting/dues lines off the printed sheet.</div>}

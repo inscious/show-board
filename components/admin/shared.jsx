@@ -51,7 +51,7 @@ export function Modal({ title, onClose, children }) {
       <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 480, maxHeight: "88vh", background: C.panel, border: "1px solid " + C.edge, borderRadius: 16, boxShadow: SHADOW, display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", padding: "14px 16px", borderBottom: "1px solid " + C.line }}>
           <span style={{ fontWeight: 800, fontSize: 15, color: C.hi }}>{title}</span>
-          <button className="foc" onClick={onClose} style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.lo, padding: 4 }}><X size={18} /></button>
+          <button className="foc" onClick={onClose} aria-label="Close" style={{ marginLeft: "auto", background: "transparent", border: "none", color: C.lo, padding: 4 }}><X size={18} /></button>
         </div>
         <div style={{ padding: 19, overflowY: "auto" }}>{children}</div>
       </div>

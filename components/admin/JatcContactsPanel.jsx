@@ -110,7 +110,7 @@ export function JatcContactsPanel() {
                   {[c.tel && c.ext ? c.tel + " ext " + c.ext : c.tel, c.email, c.sms ? "sms " + c.sms : null].filter(Boolean).join(" · ") || "no details on file"}
                 </div>
               </div>
-              <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); setRemoving(c); }} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+              <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); setRemoving(c); }} aria-label="Remove contact" style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
             </div>
           ))}
           {rows.length === 0 && <div style={{ fontSize: 12.5, color: C.lo }}>Nothing on file yet.</div>}

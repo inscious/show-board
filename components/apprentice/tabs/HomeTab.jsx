@@ -15,7 +15,21 @@
    exclusive to that one chart, confirmed via grep before moving. */
 import { useContext, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { Ban, Bell, Building2, CalendarDays, ChevronRight, GraduationCap, Hammer, Info, Lock, Megaphone, Phone, ShieldAlert, X } from "lucide-react";
+import {
+    Ban,
+    Bell,
+    Building2,
+    CalendarDays,
+    ChevronRight,
+    GraduationCap,
+    Hammer,
+    Info,
+    Lock,
+    Megaphone,
+    Phone,
+    ShieldAlert,
+    X,
+} from "lucide-react";
 import {
     BOOKED,
     C,
@@ -70,7 +84,10 @@ import { MiniShowCard } from "@/components/apprentice/tabs/MiniShowCard";
 import { Chip } from "@/components/apprentice/tabs/ShowCard";
 
 const MonthlyHoursChart = dynamic(
-    () => import("@/components/apprentice/tabs/HoursChart").then((m) => m.MonthlyHoursChart),
+    () =>
+        import("@/components/apprentice/tabs/HoursChart").then(
+            (m) => m.MonthlyHoursChart,
+        ),
     {
         ssr: false,
         loading: () => (
@@ -84,8 +101,19 @@ const MonthlyHoursChart = dynamic(
                     boxShadow: SHADOW,
                 }}
             >
-                <div className="skeleton" style={{ height: 12, width: 140, marginBottom: 12, borderRadius: 4 }} />
-                <div className="skeleton hero-chart-plot" style={{ borderRadius: 8 }} />
+                <div
+                    className="skeleton"
+                    style={{
+                        height: 12,
+                        width: 140,
+                        marginBottom: 12,
+                        borderRadius: 4,
+                    }}
+                />
+                <div
+                    className="skeleton hero-chart-plot"
+                    style={{ borderRadius: 8 }}
+                />
             </div>
         ),
     },
@@ -151,8 +179,14 @@ export function HomeTab({
     // uses on the Certifications card itself — no separate urgency window
     // invented here. Applies to a CJ too (certs aren't apprenticeship-only),
     // unlike the OJT-due banner below.
-    const expiredCerts = useMemo(() => (certs || []).filter((c) => certState(c.exp).t === "EXPIRED"), [certs]);
-    const expiringCerts = useMemo(() => (certs || []).filter((c) => certState(c.exp).t === "RENEW SOON"), [certs]);
+    const expiredCerts = useMemo(
+        () => (certs || []).filter((c) => certState(c.exp).t === "EXPIRED"),
+        [certs],
+    );
+    const expiringCerts = useMemo(
+        () => (certs || []).filter((c) => certState(c.exp).t === "RENEW SOON"),
+        [certs],
+    );
 
     // past months come off what's actually on file with the union (ojt.months) —
     // the calendar only has this year's logged entries, and never for months
@@ -163,7 +197,12 @@ export function HomeTab({
     const submittedByMonth = useMemo(() => {
         const out = {};
         approvedMonths.forEach((mo) => {
-            out[mo.m] = { a: num(mo.a), b: num(mo.b), c: num(mo.c), d: num(mo.d) };
+            out[mo.m] = {
+                a: num(mo.a),
+                b: num(mo.b),
+                c: num(mo.c),
+                d: num(mo.d),
+            };
         });
         return out;
     }, [approvedMonths]);
@@ -347,35 +386,73 @@ export function HomeTab({
 
     return (
         <div className="dgrid">
-            {!profile?.graduatedAt && (lateSt.k === "late" || (openSt.k === "open" && openSt.days <= 3)) && (
-                <button
-                    className="foc dspan"
-                    onClick={() => onGoto("ojt")}
-                    style={{
-                        width: "100%",
-                        textAlign: "left",
-                        background: lateSt.k === "late" ? "rgba(232,146,124,0.1)" : "rgba(255,176,32,0.08)",
-                        border: "1px solid " + (lateSt.k === "late" ? C.danger : C.brand) + "77",
-                        borderRadius: 12,
-                        padding: "13px 15px",
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 10,
-                    }}
-                >
-                    <GraduationCap size={17} color={lateSt.k === "late" ? C.danger : C.brand} style={{ flexShrink: 0, marginTop: 1 }} />
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: lateSt.k === "late" ? C.danger : C.brand }}>
-                            {lateSt.k === "late" ? mMed(lastMk) + " OJT is late" : mMed(mk) + " OJT due " + (openSt.days === 0 ? "today, 4 PM" : "in " + openSt.days + " day" + (openSt.days === 1 ? "" : "s"))}
+            {!profile?.graduatedAt &&
+                (lateSt.k === "late" ||
+                    (openSt.k === "open" && openSt.days <= 3)) && (
+                    <button
+                        className="foc dspan"
+                        onClick={() => onGoto("ojt")}
+                        style={{
+                            width: "100%",
+                            textAlign: "left",
+                            background:
+                                lateSt.k === "late"
+                                    ? "rgba(232,146,124,0.1)"
+                                    : "rgba(255,176,32,0.08)",
+                            border:
+                                "1px solid " +
+                                (lateSt.k === "late" ? C.danger : C.brand) +
+                                "77",
+                            borderRadius: 12,
+                            padding: "13px 15px",
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 10,
+                        }}
+                    >
+                        <GraduationCap
+                            size={17}
+                            color={lateSt.k === "late" ? C.danger : C.brand}
+                            style={{ flexShrink: 0, marginTop: 1 }}
+                        />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                            <div
+                                style={{
+                                    fontSize: 13,
+                                    fontWeight: 800,
+                                    color:
+                                        lateSt.k === "late"
+                                            ? C.danger
+                                            : C.brand,
+                                }}
+                            >
+                                {lateSt.k === "late"
+                                    ? mMed(lastMk) + " OJT is late"
+                                    : mMed(mk) +
+                                      " OJT due " +
+                                      (openSt.days === 0
+                                          ? "today, 4 PM"
+                                          : "in " +
+                                            openSt.days +
+                                            " day" +
+                                            (openSt.days === 1 ? "" : "s"))}
+                            </div>
+                            <div
+                                style={{
+                                    fontSize: 12,
+                                    color: C.mid,
+                                    marginTop: 3,
+                                    lineHeight: 1.5,
+                                }}
+                            >
+                                {lateSt.k === "late"
+                                    ? "Due the 1st by 4 PM — that's the do-not-hire list."
+                                    : hrsFmt(r1(m.total)) +
+                                      " hrs logged so far — turn it in the 1st by 4 PM."}
+                            </div>
                         </div>
-                        <div style={{ fontSize: 12, color: C.mid, marginTop: 3, lineHeight: 1.5 }}>
-                            {lateSt.k === "late"
-                                ? "Due the 1st by 4 PM — that's the do-not-hire list."
-                                : hrsFmt(r1(m.total)) + " hrs logged so far — turn it in the 1st by 4 PM."}
-                        </div>
-                    </div>
-                </button>
-            )}
+                    </button>
+                )}
             {doNotHire && doNotHire.on && (
                 <div
                     className="dspan"
@@ -389,17 +466,44 @@ export function HomeTab({
                         gap: 10,
                     }}
                 >
-                    <Ban size={17} color={C.danger} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <Ban
+                        size={17}
+                        color={C.danger}
+                        style={{ flexShrink: 0, marginTop: 1 }}
+                    />
                     <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: C.danger }}>
+                        <div
+                            style={{
+                                fontSize: 13,
+                                fontWeight: 800,
+                                color: C.danger,
+                            }}
+                        >
                             You're on the do-not-hire list
                         </div>
                         {doNotHire.reason && (
-                            <div style={{ fontSize: 12, color: C.mid, marginTop: 3, lineHeight: 1.5 }}>{doNotHire.reason}</div>
+                            <div
+                                style={{
+                                    fontSize: 12,
+                                    color: C.mid,
+                                    marginTop: 3,
+                                    lineHeight: 1.5,
+                                }}
+                            >
+                                {doNotHire.reason}
+                            </div>
                         )}
                         {doNotHire.since && (
-                            <div style={{ fontSize: 10.5, color: C.lo, marginTop: 4, fontFamily: FM }}>
-                                since {doNotHire.since.slice(0, 10)} · contact the JATC office to resolve
+                            <div
+                                style={{
+                                    fontSize: 10.5,
+                                    color: C.lo,
+                                    marginTop: 4,
+                                    fontFamily: FM,
+                                }}
+                            >
+                                since {doNotHire.since.slice(0, 10)} · contact
+                                the JATC office to resolve
                             </div>
                         )}
                     </div>
@@ -412,8 +516,14 @@ export function HomeTab({
                     style={{
                         width: "100%",
                         textAlign: "left",
-                        background: expiredCerts.length > 0 ? "rgba(232,146,124,0.1)" : "rgba(255,176,32,0.08)",
-                        border: "1px solid " + (expiredCerts.length > 0 ? C.danger : C.brand) + "77",
+                        background:
+                            expiredCerts.length > 0
+                                ? "rgba(232,146,124,0.1)"
+                                : "rgba(255,176,32,0.08)",
+                        border:
+                            "1px solid " +
+                            (expiredCerts.length > 0 ? C.danger : C.brand) +
+                            "77",
                         borderRadius: 12,
                         padding: "13px 15px",
                         display: "flex",
@@ -421,15 +531,47 @@ export function HomeTab({
                         gap: 10,
                     }}
                 >
-                    <ShieldAlert size={17} color={expiredCerts.length > 0 ? C.danger : C.brand} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <ShieldAlert
+                        size={17}
+                        color={expiredCerts.length > 0 ? C.danger : C.brand}
+                        style={{ flexShrink: 0, marginTop: 1 }}
+                    />
                     <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: expiredCerts.length > 0 ? C.danger : C.brand }}>
+                        <div
+                            style={{
+                                fontSize: 13,
+                                fontWeight: 800,
+                                color:
+                                    expiredCerts.length > 0
+                                        ? C.danger
+                                        : C.brand,
+                            }}
+                        >
                             {expiredCerts.length > 0
-                                ? expiredCerts.length + " certification" + (expiredCerts.length === 1 ? "" : "s") + " expired"
-                                : expiringCerts.length + " certification" + (expiringCerts.length === 1 ? "" : "s") + " expiring soon"}
+                                ? expiredCerts.length +
+                                  " certification" +
+                                  (expiredCerts.length === 1 ? "" : "s") +
+                                  " expired"
+                                : expiringCerts.length +
+                                  " certification" +
+                                  (expiringCerts.length === 1 ? "" : "s") +
+                                  " expiring soon"}
                         </div>
-                        <div className="truncate" style={{ fontSize: 12, color: C.mid, marginTop: 3, lineHeight: 1.5 }}>
-                            {(expiredCerts.length > 0 ? expiredCerts : expiringCerts).map((c) => c.n).join(" · ")}
+                        <div
+                            className="truncate"
+                            style={{
+                                fontSize: 12,
+                                color: C.mid,
+                                marginTop: 3,
+                                lineHeight: 1.5,
+                            }}
+                        >
+                            {(expiredCerts.length > 0
+                                ? expiredCerts
+                                : expiringCerts
+                            )
+                                .map((c) => c.n)
+                                .join(" · ")}
                         </div>
                     </div>
                 </button>
@@ -458,7 +600,8 @@ export function HomeTab({
                     ojt: "ojt",
                     labor_call: "home",
                 };
-                const metaFor = (t) => NOTE_META[t] || { icon: Bell, color: C.gc };
+                const metaFor = (t) =>
+                    NOTE_META[t] || { icon: Bell, color: C.gc };
                 return (
                     <div
                         className="dspan"
@@ -506,7 +649,13 @@ export function HomeTab({
                             )}
                         </div>
                         {notifications.length === 0 ? (
-                            <div style={{ fontSize: 12, color: C.lo, padding: "4px 0" }}>
+                            <div
+                                style={{
+                                    fontSize: 12,
+                                    color: C.lo,
+                                    padding: "4px 0",
+                                }}
+                            >
                                 Nothing new.
                             </div>
                         ) : (
@@ -518,14 +667,17 @@ export function HomeTab({
                                 }}
                             >
                                 {notifications.map((n) => {
-                                    const { icon: Ico, color: ntColor } = metaFor(n.type);
+                                    const { icon: Ico, color: ntColor } =
+                                        metaFor(n.type);
                                     const strong = n.type === "dnh";
                                     return (
                                         <button
                                             key={n.id}
                                             className="foc"
                                             onClick={() =>
-                                                onGoto(NOTE_TAB[n.type] || "ojt")
+                                                onGoto(
+                                                    NOTE_TAB[n.type] || "ojt",
+                                                )
                                             }
                                             style={{
                                                 width: "100%",
@@ -534,7 +686,11 @@ export function HomeTab({
                                                 alignItems: "center",
                                                 gap: 9,
                                                 background: C.sunk,
-                                                border: "1px solid " + (strong ? ntColor + "55" : C.line),
+                                                border:
+                                                    "1px solid " +
+                                                    (strong
+                                                        ? ntColor + "55"
+                                                        : C.line),
                                                 borderRadius: 9,
                                                 padding: "8px 10px",
                                             }}
@@ -550,8 +706,12 @@ export function HomeTab({
                                                     flex: 1,
                                                     minWidth: 0,
                                                     fontSize: 12.5,
-                                                    color: strong ? ntColor : C.hi,
-                                                    fontWeight: strong ? 700 : 400,
+                                                    color: strong
+                                                        ? ntColor
+                                                        : C.hi,
+                                                    fontWeight: strong
+                                                        ? 700
+                                                        : 400,
                                                 }}
                                             >
                                                 {n.message}
@@ -631,271 +791,267 @@ export function HomeTab({
                 the chart card grows to fill it — mobile keeps its existing
                 fixed chart height untouched. */}
             <div className="dspan hero-grid">
-            <div
-                style={{
-                    background: C.panel,
-                    border: "1px solid " + C.edge,
-                    borderRadius: 14,
-                    padding: "14px 15px",
-                    boxShadow: SHADOW,
-                }}
-            >
-                <div style={{ display: "flex", alignItems: "flex-start" }}>
-                    <div>
-                        <div
-                            style={{
-                                fontSize: 9.5,
-                                letterSpacing: 0.9,
-                                color: C.lo,
-                                fontFamily: FM,
-                            }}
-                        >
-                            {MONTHS[today.getMonth()]} HOURS
-                        </div>
-                        <div
-                            style={{
-                                display: "flex",
-                                alignItems: "baseline",
-                                gap: 8,
-                                marginTop: 2,
-                            }}
-                        >
-                            <span
+                <div
+                    style={{
+                        background: C.panel,
+                        border: "1px solid " + C.edge,
+                        borderRadius: 14,
+                        padding: "14px 15px",
+                        boxShadow: SHADOW,
+                    }}
+                >
+                    <div style={{ display: "flex", alignItems: "flex-start" }}>
+                        <div>
+                            <div
                                 style={{
+                                    fontSize: 9.5,
+                                    letterSpacing: 0.9,
+                                    color: C.lo,
                                     fontFamily: FM,
-                                    fontSize: 40,
-                                    fontWeight: 800,
-                                    color: m.total ? C.working : C.lo,
-                                    lineHeight: 1.05,
                                 }}
                             >
-                                {hrsFmt(m.total)}
-                            </span>
-                            {prev.total > 0 && (
+                                {MONTHS[today.getMonth()]} HOURS
+                            </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    alignItems: "baseline",
+                                    gap: 8,
+                                    marginTop: 2,
+                                }}
+                            >
                                 <span
                                     style={{
                                         fontFamily: FM,
-                                        fontSize: 12,
+                                        fontSize: 40,
                                         fontWeight: 800,
-                                        color:
-                                            delta >= 0 ? C.working : C.danger,
+                                        color: m.total ? C.working : C.lo,
+                                        lineHeight: 1.05,
                                     }}
                                 >
-                                    {delta >= 0 ? "+" : ""}
-                                    {hrsFmt(delta)} vs{" "}
-                                    {MONTHS[mParse(mAdd(mk, -1)).m]}
+                                    {hrsFmt(m.total)}
                                 </span>
+                                {prev.total > 0 && (
+                                    <span
+                                        style={{
+                                            fontFamily: FM,
+                                            fontSize: 12,
+                                            fontWeight: 800,
+                                            color:
+                                                delta >= 0
+                                                    ? C.working
+                                                    : C.danger,
+                                        }}
+                                    >
+                                        {delta >= 0 ? "+" : ""}
+                                        {hrsFmt(delta)} vs{" "}
+                                        {MONTHS[mParse(mAdd(mk, -1)).m]}
+                                    </span>
+                                )}
+                            </div>
+                            <div
+                                style={{
+                                    fontSize: 11.5,
+                                    color: C.mid,
+                                    marginTop: 5,
+                                }}
+                            >
+                                {m.days} day{m.days === 1 ? "" : "s"} worked ·{" "}
+                                {hrsFmt(weekHrs)} hrs this week
+                            </div>
+                        </div>
+                        <button
+                            className="foc"
+                            onClick={() => onGoto("cal")}
+                            style={{
+                                marginLeft: "auto",
+                                flexShrink: 0,
+                                background: C.raise,
+                                border: "1px solid " + C.line,
+                                borderRadius: 8,
+                                padding: "7px 9px",
+                                color: C.mid,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 5,
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                            }}
+                        >
+                            <CalendarDays size={13} />
+                            Calendar
+                        </button>
+                    </div>
+
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            marginTop: 12,
+                            paddingTop: 11,
+                            borderTop: "1px solid " + C.line,
+                        }}
+                    >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                                style={{
+                                    fontSize: 9.5,
+                                    letterSpacing: 0.8,
+                                    color: C.lo,
+                                    fontFamily: FM,
+                                }}
+                            >
+                                EST. GROSS
+                            </div>
+                            <div
+                                style={{
+                                    fontFamily: FM,
+                                    fontSize: 19,
+                                    fontWeight: 800,
+                                    color: gross ? C.hi : C.lo,
+                                    marginTop: 1,
+                                }}
+                            >
+                                $
+                                {gross.toLocaleString(undefined, {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}
+                            </div>
+                            <div
+                                style={{
+                                    fontSize: 10,
+                                    color: C.lo,
+                                    marginTop: 2,
+                                }}
+                            >
+                                {hrsFmt(r1(mp.paid))} weighted hrs
+                                {[
+                                    mp.travel > 0
+                                        ? "$" + mp.travel.toFixed(2) + " travel"
+                                        : null,
+                                    mp.parking > 0
+                                        ? "$" +
+                                          mp.parking.toFixed(2) +
+                                          " parking"
+                                        : null,
+                                ]
+                                    .filter(Boolean)
+                                    .map((s) => " + " + s)
+                                    .join("")}
+                            </div>
+                            <div style={{ marginTop: 7 }}>
+                                <SplitChips sp={monthSplit} />
+                            </div>
+                            {Object.keys(inPlay).length > 0 && (
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 3,
+                                        marginTop: 7,
+                                    }}
+                                >
+                                    {Object.keys(inPlay).map((k) => {
+                                        const r = inPlay[k];
+                                        return (
+                                            <div
+                                                key={k}
+                                                className="truncate"
+                                                style={{
+                                                    fontFamily: FM,
+                                                    fontSize: 10,
+                                                    color: C.lo,
+                                                }}
+                                            >
+                                                <span
+                                                    style={{
+                                                        fontWeight: 800,
+                                                        color: r.over
+                                                            ? C.brand
+                                                            : C.mid,
+                                                    }}
+                                                >
+                                                    {money(r.rate)}
+                                                </span>
+                                                <span>
+                                                    {" "}
+                                                    {r.over
+                                                        ? r.level + " · "
+                                                        : "scale · "}
+                                                </span>
+                                                <span>
+                                                    {r.cos.length > 2
+                                                        ? r.cos.length +
+                                                          " companies"
+                                                        : r.cos.join(", ")}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             )}
                         </div>
                         <div
                             style={{
-                                fontSize: 11.5,
-                                color: C.mid,
-                                marginTop: 5,
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 4,
+                                justifyContent: "flex-end",
+                                maxWidth: 140,
                             }}
                         >
-                            {m.days} day{m.days === 1 ? "" : "s"} worked ·{" "}
-                            {hrsFmt(weekHrs)} hrs this week
-                        </div>
-                    </div>
-                    <button
-                        className="foc"
-                        onClick={() => onGoto("cal")}
-                        style={{
-                            marginLeft: "auto",
-                            flexShrink: 0,
-                            background: C.raise,
-                            border: "1px solid " + C.line,
-                            borderRadius: 8,
-                            padding: "7px 9px",
-                            color: C.mid,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                        }}
-                    >
-                        <CalendarDays size={13} />
-                        Calendar
-                    </button>
-                </div>
-
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        marginTop: 12,
-                        paddingTop: 11,
-                        borderTop: "1px solid " + C.line,
-                    }}
-                >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                            style={{
-                                fontSize: 9.5,
-                                letterSpacing: 0.8,
-                                color: C.lo,
-                                fontFamily: FM,
-                            }}
-                        >
-                            EST. GROSS
-                        </div>
-                        <div
-                            style={{
-                                fontFamily: FM,
-                                fontSize: 19,
-                                fontWeight: 800,
-                                color: gross ? C.hi : C.lo,
-                                marginTop: 1,
-                            }}
-                        >
-                            $
-                            {gross.toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
+                            {["A", "B", "C", "D"].map((k) => {
+                                const v = m[k.toLowerCase()];
+                                if (!v) return null;
+                                const meta = CATS_META[k];
+                                return (
+                                    <span
+                                        key={k}
+                                        style={{
+                                            fontFamily: FM,
+                                            fontSize: 10.5,
+                                            fontWeight: 800,
+                                            color: meta.color,
+                                            background: meta.color + "1F",
+                                            border:
+                                                "1px solid " +
+                                                meta.color +
+                                                "55",
+                                            borderRadius: 6,
+                                            padding: "3px 6px",
+                                        }}
+                                    >
+                                        {k} {hrsFmt(v)}
+                                    </span>
+                                );
                             })}
-                        </div>
-                        <div
-                            style={{ fontSize: 10, color: C.lo, marginTop: 2 }}
-                        >
-                            {hrsFmt(r1(mp.paid))} weighted hrs
-                            {[
-                                mp.travel > 0 ? "$" + mp.travel.toFixed(2) + " travel" : null,
-                                mp.parking > 0 ? "$" + mp.parking.toFixed(2) + " parking" : null,
-                            ]
-                                .filter(Boolean)
-                                .map((s) => " + " + s)
-                                .join("")}
-                        </div>
-                        <div style={{ marginTop: 7 }}>
-                            <SplitChips sp={monthSplit} />
-                        </div>
-                        {Object.keys(inPlay).length > 0 && (
-                            <div
-                                style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: 3,
-                                    marginTop: 7,
-                                }}
-                            >
-                                {Object.keys(inPlay).map((k) => {
-                                    const r = inPlay[k];
-                                    return (
-                                        <div
-                                            key={k}
-                                            className="truncate"
-                                            style={{
-                                                fontFamily: FM,
-                                                fontSize: 10,
-                                                color: C.lo,
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    fontWeight: 800,
-                                                    color: r.over
-                                                        ? C.brand
-                                                        : C.mid,
-                                                }}
-                                            >
-                                                {money(r.rate)}
-                                            </span>
-                                            <span>
-                                                {" "}
-                                                {r.over
-                                                    ? r.level + " · "
-                                                    : "scale · "}
-                                            </span>
-                                            <span>
-                                                {r.cos.length > 2
-                                                    ? r.cos.length +
-                                                      " companies"
-                                                    : r.cos.join(", ")}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                    <div
-                        style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 4,
-                            justifyContent: "flex-end",
-                            maxWidth: 140,
-                        }}
-                    >
-                        {["A", "B", "C", "D"].map((k) => {
-                            const v = m[k.toLowerCase()];
-                            if (!v) return null;
-                            const meta = CATS_META[k];
-                            return (
+                            {m.uncat > 0 && (
                                 <span
-                                    key={k}
                                     style={{
                                         fontFamily: FM,
                                         fontSize: 10.5,
                                         fontWeight: 800,
-                                        color: meta.color,
-                                        background: meta.color + "1F",
-                                        border:
-                                            "1px solid " + meta.color + "55",
+                                        color: C.lo,
+                                        border: "1px dashed " + C.line,
                                         borderRadius: 6,
                                         padding: "3px 6px",
                                     }}
                                 >
-                                    {k} {hrsFmt(v)}
+                                    {hrsFmt(m.uncat)} untagged
                                 </span>
-                            );
-                        })}
-                        {m.uncat > 0 && (
-                            <span
-                                style={{
-                                    fontFamily: FM,
-                                    fontSize: 10.5,
-                                    fontWeight: 800,
-                                    color: C.lo,
-                                    border: "1px dashed " + C.line,
-                                    borderRadius: 6,
-                                    padding: "3px 6px",
-                                }}
-                            >
-                                {hrsFmt(m.uncat)} untagged
-                            </span>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </div>
-                {/* right next to the OT/DT numbers it explains, not buried
+                    {/* right next to the OT/DT numbers it explains, not buried
                     below the monthly grid where it's easy to never see —
                     that's where this note used to live. */}
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 6,
-                        marginTop: 10,
-                        paddingTop: 10,
-                        borderTop: "1px solid " + C.line,
-                        fontSize: 10.5,
-                        color: C.mid,
-                        lineHeight: 1.5,
-                    }}
-                >
-                    <Info size={12} color={C.gc} style={{ flexShrink: 0, marginTop: 2 }} />
-                    <div>
-                        A flat hours entry (no clock in/out) assumes a standard {fmtClock(PAY.stStart)} start.
-                        Clocked in before {fmtClock(PAY.stStart)} or out after {fmtClock(PAY.otEnd)}? Use the time
-                        fields on the day sheet instead, or this OT/DT split — and the gross above — will be off.
-                    </div>
-                </div>
-                {gross > 0 && (
                     <div
                         style={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 6,
                             marginTop: 10,
                             paddingTop: 10,
                             borderTop: "1px solid " + C.line,
@@ -904,17 +1060,51 @@ export function HomeTab({
                             lineHeight: 1.5,
                         }}
                     >
-                        <span style={{ fontWeight: 800, color: C.hi }}>
-                            After SS, Medicare &amp; CA SDI only:{" "}
-                            {"$" + (gross * (1 - RELIABLE_PAYROLL_TAX_RATE)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>{" "}
-                        — a partial number. Doesn't include federal/state withholding or union dues yet
-                        (both vary by paycheck and level), so your real take-home will be lower than this.
+                        <Info
+                            size={12}
+                            color={C.gc}
+                            style={{ flexShrink: 0, marginTop: 2 }}
+                        />
+                        <div>
+                            A flat hours entry (no clock in/out) assumes a
+                            standard {fmtClock(PAY.stStart)} start. Clocked in
+                            before {fmtClock(PAY.stStart)} or out after{" "}
+                            {fmtClock(PAY.otEnd)}? Use the time fields on the
+                            day sheet instead, or this OT/DT split — and the
+                            gross above — will be off.
+                        </div>
                     </div>
-                )}
-            </div>
+                    {gross > 0 && (
+                        <div
+                            style={{
+                                marginTop: 10,
+                                paddingTop: 10,
+                                borderTop: "1px solid " + C.line,
+                                fontSize: 10.5,
+                                color: C.mid,
+                                lineHeight: 1.5,
+                            }}
+                        >
+                            <span style={{ fontWeight: 800, color: C.hi }}>
+                                After SS, Medicare &amp; CA SDI only:{" "}
+                                {"$" +
+                                    (
+                                        gross *
+                                        (1 - RELIABLE_PAYROLL_TAX_RATE)
+                                    ).toLocaleString(undefined, {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })}
+                            </span>{" "}
+                            — a partial number. Doesn't include federal/state
+                            withholding or union dues yet (both vary by paycheck
+                            and level), so your real take-home will be lower
+                            than this.
+                        </div>
+                    )}
+                </div>
 
-            <MonthlyHoursChart series={monthlySeries} />
+                <MonthlyHoursChart series={monthlySeries} />
             </div>
 
             {/* this week */}
@@ -966,8 +1156,8 @@ export function HomeTab({
                               ? BOOKED
                               : hasClass
                                 ? missedClass
-                                  ? C.danger
-                                  : KLASS
+                                    ? C.danger
+                                    : KLASS
                                 : null;
                         return (
                             <button
@@ -1111,119 +1301,149 @@ export function HomeTab({
                     value={"$" + Math.round(ytd.gross).toLocaleString()}
                     sub={
                         ytd.travel > 0 || ytd.parking > 0
-                            ? "incl. $" + Math.round((ytd.travel || 0) + (ytd.parking || 0)) + " travel/parking"
+                            ? "incl. $" +
+                              Math.round(
+                                  (ytd.travel || 0) + (ytd.parking || 0),
+                              ) +
+                              " travel/parking"
                             : "base pay"
                     }
                     color={C.working}
                 />
             </div>
 
-
             {/* OJT status — urgent styling covers both "never turned in" (late)
                 and "turned in, bounced back" (rejected), since both need the
                 apprentice to act, not just an FYI badge. A CJ has no monthly
                 OJT obligation left, so this whole card is apprentice-only. */}
-            {!profile?.graduatedAt && (() => {
-                // once the apprentice has cleared the "declined" bell
-                // notification (see notifications.jsx / lib/store.ts
-                // clearNotification), treat it as acknowledged — the card
-                // still says DECLINED and still links to OJT to fix it, it
-                // just stops repainting itself urgent-red on every visit.
-                // The status itself (openSt.k) stays "rejected" until they
-                // actually resubmit; only the alarm styling backs off.
-                const rejectedUnacknowledged =
-                    openSt.k === "rejected" &&
-                    notifications.some((n) => n.id.endsWith("-" + mk + "-rejected"));
-                const urgent = lateSt.k === "late" || rejectedUnacknowledged;
-                return (
-                    <button
-                        className="foc dspan"
-                        onClick={() => onGoto("ojt")}
-                        style={{
-                            width: "100%",
-                            textAlign: "left",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 9,
-                            background: urgent
-                                ? "rgba(232,146,124,0.09)"
-                                : C.panel,
-                            border:
-                                "1px solid " +
-                                (urgent ? C.danger + "66" : C.edge),
-                            borderRadius: 12,
-                            padding: "11px 13px",
-                            boxShadow: SHADOW,
-                        }}
-                    >
-                        <GraduationCap
-                            size={15}
-                            color={urgent ? C.danger : C.brand}
-                            style={{ flexShrink: 0 }}
-                        />
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                            {lateSt.k === "late" ? (
-                                <div
-                                    style={{
-                                        fontSize: 12.5,
-                                        color: C.hi,
-                                        lineHeight: 1.45,
-                                    }}
-                                >
-                                    <span style={{ fontWeight: 800, color: C.danger }}>
-                                        {mMed(lastMk)} OJT is late.
-                                    </span>{" "}
-                                    Due the 1st by 4 PM — that's the do-not-hire list.
-                                </div>
-                            ) : openSt.k === "rejected" ? (
-                                <div
-                                    style={{
-                                        fontSize: 12.5,
-                                        color: C.hi,
-                                        lineHeight: 1.45,
-                                    }}
-                                >
-                                    <span style={{ fontWeight: 800, color: C.danger }}>
-                                        {mMed(mk)} OJT was declined.
-                                    </span>{" "}
-                                    Check the hours and resubmit.
-                                </div>
-                            ) : (
-                                <div
-                                    style={{
-                                        fontSize: 12.5,
-                                        color: C.mid,
-                                        lineHeight: 1.45,
-                                    }}
-                                >
-                                    <span style={{ fontWeight: 700, color: C.hi }}>
-                                        {mMed(mk)} OJT
-                                    </span>{" "}
-                                    due {MONTHS[fromKey(ojtDue(mk)).getMonth()]} 1, 4 PM
-                                    · {hrsFmt(r1(m.total))} hrs logged so far
-                                </div>
-                            )}
-                        </div>
-                        <span
+            {!profile?.graduatedAt &&
+                (() => {
+                    // once the apprentice has cleared the "declined" bell
+                    // notification (see notifications.jsx / lib/store.ts
+                    // clearNotification), treat it as acknowledged — the card
+                    // still says DECLINED and still links to OJT to fix it, it
+                    // just stops repainting itself urgent-red on every visit.
+                    // The status itself (openSt.k) stays "rejected" until they
+                    // actually resubmit; only the alarm styling backs off.
+                    const rejectedUnacknowledged =
+                        openSt.k === "rejected" &&
+                        notifications.some((n) =>
+                            n.id.endsWith("-" + mk + "-rejected"),
+                        );
+                    const urgent =
+                        lateSt.k === "late" || rejectedUnacknowledged;
+                    return (
+                        <button
+                            className="foc dspan"
+                            onClick={() => onGoto("ojt")}
                             style={{
-                                flexShrink: 0,
-                                fontFamily: FM,
-                                fontSize: 9.5,
-                                fontWeight: 800,
-                                color: lateSt.k === "late" ? C.danger : openSt.c,
+                                width: "100%",
+                                textAlign: "left",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 9,
+                                background: urgent
+                                    ? "rgba(232,146,124,0.09)"
+                                    : C.panel,
                                 border:
                                     "1px solid " +
-                                    (lateSt.k === "late" ? C.danger : openSt.c) +
-                                    "55",
-                                borderRadius: 5,
-                                padding: "2px 5px",
+                                    (urgent ? C.danger + "66" : C.edge),
+                                borderRadius: 12,
+                                padding: "11px 13px",
+                                boxShadow: SHADOW,
                             }}
                         >
-                            {lateSt.k === "late" ? "LATE" : openSt.t}
-                        </span>
-                    </button>
-                );
-            })()}
+                            <GraduationCap
+                                size={15}
+                                color={urgent ? C.danger : C.brand}
+                                style={{ flexShrink: 0 }}
+                            />
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                                {lateSt.k === "late" ? (
+                                    <div
+                                        style={{
+                                            fontSize: 12.5,
+                                            color: C.hi,
+                                            lineHeight: 1.45,
+                                        }}
+                                    >
+                                        <span
+                                            style={{
+                                                fontWeight: 800,
+                                                color: C.danger,
+                                            }}
+                                        >
+                                            {mMed(lastMk)} OJT is late.
+                                        </span>{" "}
+                                        Due the 1st by 4 PM — that's the
+                                        do-not-hire list.
+                                    </div>
+                                ) : openSt.k === "rejected" ? (
+                                    <div
+                                        style={{
+                                            fontSize: 12.5,
+                                            color: C.hi,
+                                            lineHeight: 1.45,
+                                        }}
+                                    >
+                                        <span
+                                            style={{
+                                                fontWeight: 800,
+                                                color: C.danger,
+                                            }}
+                                        >
+                                            {mMed(mk)} OJT was declined.
+                                        </span>{" "}
+                                        Check the hours and resubmit.
+                                    </div>
+                                ) : (
+                                    <div
+                                        style={{
+                                            fontSize: 12.5,
+                                            color: C.mid,
+                                            lineHeight: 1.45,
+                                        }}
+                                    >
+                                        <span
+                                            style={{
+                                                fontWeight: 700,
+                                                color: C.hi,
+                                            }}
+                                        >
+                                            {mMed(mk)} OJT
+                                        </span>{" "}
+                                        due{" "}
+                                        {MONTHS[fromKey(ojtDue(mk)).getMonth()]}{" "}
+                                        1, 4 PM · {hrsFmt(r1(m.total))} hrs
+                                        logged so far
+                                    </div>
+                                )}
+                            </div>
+                            <span
+                                style={{
+                                    flexShrink: 0,
+                                    fontFamily: FM,
+                                    fontSize: 9.5,
+                                    fontWeight: 800,
+                                    color:
+                                        lateSt.k === "late"
+                                            ? C.danger
+                                            : openSt.c,
+                                    border:
+                                        "1px solid " +
+                                        (lateSt.k === "late"
+                                            ? C.danger
+                                            : openSt.c) +
+                                        "55",
+                                    borderRadius: 5,
+                                    padding: "2px 5px",
+                                }}
+                            >
+                                {lateSt.k === "late" ? "LATE" : openSt.t}
+                            </span>
+                        </button>
+                    );
+                })()}
 
             {/* nothing booked — get on the list */}
             {idle && (
@@ -1313,7 +1533,9 @@ export function HomeTab({
                             color={C.lo}
                             style={{
                                 marginLeft: "auto",
-                                transform: showNotices ? "rotate(90deg)" : "none",
+                                transform: showNotices
+                                    ? "rotate(90deg)"
+                                    : "none",
                                 transition: "transform .15s",
                             }}
                         />
@@ -1333,20 +1555,31 @@ export function HomeTab({
                                 }}
                             >
                                 {unionNotices.map((n) => (
-                                    <div key={n.id} style={{ display: "flex", gap: 10 }}>
+                                    <div
+                                        key={n.id}
+                                        style={{ display: "flex", gap: 10 }}
+                                    >
                                         <div
                                             style={{
                                                 fontFamily: FM,
                                                 fontSize: 11,
                                                 fontWeight: 800,
-                                                color: NOTICE_COLOR[n.kind] || C.mid,
+                                                color:
+                                                    NOTICE_COLOR[n.kind] ||
+                                                    C.mid,
                                                 flexShrink: 0,
                                                 width: 80,
                                             }}
                                         >
                                             {n.dateLabel}
                                         </div>
-                                        <div style={{ fontSize: 12, color: C.mid, lineHeight: 1.4 }}>
+                                        <div
+                                            style={{
+                                                fontSize: 12,
+                                                color: C.mid,
+                                                lineHeight: 1.4,
+                                            }}
+                                        >
                                             {n.body}
                                         </div>
                                     </div>
@@ -1382,19 +1615,26 @@ export function HomeTab({
                     >
                         <Megaphone size={15} color={C.working} />
                         <span style={{ fontWeight: 700, fontSize: 13 }}>
-                            {laborCalls.length} open labor call{laborCalls.length === 1 ? "" : "s"}
+                            {laborCalls.length} open labor call
+                            {laborCalls.length === 1 ? "" : "s"}
                         </span>
                         <ChevronRight
                             size={16}
                             color={C.lo}
                             style={{
                                 marginLeft: "auto",
-                                transform: showLaborCalls ? "rotate(90deg)" : "none",
+                                transform: showLaborCalls
+                                    ? "rotate(90deg)"
+                                    : "none",
                                 transition: "transform .15s",
                             }}
                         />
                     </button>
-                    <div className={"fold-body" + (showLaborCalls ? " open" : "")}>
+                    <div
+                        className={
+                            "fold-body" + (showLaborCalls ? " open" : "")
+                        }
+                    >
                         <div className="fold-body-inner">
                             <div
                                 style={{
@@ -1406,7 +1646,9 @@ export function HomeTab({
                             >
                                 {laborCalls.map((c) => {
                                     const mine = myLaborCallStatus?.[c.id];
-                                    const available = mine === "available" || mine === "confirmed";
+                                    const available =
+                                        mine === "available" ||
+                                        mine === "confirmed";
                                     return (
                                         <div
                                             key={c.id}
@@ -1420,33 +1662,86 @@ export function HomeTab({
                                                 gap: 10,
                                             }}
                                         >
-                                            <div style={{ minWidth: 0, flex: 1 }}>
-                                                <div className="truncate" style={{ fontSize: 13, fontWeight: 700, color: C.hi }}>
-                                                    {c.companies?.name || "Company"}
-                                                    {c.title ? " — " + c.title : ""}
+                                            <div
+                                                style={{ minWidth: 0, flex: 1 }}
+                                            >
+                                                <div
+                                                    className="truncate"
+                                                    style={{
+                                                        fontSize: 13,
+                                                        fontWeight: 700,
+                                                        color: C.hi,
+                                                    }}
+                                                >
+                                                    {c.companies?.name ||
+                                                        "Company"}
+                                                    {c.title
+                                                        ? " — " + c.title
+                                                        : ""}
                                                 </div>
-                                                <div style={{ fontSize: 11, color: C.lo, fontFamily: FM, marginTop: 2 }}>
-                                                    {c.shows?.name ? c.shows.name + " · " : ""}
-                                                    {longDate(new Date(c.starts_at))} · {c.needed_count} needed
+                                                <div
+                                                    style={{
+                                                        fontSize: 11,
+                                                        color: C.lo,
+                                                        fontFamily: FM,
+                                                        marginTop: 2,
+                                                    }}
+                                                >
+                                                    {c.shows?.name
+                                                        ? c.shows.name + " · "
+                                                        : ""}
+                                                    {longDate(
+                                                        new Date(c.starts_at),
+                                                    )}{" "}
+                                                    · {c.needed_count} needed
                                                 </div>
                                             </div>
                                             <button
                                                 className="foc"
                                                 disabled={mine === "confirmed"}
-                                                onClick={() => onRespondLaborCall(c.id, available ? "withdrawn" : "available")}
+                                                onClick={() =>
+                                                    onRespondLaborCall(
+                                                        c.id,
+                                                        available
+                                                            ? "withdrawn"
+                                                            : "available",
+                                                    )
+                                                }
                                                 style={{
                                                     flexShrink: 0,
                                                     fontSize: 11.5,
                                                     fontWeight: 800,
-                                                    color: mine === "confirmed" ? C.gc : available ? C.lo : C.inkGood,
-                                                    background: mine === "confirmed" ? "rgba(127,178,255,0.1)" : available ? C.raise : C.working,
-                                                    border: mine === "confirmed" ? "1px solid " + C.gc + "55" : available ? "1px solid " + C.line : "none",
+                                                    color:
+                                                        mine === "confirmed"
+                                                            ? C.gc
+                                                            : available
+                                                              ? C.lo
+                                                              : C.inkGood,
+                                                    background:
+                                                        mine === "confirmed"
+                                                            ? "rgba(127,178,255,0.1)"
+                                                            : available
+                                                              ? C.raise
+                                                              : C.working,
+                                                    border:
+                                                        mine === "confirmed"
+                                                            ? "1px solid " +
+                                                              C.gc +
+                                                              "55"
+                                                            : available
+                                                              ? "1px solid " +
+                                                                C.line
+                                                              : "none",
                                                     borderRadius: 8,
                                                     padding: "8px 12px",
                                                     whiteSpace: "nowrap",
                                                 }}
                                             >
-                                                {mine === "confirmed" ? "Confirmed" : available ? "Withdraw" : "I'm available"}
+                                                {mine === "confirmed"
+                                                    ? "Confirmed"
+                                                    : available
+                                                      ? "Withdraw"
+                                                      : "I'm available"}
                                             </button>
                                         </div>
                                     );
@@ -1494,7 +1789,8 @@ export function HomeTab({
                                 const days = c.days.slice().sort();
                                 const n = daysUntil(fromKey(days[0]));
                                 const d0 = fromKey(days[0]);
-                                const bigDate = d0.getMonth() + 1 + "/" + d0.getDate();
+                                const bigDate =
+                                    d0.getMonth() + 1 + "/" + d0.getDate();
                                 return (
                                     <div
                                         key={c.kind + c.x.id}
@@ -1519,7 +1815,13 @@ export function HomeTab({
                                                 alignItems: "stretch",
                                             }}
                                         >
-                                            <div style={{ width: 6, background: col, flexShrink: 0 }} />
+                                            <div
+                                                style={{
+                                                    width: 6,
+                                                    background: col,
+                                                    flexShrink: 0,
+                                                }}
+                                            />
                                             <div
                                                 style={{
                                                     flexShrink: 0,
@@ -1527,11 +1829,21 @@ export function HomeTab({
                                                     padding: "11px 8px",
                                                     textAlign: "center",
                                                     background: C.sunk,
-                                                    borderRight: "1px solid " + C.line,
+                                                    borderRight:
+                                                        "1px solid " + C.line,
                                                 }}
                                             >
-                                                <div style={{ fontSize: 9, letterSpacing: 0.7, color: C.lo, fontFamily: FM }}>
-                                                    {isClass ? "CLASS" : "BOOKED"}
+                                                <div
+                                                    style={{
+                                                        fontSize: 9,
+                                                        letterSpacing: 0.7,
+                                                        color: C.lo,
+                                                        fontFamily: FM,
+                                                    }}
+                                                >
+                                                    {isClass
+                                                        ? "CLASS"
+                                                        : "BOOKED"}
                                                 </div>
                                                 <div
                                                     style={{
@@ -1545,13 +1857,39 @@ export function HomeTab({
                                                 >
                                                     {bigDate}
                                                 </div>
-                                                <div style={{ fontSize: 10, color: C.lo, fontFamily: FM, marginTop: 2 }}>
+                                                <div
+                                                    style={{
+                                                        fontSize: 10,
+                                                        color: C.lo,
+                                                        fontFamily: FM,
+                                                        marginTop: 2,
+                                                    }}
+                                                >
                                                     {dayRange(days)}
                                                 </div>
                                             </div>
-                                            <div style={{ flex: 1, padding: "11px 11px 11px 10px", minWidth: 0 }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                                    <Ico size={13} color={col} style={{ flexShrink: 0 }} />
+                                            <div
+                                                style={{
+                                                    flex: 1,
+                                                    padding:
+                                                        "11px 11px 11px 10px",
+                                                    minWidth: 0,
+                                                }}
+                                            >
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 6,
+                                                    }}
+                                                >
+                                                    <Ico
+                                                        size={13}
+                                                        color={col}
+                                                        style={{
+                                                            flexShrink: 0,
+                                                        }}
+                                                    />
                                                     <div
                                                         className="truncate"
                                                         style={{
@@ -1563,27 +1901,43 @@ export function HomeTab({
                                                             letterSpacing: -0.1,
                                                         }}
                                                     >
-                                                        {isClass ? c.x.name : c.x.show || c.x.co}
+                                                        {isClass
+                                                            ? c.x.name
+                                                            : c.x.show ||
+                                                              c.x.co}
                                                     </div>
                                                 </div>
                                                 <div
                                                     className="truncate"
-                                                    style={{ fontSize: 12, color: C.mid, marginTop: 3 }}
+                                                    style={{
+                                                        fontSize: 12,
+                                                        color: C.mid,
+                                                        marginTop: 3,
+                                                    }}
                                                 >
                                                     {isClass
-                                                        ? fmtClock(c.x.start) + " · unpaid"
+                                                        ? fmtClock(c.x.start) +
+                                                          " · unpaid"
                                                         : c.x.co}
                                                 </div>
                                                 <div style={{ marginTop: 8 }}>
                                                     <Chip
                                                         style={{
-                                                            background: "transparent",
+                                                            background:
+                                                                "transparent",
                                                             color: col,
-                                                            border: "1px solid " + col + "55",
+                                                            border:
+                                                                "1px solid " +
+                                                                col +
+                                                                "55",
                                                             fontWeight: 800,
                                                         }}
                                                     >
-                                                        {n === 0 ? "TODAY" : n === 1 ? "TMRW" : "IN " + n + "D"}
+                                                        {n === 0
+                                                            ? "TODAY"
+                                                            : n === 1
+                                                              ? "TMRW"
+                                                              : "IN " + n + "D"}
                                                     </Chip>
                                                 </div>
                                             </div>
@@ -1598,120 +1952,120 @@ export function HomeTab({
                 {/* apprenticeship at a glance — a CJ has no level to work
                     toward, so this whole card is apprentice-only */}
                 {!profile?.graduatedAt && (
-                <button
-                    className="foc"
-                    onClick={() => onGoto("ojt")}
-                    style={{
-                        width: "100%",
-                        textAlign: "left",
-                        background: C.panel,
-                        border: "1px solid " + C.edge,
-                        borderRadius: 12,
-                        padding: "16px 17px",
-                        boxShadow: SHADOW,
-                    }}
-                >
-                    <div
+                    <button
+                        className="foc"
+                        onClick={() => onGoto("ojt")}
                         style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 9,
+                            width: "100%",
+                            textAlign: "left",
+                            background: C.panel,
+                            border: "1px solid " + C.edge,
+                            borderRadius: 12,
+                            padding: "16px 17px",
+                            boxShadow: SHADOW,
                         }}
                     >
-                        <span
+                        <div
                             style={{
-                                flexShrink: 0,
-                                width: 34,
-                                textAlign: "center",
-                                fontFamily: FM,
-                                fontSize: 12,
-                                fontWeight: 800,
-                                color: C.brand,
-                                background: "rgba(255,176,32,0.14)",
-                                border: "1px solid rgba(255,176,32,0.4)",
-                                borderRadius: 6,
-                                padding: "4px 0",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 9,
                             }}
                         >
-                            {lv.k}
-                        </span>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                            <div
+                            <span
                                 style={{
-                                    fontSize: 13,
-                                    fontWeight: 700,
-                                    color: C.hi,
-                                }}
-                            >
-                                {lv.label} · {money(lv.pay)}
-                            </div>
-                            <div
-                                style={{
-                                    fontSize: 11,
-                                    color: C.lo,
+                                    flexShrink: 0,
+                                    width: 34,
+                                    textAlign: "center",
                                     fontFamily: FM,
-                                    marginTop: 2,
+                                    fontSize: 12,
+                                    fontWeight: 800,
+                                    color: C.brand,
+                                    background: "rgba(255,176,32,0.14)",
+                                    border: "1px solid rgba(255,176,32,0.4)",
+                                    borderRadius: 6,
+                                    padding: "4px 0",
                                 }}
                             >
-                                {hrsFmt(t.total)} HRS ON FILE
-                                {unsubmitted > 0
-                                    ? " · +" +
-                                      hrsFmt(unsubmitted) +
-                                      " NOT SUBMITTED"
-                                    : ""}
-                            </div>
-                        </div>
-                        <ChevronRight
-                            size={16}
-                            color={C.lo}
-                            style={{ flexShrink: 0 }}
-                        />
-                    </div>
-                    {nxt && (
-                        <div style={{ marginTop: 10 }}>
-                            <div
-                                style={{
-                                    height: 6,
-                                    borderRadius: 4,
-                                    background: C.raise,
-                                    overflow: "hidden",
-                                }}
-                            >
+                                {lv.k}
+                            </span>
+                            <div style={{ minWidth: 0, flex: 1 }}>
                                 <div
                                     style={{
-                                        height: "100%",
-                                        width: pct + "%",
-                                        background: C.brand,
-                                        borderRadius: 4,
-                                    }}
-                                />
-                            </div>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    marginTop: 5,
-                                    fontFamily: FM,
-                                    fontSize: 10.5,
-                                    color: C.mid,
-                                }}
-                            >
-                                <span>
-                                    {hrsFmt(t.total)} /{" "}
-                                    {nxt.hrs.toLocaleString()}
-                                </span>
-                                <span
-                                    style={{
-                                        marginLeft: "auto",
-                                        color: C.brand,
+                                        fontSize: 13,
                                         fontWeight: 700,
+                                        color: C.hi,
                                     }}
                                 >
-                                    {hrsFmt(nxt.hrs - t.total)} TO {nxt.k}
-                                </span>
+                                    {lv.label} · {money(lv.pay)}
+                                </div>
+                                <div
+                                    style={{
+                                        fontSize: 11,
+                                        color: C.lo,
+                                        fontFamily: FM,
+                                        marginTop: 2,
+                                    }}
+                                >
+                                    {hrsFmt(t.total)} HRS ON FILE
+                                    {unsubmitted > 0
+                                        ? " · +" +
+                                          hrsFmt(unsubmitted) +
+                                          " NOT SUBMITTED"
+                                        : ""}
+                                </div>
                             </div>
+                            <ChevronRight
+                                size={16}
+                                color={C.lo}
+                                style={{ flexShrink: 0 }}
+                            />
                         </div>
-                    )}
-                </button>
+                        {nxt && (
+                            <div style={{ marginTop: 10 }}>
+                                <div
+                                    style={{
+                                        height: 6,
+                                        borderRadius: 4,
+                                        background: C.raise,
+                                        overflow: "hidden",
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            height: "100%",
+                                            width: pct + "%",
+                                            background: C.brand,
+                                            borderRadius: 4,
+                                        }}
+                                    />
+                                </div>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        marginTop: 5,
+                                        fontFamily: FM,
+                                        fontSize: 10.5,
+                                        color: C.mid,
+                                    }}
+                                >
+                                    <span>
+                                        {hrsFmt(t.total)} /{" "}
+                                        {nxt.hrs.toLocaleString()}
+                                    </span>
+                                    <span
+                                        style={{
+                                            marginLeft: "auto",
+                                            color: C.brand,
+                                            fontWeight: 700,
+                                        }}
+                                    >
+                                        {hrsFmt(nxt.hrs - t.total)} TO {nxt.k}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </button>
                 )}
             </div>
 

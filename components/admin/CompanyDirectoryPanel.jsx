@@ -115,7 +115,7 @@ export function CompanyDirectoryPanel() {
                   {[c.city && c.state ? c.city + ", " + c.state : c.city || c.state, c.labor_line, c.foreman].filter(Boolean).join(" · ") || "no details on file"}
                 </div>
               </div>
-              <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); setRemoving(c); }}
+              <button className="foc icon-btn" onClick={(e) => { e.stopPropagation(); setRemoving(c); }} aria-label="Remove company"
                 style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0, marginRight: 4 }}><Trash2 size={13} /></button>
             </div>
             );

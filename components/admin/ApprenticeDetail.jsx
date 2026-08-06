@@ -849,7 +849,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
                     <span style={{ fontFamily: FM, color: C.hi, width: 74, flexShrink: 0 }}>{mMed(r.m)}</span>
                     <span style={{ fontFamily: FM, color: C.mid, flex: 1 }}>A{hrsFmt(r.a)} B{hrsFmt(r.b)} C{hrsFmt(r.c)} D{hrsFmt(r.d)}</span>
                     <span style={{ fontFamily: FM, color: C.working, fontWeight: 800 }}>{hrsFmt(r.total)}h</span>
-                    <button className="foc icon-btn" onClick={() => setConfirmRemoveMonth(r)} style={{ background: "transparent", border: "none", color: C.lo, padding: 2, borderRadius: 5 }}><Trash2 size={13} /></button>
+                    <button className="foc icon-btn" onClick={() => setConfirmRemoveMonth(r)} aria-label="Remove month" style={{ background: "transparent", border: "none", color: C.lo, padding: 2, borderRadius: 5 }}><Trash2 size={13} /></button>
                   </div>
                   {(r.crossed.length > 0 || (app && delta !== 0)) && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>
@@ -979,7 +979,7 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
                     <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>Expires {c.exp}</div>
                   </div>
                   <span style={{ flexShrink: 0, fontFamily: FM, fontSize: 9, fontWeight: 800, color: st.c, border: "1px solid " + st.c + "55", borderRadius: 5, padding: "2px 6px" }}>{st.t}</span>
-                  <button className="foc icon-btn" onClick={() => setConfirmRemoveCert(c)} style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
+                  <button className="foc icon-btn" onClick={() => setConfirmRemoveCert(c)} aria-label="Remove certification" style={{ background: "transparent", border: "none", color: C.lo, padding: 4, borderRadius: 5, flexShrink: 0 }}><Trash2 size={13} /></button>
                 </div>
               );
             })}

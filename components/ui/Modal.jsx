@@ -84,6 +84,7 @@ export function Modal({ title, sub, onClose, children }) {
                     <button
                         className="foc"
                         onClick={requestClose}
+                        aria-label="Close"
                         style={{
                             flexShrink: 0,
                             background: C.raise,

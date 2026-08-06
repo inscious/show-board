@@ -94,7 +94,7 @@ export function PendingSignupsPanel({ onCountChange }) {
                     style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 5, background: C.working, color: C.inkGood, border: "none", borderRadius: 7, padding: "7px 11px", fontSize: 12, fontWeight: 800, opacity: busyId === p.id ? 0.6 : 1 }}>
                     <Check size={13} /> Approve
                   </button>
-                  <button className="foc icon-btn" onClick={() => setRejecting(p)} disabled={busyId === p.id}
+                  <button className="foc icon-btn" onClick={() => setRejecting(p)} disabled={busyId === p.id} aria-label="Reject signup"
                     style={{ flexShrink: 0, background: "transparent", border: "1px solid " + C.line, color: C.danger, borderRadius: 7, padding: 7 }}>
                     <Trash2 size={13} />
                   </button>
