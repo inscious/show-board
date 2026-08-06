@@ -10,6 +10,7 @@ import {
   mAdd, monthGrid, sameDay, bookingOn, classOn, BOOKED, holidayName,
 } from "@/lib/core";
 import { hexRgb } from "@/components/utils/hexRgb";
+import { compressImage } from "@/lib/compressImage";
 import { ClassCurriculum } from "@/components/ojt/ClassCurriculum";
 import { Avatar, Modal, ConfirmModal, req, Stat, PwField, shortDate, RosterCatTooltip, monthHours } from "@/components/admin/shared";
 import { getCached, setCached } from "@/lib/clientCache";
@@ -531,9 +532,10 @@ export function ApprenticeDetail({ apprentice, months, bookings, flags, classes,
     setAvatarState("saving");
     setAvatarMsg("");
     try {
+      const compressed = await compressImage(file, { maxDim: 800 });
       const body = new FormData();
       body.append("userId", apprentice.id);
-      body.append("file", file);
+      body.append("file", compressed);
       const res = await fetch("/api/admin/avatar", { method: "POST", body });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Upload failed");

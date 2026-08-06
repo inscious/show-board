@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, FM, longDate, fromKey } from "@/lib/core";
+import { compressImage } from "@/lib/compressImage";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 async function req(method, path, body) {
@@ -108,35 +109,6 @@ function CopyLink({ token }) {
             </a>
         </div>
     );
-}
-
-// Downscales/recompresses in the browser before it ever leaves the device —
-// a modern phone photo is routinely 3-8MB, and that's what was getting
-// stored and later served on the shared portfolio page verbatim, which is
-// the actual reason photos were slow to load there. Capping the long edge
-// at 2000px and re-encoding as JPEG gets a typical photo down to a few
-// hundred KB with no visible quality loss on a screen. Skips anything
-// already small (a screenshot, an already-compressed image) and falls back
-// to the original file on any failure rather than blocking the upload.
-async function compressImage(file) {
-    if (file.size < 400_000) return file;
-    try {
-        const bitmap = await createImageBitmap(file);
-        const maxDim = 2000;
-        const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
-        const w = Math.round(bitmap.width * scale);
-        const h = Math.round(bitmap.height * scale);
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext("2d").drawImage(bitmap, 0, 0, w, h);
-        bitmap.close();
-        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
-        if (!blob || blob.size >= file.size) return file;
-        return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
-    } catch {
-        return file;
-    }
 }
 
 function ProjectPhotos({ project, detail, onChange }) {
@@ -509,38 +481,50 @@ function ProjectRow({ project, index, count, detail, thumbUrl, expanded, onToggl
                 overflow: "hidden",
             }}
         >
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 12px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div
+                className="foc"
+                role="button"
+                tabIndex={0}
+                aria-expanded={expanded}
+                onClick={onToggle}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onToggle();
+                    }
+                }}
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 12px", cursor: "pointer" }}
+            >
+                <div
+                    style={{ display: "flex", flexDirection: "column", gap: 2 }}
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <button
-                        className="foc"
+                        className="foc navfoc"
                         disabled={index === 0}
                         onClick={() => onMove(project, -1)}
+                        aria-label="Move up"
                         style={{ background: "none", border: "none", color: index === 0 ? C.line : C.lo, padding: 1 }}
                     >
                         <ChevronUp size={13} />
                     </button>
                     <button
-                        className="foc"
+                        className="foc navfoc"
                         disabled={index === count - 1}
                         onClick={() => onMove(project, 1)}
+                        aria-label="Move down"
                         style={{ background: "none", border: "none", color: index === count - 1 ? C.line : C.lo, padding: 1 }}
                     >
                         <ChevronDown size={13} />
                     </button>
                 </div>
-                <button
-                    className="foc"
-                    onClick={onToggle}
+                <div
                     style={{
                         flex: 1,
                         minWidth: 0,
                         display: "flex",
                         alignItems: "center",
                         gap: 10,
-                        textAlign: "left",
-                        background: "transparent",
-                        border: "none",
-                        padding: 0,
                     }}
                 >
                     <div
@@ -578,10 +562,8 @@ function ProjectRow({ project, index, count, detail, thumbUrl, expanded, onToggl
                             {project.share_token ? " · project link on" : ""}
                         </div>
                     </div>
-                </button>
-                <button className="foc" onClick={onToggle} style={{ background: "none", border: "none", color: C.lo, padding: 4 }}>
-                    {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </button>
+                </div>
+                {expanded ? <ChevronUp size={16} color={C.lo} style={{ flexShrink: 0 }} /> : <ChevronDown size={16} color={C.lo} style={{ flexShrink: 0 }} />}
             </div>
 
             {expanded && (

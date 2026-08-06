@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { Camera, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { C, fromKey, longDate } from "@/lib/core";
+import { compressImage } from "@/lib/compressImage";
 
 export function TimeTicketPhotoPicker({ dayKey, entry, onClose }) {
     const [photos, setPhotos] = useState(null); // null = loading
@@ -43,9 +44,12 @@ export function TimeTicketPhotoPicker({ dayKey, entry, onClose }) {
         setUploading(true);
         setError("");
         try {
+            // higher quality than Portfolio's default — this is a proof-of-hours
+            // receipt, so whatever's printed on the ticket needs to stay legible.
+            const compressed = await compressImage(file, { quality: 0.9 });
             const form = new FormData();
             form.append("workEntryId", entry.id);
-            form.append("file", file);
+            form.append("file", compressed);
             const res = await fetch("/api/time-tickets/photos", { method: "POST", body: form });
             const json = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(json.error || "Upload failed");

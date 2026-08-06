@@ -37,8 +37,13 @@ export async function POST(request) {
   const { error: upErr } = await admin.storage.from("avatars").upload(path, bytes, { contentType: file.type, upsert: true });
   if (upErr) return Response.json({ error: "Could not upload" }, { status: 400 });
 
-  const { data: pub } = admin.storage.from("avatars").getPublicUrl(path);
-  const url = pub.publicUrl + "?v=" + Date.now(); // cache-bust so a re-upload shows immediately
+  // avatars bucket is private — a signed URL, not a public one. Long expiry
+  // (1 year) since nothing here refreshes it before then; a re-upload gets
+  // a fresh signed URL anyway (a new token each time doubles as the old
+  // public-URL cache-bust trick, no separate ?v= param needed).
+  const { data: signed, error: signErr } = await admin.storage.from("avatars").createSignedUrl(path, 31536000);
+  if (signErr || !signed?.signedUrl) return Response.json({ error: "Could not save" }, { status: 400 });
+  const url = signed.signedUrl;
 
   const { error: dbErr } = await admin.from("profiles").update({ avatar_url: url }).eq("id", userId);
   if (dbErr) return Response.json({ error: "Could not save" }, { status: 400 });

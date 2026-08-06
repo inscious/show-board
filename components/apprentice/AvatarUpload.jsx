@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Camera, Loader2, Pencil, X } from "lucide-react";
 import { C, FM, SHADOW } from "@/lib/core";
+import { compressImage } from "@/lib/compressImage";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
@@ -51,8 +52,11 @@ export function AvatarUpload({ name, avatarUrl, onChange, size = 52 }) {
         setBusy(true);
         setError("");
         try {
+            // an avatar only ever renders small (a badge/circle), so a much
+            // tighter cap than Portfolio/time-ticket photos is plenty.
+            const compressed = await compressImage(file, { maxDim: 800 });
             const form = new FormData();
-            form.append("file", file);
+            form.append("file", compressed);
             const res = await fetch("/api/profile/avatar", { method: "POST", body: form });
             const json = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(json.error || "Upload failed");
