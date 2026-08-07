@@ -54,8 +54,13 @@ after insert on organizations
 for each row execute function seed_org_app_settings();
 
 -- ========== 5. RLS — replace the two unscoped policies with four scoped ones ==========
-drop policy "anyone can read" on app_settings;
-drop policy "admin can update" on app_settings;
+-- Production's actual policy names ("admin writes" / "anyone reads") differ
+-- from what schema.sql documents ("admin can update" / "anyone can read") —
+-- real drift, caught by actually running this against production (rolled
+-- back cleanly, transaction-wrapped) rather than by reviewing schema.sql.
+-- if exists guards against a re-run, not against guessing the wrong name.
+drop policy if exists "admin writes" on app_settings;
+drop policy if exists "anyone reads" on app_settings;
 
 -- any authenticated user (apprentice, pending, or admin) reads their own org's
 -- row — admin_organization_id() resolves for any signed-in user despite its

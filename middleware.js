@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
+import { INTERIM_PREAUTH_ORGANIZATION_ID } from "@/lib/core";
 
 /* Single choke point: refreshes the Supabase session cookie on every request
    and sends anyone without a session to /login. Nothing else in the app is
@@ -57,7 +58,7 @@ export async function middleware(request) {
   // a build-time flag — bounce the page server-side, before it ever renders,
   // so a disabled flag never flashes the form first.
   if (request.nextUrl.pathname.startsWith("/signup")) {
-    const { data: settings, error: settingsError } = await supabase.from("app_settings").select("self_signup_enabled").eq("id", 1).single();
+    const { data: settings, error: settingsError } = await supabase.from("app_settings").select("self_signup_enabled").eq("organization_id", INTERIM_PREAUTH_ORGANIZATION_ID).single();
     // same reasoning as the profile read below: a transient error isn't
     // "the toggle is off," so don't bounce a real signup on a network blip.
     if (!settingsError && !settings?.self_signup_enabled) {
