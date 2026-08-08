@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { ChevronRight, TrendingDown, Bell, Pencil } from "lucide-react";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import {
@@ -321,6 +321,53 @@ function UpcomingClasses({ apprentices, classesByUser, onOpenApprentice, onChang
   );
 }
 
+/* ---------- apprentices with one or more OJT months awaiting review — the
+   actionable destination for the OJT PENDING stat tile above. Pure
+   client-side read of monthsByUser that's already loaded, no extra fetch,
+   same shape as fallingBehindInfo/DoNotHirePanel right below it. Sorted
+   oldest-submitted-first, same reasoning as a support queue: the one
+   that's been waiting longest surfaces first. ---------- */
+function pendingOjtInfo(months) {
+  const pending = (months || []).filter((m) => m.status === "pending")
+    .sort((a, b) => (a.submitted_on || "").localeCompare(b.submitted_on || ""));
+  if (pending.length === 0) return null;
+  return { oldest: pending[0], count: pending.length };
+}
+
+function PendingOjtPanel({ apprentices, monthsByUser, onOpenApprentice }) {
+  const rows = useMemo(() => apprentices
+    .map((a) => ({ apprentice: a, info: pendingOjtInfo(monthsByUser[a.id]) }))
+    .filter((r) => r.info)
+    .sort((x, y) => (x.info.oldest.submitted_on || "").localeCompare(y.info.oldest.submitted_on || "")),
+    [apprentices, monthsByUser]);
+
+  return (
+    <div style={{ background: C.panel, border: "1px solid " + C.edge, borderRadius: 12, padding: "16px 17px", boxShadow: SHADOW, marginBottom: 12 }}>
+      <div style={{ fontSize: 10, letterSpacing: 0.6, color: C.brand, fontFamily: FM, marginBottom: 9 }}>PENDING OJT — {rows.length}</div>
+      {rows.length === 0 ? (
+        <div style={{ fontSize: 12.5, color: C.lo }}>Nothing to review right now.</div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {rows.map(({ apprentice: a, info }) => (
+            <button key={a.id} className="foc" onClick={() => onOpenApprentice(a.id)}
+              style={{ width: "100%", textAlign: "left", display: "flex", alignItems: "center", gap: 9, background: C.sunk, border: "1px solid " + C.line, borderRadius: 9, padding: "9px 10px" }}>
+              <Avatar name={a.name} email={a.email} avatarUrl={a.avatar_url} size={30} />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div className="truncate" style={{ fontSize: 12.5, fontWeight: 700, color: C.hi }}>{a.name || a.email}</div>
+                <div className="truncate" style={{ fontSize: 10.5, color: C.mid, marginTop: 1 }}>
+                  {mMed(info.oldest.month)} · submitted {(info.oldest.submitted_on || "").slice(0, 10)}
+                  {info.count > 1 ? " · " + info.count + " pending" : ""}
+                </div>
+              </div>
+              <ChevronRight size={14} color={C.lo} style={{ flexShrink: 0 }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------- who's falling behind — no OJT submitted in 2+ months, or the
    last two months' pace has dropped hard against their own history. Pure
    client-side read of monthsByUser that's already loaded, no extra fetch. ---------- */
@@ -500,6 +547,21 @@ function ThisWeek({ shows, onOpenDay }) {
   );
 }
 
+/* ---------- a stat tile that's a shortcut to a queue further down this same
+   page, not a real navigation — wraps the existing Stat display unchanged
+   (own background/border/padding already fully set, so nesting it in a
+   reset button adds no visual difference) in a real <button> for native
+   keyboard/Enter/Space support, same .foc focus-ring convention every other
+   clickable row on this dashboard already uses. ---------- */
+function StatLink({ onClick, ...statProps }) {
+  return (
+    <button type="button" className="foc" onClick={onClick}
+      style={{ display: "block", width: "100%", background: "none", border: "none", padding: 0, margin: 0, textAlign: "left", cursor: "pointer", font: "inherit", borderRadius: 12 }}>
+      <Stat {...statProps} />
+    </button>
+  );
+}
+
 /* ---------- dashboard tab ---------- */
 export function DashboardTab({ apprentices, monthsByUser, shows, classesByUser, certsByUser, onOpenApprentice, onOpenDay, onSelectShow, onChanged }) {
   // self-reported by PendingSignupsPanel below (it already fetches these
@@ -508,23 +570,43 @@ export function DashboardTab({ apprentices, monthsByUser, shows, classesByUser, 
   // folding into "PENDING APPROVALS" and reading as the same kind of thing.
   const [pendingSignups, setPendingSignups] = useState(null);
 
+  // scroll targets for the two clickable stat tiles below — jump-to-section,
+  // not real navigation, so a plain ref + scrollIntoView is enough; no new
+  // dependency needed. tabIndex={-1} makes each section programmatically
+  // focusable (so keyboard/screen-reader users actually land there, not
+  // just scroll past it visually) without adding a stop to the normal Tab
+  // order, same pattern this app's own "Skip to content" link already uses.
+  const pendingSignupsRef = useRef(null);
+  const pendingOjtRef = useRef(null);
+  const scrollToSection = (ref) => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    ref.current?.focus({ preventScroll: true });
+  };
+
   return (
     <>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
         <Stat label="APPRENTICES" value={String(apprentices.length)} color={C.gc} />
-        <Stat label="NEW SIGNUPS" value={pendingSignups == null ? "—" : String(pendingSignups)}
+        <StatLink onClick={() => scrollToSection(pendingSignupsRef)}
+          label="NEW SIGNUPS" value={pendingSignups == null ? "—" : String(pendingSignups)}
           sub="to approve" color={pendingSignups ? C.brand : C.lo} />
-        <Stat label="OJT PENDING" value={String(Object.values(monthsByUser).flat().filter((m) => m.status === "pending").length)}
+        <StatLink onClick={() => scrollToSection(pendingOjtRef)}
+          label="OJT PENDING" value={String(Object.values(monthsByUser).flat().filter((m) => m.status === "pending").length)}
           sub="months to review" color={C.brand} />
       </div>
-      <PendingSignupsPanel onCountChange={setPendingSignups} />
-      <ThisWeek shows={shows} onOpenDay={onOpenDay} />
-      <OnTheFloorPanel shows={shows} onSelectShow={onSelectShow} />
-      <RosterCategoryChart apprentices={apprentices} monthsByUser={monthsByUser} />
+      <div ref={pendingSignupsRef} tabIndex={-1}>
+        <PendingSignupsPanel onCountChange={setPendingSignups} />
+      </div>
+      <div ref={pendingOjtRef} tabIndex={-1}>
+        <PendingOjtPanel apprentices={apprentices} monthsByUser={monthsByUser} onOpenApprentice={onOpenApprentice} />
+      </div>
       <FallingBehindPanel apprentices={apprentices} monthsByUser={monthsByUser} onOpenApprentice={onOpenApprentice} />
       <DoNotHirePanel apprentices={apprentices} onOpenApprentice={onOpenApprentice} />
       <UpcomingClasses apprentices={apprentices} classesByUser={classesByUser} onOpenApprentice={onOpenApprentice} onChanged={onChanged} />
       <ExpiringCerts apprentices={apprentices} certsByUser={certsByUser} />
+      <ThisWeek shows={shows} onOpenDay={onOpenDay} />
+      <OnTheFloorPanel shows={shows} onSelectShow={onSelectShow} />
+      <RosterCategoryChart apprentices={apprentices} monthsByUser={monthsByUser} />
     </>
   );
 }

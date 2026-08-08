@@ -5,6 +5,20 @@
 import { C, CATS_META, CAT_TOTAL, FM, SHADOW, hrsFmt } from "@/lib/core";
 
 export function CatBars({ t }) {
+    // the caption below the bars used to hardcode "Extruded Metals and
+    // Miscellaneous are still untouched" unconditionally — wrong the moment
+    // either category actually has approved hours. Derive it from the same
+    // t.c/t.d the bars above already render, so the two can never disagree.
+    const untouched = [];
+    if (!t.c) untouched.push(CATS_META.C.name);
+    if (!t.d) untouched.push(CATS_META.D.name);
+    const untouchedNote =
+        untouched.length === 2
+            ? `${untouched[0]} and ${untouched[1]} are still untouched.`
+            : untouched.length === 1
+              ? `${untouched[0]} is still untouched.`
+              : "Every category has hours logged.";
+
     return (
         <div
             style={{
@@ -152,8 +166,7 @@ export function CatBars({ t }) {
                 }}
             >
                 Targets add up to {CAT_TOTAL.toLocaleString()} hrs — the same
-                number as the EJ threshold. Extruded Metals and Miscellaneous
-                are still untouched.
+                number as the EJ threshold. {untouchedNote}
             </div>
         </div>
     );
