@@ -12,14 +12,25 @@ async function requireAdmin() {
   if (error || !user) return { error: Response.json({ error: "Not authenticated" }, { status: 401 }) };
   const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   if (!profile?.is_admin) return { error: Response.json({ error: "Admin only" }, { status: 403 }) };
-  return { user };
+  return { supabase, user };
+}
+
+// RLS-scoped lookup, same pattern as admin/set-password and admin/apprentices
+// DELETE — "admin read all" on profiles is org-scoped, so a userId from a
+// different union never comes back here. Callers must run this before any
+// service-role storage/profile write below; the org boundary comes from
+// this authenticated, RLS-scoped query, never from the request body.
+async function requireSameOrgTarget(supabase, userId) {
+  const { data: target, error } = await supabase.from("profiles").select("id").eq("id", userId).maybeSingle();
+  if (error || !target) return { error: Response.json({ error: "Apprentice not found" }, { status: 404 }) };
+  return {};
 }
 
 const MAX_BYTES = 5_000_000; // 5MB — a phone photo, not a print file
 const ALLOWED = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
 export async function POST(request) {
-  const { error } = await requireAdmin();
+  const { supabase, error } = await requireAdmin();
   if (error) return error;
 
   const form = await request.formData();
@@ -30,6 +41,9 @@ export async function POST(request) {
   if (file.size > MAX_BYTES) return Response.json({ error: "Image too large (5MB max)" }, { status: 400 });
   const ext = ALLOWED[file.type];
   if (!ext) return Response.json({ error: "Use a JPG, PNG, or WEBP image" }, { status: 400 });
+
+  const { error: targetError } = await requireSameOrgTarget(supabase, userId);
+  if (targetError) return targetError;
 
   const admin = createAdminClient();
   const path = userId + "." + ext;
@@ -52,11 +66,14 @@ export async function POST(request) {
 }
 
 export async function DELETE(request) {
-  const { error } = await requireAdmin();
+  const { supabase, error } = await requireAdmin();
   if (error) return error;
 
   const { userId } = await request.json();
   if (!userId) return Response.json({ error: "Missing userId" }, { status: 400 });
+
+  const { error: targetError } = await requireSameOrgTarget(supabase, userId);
+  if (targetError) return targetError;
 
   const admin = createAdminClient();
   await admin.storage.from("avatars").remove([userId + ".jpg", userId + ".png", userId + ".webp"]);

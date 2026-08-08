@@ -78,17 +78,26 @@ export async function PATCH(request) {
    still loops one call per id server-side, but that's still 1 HTTP
    round-trip from the client instead of N against the rate limit. */
 export async function DELETE(request) {
-  return guardedRoute(request, "admin:apprentices:delete", { schema: adminDeleteApprenticeSchema, requireAdmin: true }, async ({ user, data }) => {
-    const admin = createAdminClient();
+  return guardedRoute(request, "admin:apprentices:delete", { schema: adminDeleteApprenticeSchema, requireAdmin: true }, async ({ supabase, user, data }) => {
     const ids = data.userIds || [data.userId];
 
-    const { data: profiles } = await admin.from("profiles").select("id, archived_at, approved_at, email").in("id", ids);
-    const byId = Object.fromEntries((profiles || []).map((p) => [p.id, p]));
+    // RLS-scoped lookup first, same pattern the PATCH handler above already
+    // uses — "admin read all" on profiles is org-scoped, so an id from a
+    // different union never comes back here. Everything below only ever
+    // acts on this narrowed list, never the raw request ids, since the
+    // actual deleteUser() call is on the service-role client and has no
+    // RLS of its own to fall back on.
+    const { data: profiles } = await supabase.from("profiles").select("id, archived_at, approved_at, email").in("id", ids);
+    const found = profiles || [];
+    if (found.length === 0) return Response.json({ error: "No apprentices found" }, { status: 404 });
+    const byId = Object.fromEntries(found.map((p) => [p.id, p]));
+    const scopedIds = found.map((p) => p.id);
 
-    const blocked = ids.filter((id) => byId[id]?.approved_at && !byId[id]?.archived_at);
+    const blocked = scopedIds.filter((id) => byId[id]?.approved_at && !byId[id]?.archived_at);
     if (blocked.length > 0) return Response.json({ error: "Archive the apprentice before deleting them." }, { status: 400 });
 
-    for (const id of ids) {
+    const admin = createAdminClient();
+    for (const id of scopedIds) {
       const { error } = await admin.auth.admin.deleteUser(id);
       if (error) return Response.json({ error: "Could not delete" }, { status: 400 });
       await logAudit(admin, {

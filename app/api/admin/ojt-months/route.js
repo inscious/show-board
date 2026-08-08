@@ -31,8 +31,18 @@ export async function DELETE(request) {
    row's status, since app/api/ojt-months (apprentice-facing) always forces 'pending'. */
 export async function PATCH(request) {
   return guardedRoute(request, "admin:ojt-months:status", { schema: adminOjtStatusSchema, requireAdmin: true }, async ({ supabase, data }) => {
-    const { error } = await supabase.from("ojt_months").update({ status: data.status }).eq("month", data.m).eq("user_id", data.userId);
+    // .select() so we can tell "updated 1 row" from "matched 0 rows" — RLS's
+    // "admin all" policy on ojt_months is org-scoped, so a cross-org
+    // (month, userId) pair matches nothing and this comes back empty rather
+    // than erroring. The notification below (which goes through the
+    // service-role client — see its own comment) must never fire unless a
+    // row we're actually authorized to touch was really updated.
+    const { data: updated, error } = await supabase.from("ojt_months")
+      .update({ status: data.status })
+      .eq("month", data.m).eq("user_id", data.userId)
+      .select();
     if (error) return Response.json({ error: "Could not update" }, { status: 400 });
+    if (!updated || updated.length === 0) return Response.json({ error: "OJT month not found" }, { status: 404 });
 
     // let the apprentice know either way — a rejection especially, since
     // that's the signal to fix and resubmit, not just a silent drop.
